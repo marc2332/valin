@@ -1,8 +1,8 @@
-# freya-editor
+# Simple code editor made with [Freya 🦀](https://github.com/marc2332/freya)
 
-This is a code editor that showcases how to use tree-sitter and freya together.
+This is a simple code editor that showcases how to use tree-sitter and freya together.
 
-WARNING ⚠️: the code sucks (sorry), it's not super efficient either, although it can handle a few thousands of lines without problem.
+WARNING ⚠️: the code sucks (sorry), it's not super efficient either, although it can handle a few thousands of lines without problem. Also, don't expect ctrl-c, ctrl-c, text selection, etc.. to work.
 
 this is how it looks:
 
