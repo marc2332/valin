@@ -1,0 +1,9 @@
+[package]
+name = "freya-editor"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+freya = { git = "https://github.com/marc2332/freya", branch = "syntax-highlighting"}
+tree-sitter-highlight = "0.20.1"
+tree-sitter-javascript = "0.20.0"
