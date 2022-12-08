@@ -1,8 +1,7 @@
-use freya::prelude::*;
 use freya::prelude::events::KeyboardEvent;
+use freya::prelude::*;
 
 mod use_syntax_highlighter;
-
 use use_syntax_highlighter::*;
 
 fn main() {
@@ -17,6 +16,7 @@ fn main() {
 }
 
 fn app(cx: Scope) -> Element {
+    use_init_focus(&cx);
     render!(
         ThemeProvider {
             theme: DARK_THEME,
@@ -39,6 +39,9 @@ fn Body(cx: Scope) -> Element {
     let (content, cursor, process_keyevent, process_clickevent, cursor_ref) =
         use_editable(&cx, || code, EditableMode::SingleLineMultipleEditors);
     let syntax_blocks = use_syntax_highlighter(&cx, content);
+    let scroll_y = use_state(&cx, || 0);
+    let destination_line = use_state(&cx, String::new);
+    let (focused, focus_id, focus) = use_raw_focus(&cx);
 
     // Simple calculations
     let font_size = font_size_percentage + 5.0;
@@ -58,8 +61,25 @@ fn Body(cx: Scope) -> Element {
     let manual_line_height = (font_size * line_height) as f32;
 
     let onkeydown = move |e: KeyboardEvent| {
-        process_keyevent.send(e.data).ok();
+        if focused {
+            process_keyevent.send(e.data).ok();
+        }
     };
+
+    let onclick =  move |_: MouseEvent| {
+        *focus.unwrap().write() = focus_id;
+    };
+
+    let onscroll = move |(axis, scroll): (Axis, i32)| {
+        if Axis::Y == axis {
+            scroll_y.set(scroll)
+        }
+    };
+
+    use_effect(&cx, (), move |_| {
+        *focus.unwrap().write() = focus_id;
+        async move {}
+    });
 
     render!(
         rect {
@@ -166,6 +186,25 @@ fn Body(cx: Scope) -> Element {
                         }
                     }
                 }
+                Button {
+                    onclick: move |_| {
+                        if let Ok(v) = destination_line.get().parse::<i32>() {
+                            scroll_y.set(-(manual_line_height * (v - 1) as f32) as i32);
+                            cursor.set((0, v as usize - 1));
+                        }
+                    },
+                    label {
+                        "Scroll to line:"
+                    }
+                }
+                Input {
+                    value: destination_line.get(),
+                    onchange: move |v: String| {
+                        if v.parse::<i32>().is_ok() || v.is_empty() {
+                            destination_line.set(v);
+                        }
+                    }
+                }
             }
         }
         rect {
@@ -173,6 +212,7 @@ fn Body(cx: Scope) -> Element {
             height: "calc(100% - 90)",
             padding: "20",
             onkeydown: onkeydown,
+            onclick: onclick,
             cursor_reference: cursor_ref,
             direction: "horizontal",
             background: "{theme.body.background}",
@@ -180,7 +220,10 @@ fn Body(cx: Scope) -> Element {
                 width: "100%",
                 height: "100%",
                 padding: "30",
-                VirtualScrollView {
+                ControlledVirtualScrollView {
+                    scroll_x: 0,
+                    scroll_y: *scroll_y.get(),
+                    onscroll: onscroll,
                     width: "100%",
                     height: "100%",
                     show_scrollbar: true,
