@@ -619,7 +619,7 @@ dependencies = [
 [[package]]
 name = "freya"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#f72fe49bc7dab74044ce94d31d877217d1c6d6fc"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
 dependencies = [
  "anymap",
  "dioxus",
@@ -642,7 +642,7 @@ dependencies = [
 [[package]]
 name = "freya-common"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#f72fe49bc7dab74044ce94d31d877217d1c6d6fc"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
 dependencies = [
  "dioxus",
  "dioxus-core",
@@ -653,7 +653,7 @@ dependencies = [
 [[package]]
 name = "freya-components"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#f72fe49bc7dab74044ce94d31d877217d1c6d6fc"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
 dependencies = [
  "dioxus",
  "dioxus-router",
@@ -675,7 +675,7 @@ dependencies = [
 [[package]]
 name = "freya-elements"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#f72fe49bc7dab74044ce94d31d877217d1c6d6fc"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
 dependencies = [
  "bumpalo",
  "dioxus-core",
@@ -687,7 +687,7 @@ dependencies = [
 [[package]]
 name = "freya-hooks"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#f72fe49bc7dab74044ce94d31d877217d1c6d6fc"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
 dependencies = [
  "dioxus",
  "freya-common",
@@ -702,7 +702,7 @@ dependencies = [
 [[package]]
 name = "freya-layers"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#f72fe49bc7dab74044ce94d31d877217d1c6d6fc"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
 dependencies = [
  "dioxus",
  "dioxus-native-core",
@@ -714,7 +714,7 @@ dependencies = [
 [[package]]
 name = "freya-layout"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#f72fe49bc7dab74044ce94d31d877217d1c6d6fc"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
 dependencies = [
  "dioxus",
  "dioxus-native-core",
@@ -729,7 +729,7 @@ dependencies = [
 [[package]]
 name = "freya-node-state"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#f72fe49bc7dab74044ce94d31d877217d1c6d6fc"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
 dependencies = [
  "anymap",
  "dioxus",
@@ -746,7 +746,7 @@ dependencies = [
 [[package]]
 name = "freya-processor"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#f72fe49bc7dab74044ce94d31d877217d1c6d6fc"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
 dependencies = [
  "dioxus-core",
  "dioxus-native-core",
@@ -765,7 +765,7 @@ dependencies = [
 [[package]]
 name = "freya-renderer"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#f72fe49bc7dab74044ce94d31d877217d1c6d6fc"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
 dependencies = [
  "dioxus-core",
  "dioxus-native-core",
