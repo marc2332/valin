@@ -11,5 +11,5 @@ this is how it looks:
 note: if you are in Linux and wanna give it a try, you must specify the "x11" (wayland support is coming) feature in Cargo.toml:
 
 ```
-freya = { git = "https://github.com/marc2332/freya", branch = "syntax-highlighting", features = ["x11"]}
+freya = { git = "https://github.com/marc2332/freya", branch = "feat/controlled-scroll-view", features = ["x11"]}
 ```
