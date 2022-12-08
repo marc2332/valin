@@ -33,7 +33,8 @@ pub fn use_syntax_highlighter<'a>(
     let syntax_blocks = use_state::<SyntaxBlocks>(cx, Vec::new);
     let highlighter = cx.use_hook(Highlighter::new);
 
-    use_effect(cx, &content.len(), move |_| {
+    // Not proud of using .to_string() here tbh
+    use_effect(cx, &content.to_string(), move |_| {
         let highlight_names = &mut [
             "attribute",
             "constant",

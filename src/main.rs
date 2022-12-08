@@ -1,4 +1,5 @@
 use freya::prelude::*;
+use freya::prelude::events::KeyboardEvent;
 
 mod use_syntax_highlighter;
 
@@ -55,6 +56,10 @@ fn Body(cx: Scope) -> Element {
     };
     let theme = theme.read();
     let manual_line_height = (font_size * line_height) as f32;
+
+    let onkeydown = move |e: KeyboardEvent| {
+        process_keyevent.send(e.data).ok();
+    };
 
     render!(
         rect {
@@ -167,7 +172,7 @@ fn Body(cx: Scope) -> Element {
             width: "100%",
             height: "calc(100% - 90)",
             padding: "20",
-            onkeydown: process_keyevent,
+            onkeydown: onkeydown,
             cursor_reference: cursor_ref,
             direction: "horizontal",
             background: "{theme.body.background}",
@@ -205,7 +210,7 @@ fn Body(cx: Scope) -> Element {
                         };
 
                         let onmousedown = move |e: MouseEvent| {
-                            process_clickevent.send((e, line_index)).ok();
+                            process_clickevent.send((e.data, line_index)).ok();
                         };
 
                         rsx!(

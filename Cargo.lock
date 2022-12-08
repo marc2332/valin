@@ -566,9 +566,9 @@ dependencies = [
 
 [[package]]
 name = "filetime"
-version = "0.2.18"
+version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4b9663d381d07ae25dc88dbdf27df458faa83a9b25336bcac83d5e452b5fc9d3"
+checksum = "4e884668cd0c7480504233e951174ddc3b382f7c2666e3b7310b5c4e7b0c37f9"
 dependencies = [
  "cfg-if",
  "libc",
@@ -619,7 +619,7 @@ dependencies = [
 [[package]]
 name = "freya"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#5b3e2b316896a208830d6dbda0ba6fde3acfcf3f"
 dependencies = [
  "anymap",
  "dioxus",
@@ -642,7 +642,7 @@ dependencies = [
 [[package]]
 name = "freya-common"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#5b3e2b316896a208830d6dbda0ba6fde3acfcf3f"
 dependencies = [
  "dioxus",
  "dioxus-core",
@@ -653,7 +653,7 @@ dependencies = [
 [[package]]
 name = "freya-components"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#5b3e2b316896a208830d6dbda0ba6fde3acfcf3f"
 dependencies = [
  "dioxus",
  "dioxus-router",
@@ -675,7 +675,7 @@ dependencies = [
 [[package]]
 name = "freya-elements"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#5b3e2b316896a208830d6dbda0ba6fde3acfcf3f"
 dependencies = [
  "bumpalo",
  "dioxus-core",
@@ -687,7 +687,7 @@ dependencies = [
 [[package]]
 name = "freya-hooks"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#5b3e2b316896a208830d6dbda0ba6fde3acfcf3f"
 dependencies = [
  "dioxus",
  "freya-common",
@@ -702,7 +702,7 @@ dependencies = [
 [[package]]
 name = "freya-layers"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#5b3e2b316896a208830d6dbda0ba6fde3acfcf3f"
 dependencies = [
  "dioxus",
  "dioxus-native-core",
@@ -714,7 +714,7 @@ dependencies = [
 [[package]]
 name = "freya-layout"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#5b3e2b316896a208830d6dbda0ba6fde3acfcf3f"
 dependencies = [
  "dioxus",
  "dioxus-native-core",
@@ -729,7 +729,7 @@ dependencies = [
 [[package]]
 name = "freya-node-state"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#5b3e2b316896a208830d6dbda0ba6fde3acfcf3f"
 dependencies = [
  "anymap",
  "dioxus",
@@ -746,7 +746,7 @@ dependencies = [
 [[package]]
 name = "freya-processor"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#5b3e2b316896a208830d6dbda0ba6fde3acfcf3f"
 dependencies = [
  "dioxus-core",
  "dioxus-native-core",
@@ -765,7 +765,7 @@ dependencies = [
 [[package]]
 name = "freya-renderer"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#b8873da192354f761bd9a65f8bea7ac637bb9b39"
+source = "git+https://github.com/marc2332/freya?branch=syntax-highlighting#5b3e2b316896a208830d6dbda0ba6fde3acfcf3f"
 dependencies = [
  "dioxus-core",
  "dioxus-native-core",
