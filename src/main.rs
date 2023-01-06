@@ -1,22 +1,27 @@
-use freya::prelude::events::KeyboardEvent;
+use std::path::PathBuf;
+
+use freya::prelude::events_data::KeyboardEvent;
 use freya::prelude::*;
 
+mod use_editable;
 mod use_syntax_highlighter;
+use tokio::fs::read_to_string;
+pub use use_editable::{use_edit, EditableMode, EditableText};
 use use_syntax_highlighter::*;
 
 fn main() {
-    launch_cfg(vec![(
+    launch_cfg(
         app,
         WindowConfig::<()>::builder()
             .with_width(900)
             .with_height(500)
             .with_title("Editor")
             .build(),
-    )]);
+    );
 }
 
 fn app(cx: Scope) -> Element {
-    use_init_focus(&cx);
+    use_init_focus(cx);
     render!(
         ThemeProvider {
             theme: DARK_THEME,
@@ -25,23 +30,45 @@ fn app(cx: Scope) -> Element {
     )
 }
 
-const DUMMY_CODE: &str = "const test = false;\n\nfunction test(val = 123){\n   console.log(val);\n   let data = `multi\n   line`;\n}\n\n";
+#[derive(Props, Clone)]
+pub struct EditorProps<'a> {
+    pub editables: &'a EditableText,
+    pub editable_index: usize,
+}
+
+impl<'a> PartialEq for EditorProps<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        self.editable_index == other.editable_index
+    }
+}
 
 #[allow(non_snake_case)]
-fn Body(cx: Scope) -> Element {
+fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     // Hooks
-    let line_height_percentage = use_state(&cx, || 0.0);
-    let font_size_percentage = use_state(&cx, || 15.0);
-    let code = cx.use_hook(|| DUMMY_CODE.repeat(400));
-    let is_italic = use_state(&cx, || false);
-    let is_bold = use_state(&cx, || false);
-    let theme = use_theme(&cx);
-    let (content, cursor, process_keyevent, process_clickevent, cursor_ref) =
-        use_editable(&cx, || code, EditableMode::SingleLineMultipleEditors);
-    let syntax_blocks = use_syntax_highlighter(&cx, content);
-    let scroll_y = use_state(&cx, || 0);
-    let destination_line = use_state(&cx, String::new);
-    let (focused, focus_id, focus) = use_raw_focus(&cx);
+    let line_height_percentage = use_state(cx, || 0.0);
+    let font_size_percentage = use_state(cx, || 15.0);
+    let is_italic = use_state(cx, || false);
+    let is_bold = use_state(cx, || false);
+    let (_, content, cursor) = cx
+        .props
+        .editables
+        .get()
+        .get(cx.props.editable_index)
+        .unwrap();
+    let theme = use_theme(cx);
+    let (process_keyevent, process_clickevent, cursor_ref) = use_edit(
+        cx,
+        EditableMode::SingleLineMultipleEditors,
+        cx.props.editables,
+        cx.props.editable_index,
+    );
+
+    // I could pass a vector of type UseState but what about using Atoms¿?
+
+    let syntax_blocks = use_syntax_highlighter(cx, content);
+    let scroll_y = use_state(cx, || 0);
+    let destination_line = use_state(cx, String::new);
+    let (focused, focus_id, focus) = use_raw_focus(cx);
 
     // Simple calculations
     let font_size = font_size_percentage + 5.0;
@@ -66,7 +93,7 @@ fn Body(cx: Scope) -> Element {
         }
     };
 
-    let onclick =  move |_: MouseEvent| {
+    let onclick = move |_: MouseEvent| {
         *focus.unwrap().write() = focus_id;
     };
 
@@ -76,15 +103,15 @@ fn Body(cx: Scope) -> Element {
         }
     };
 
-    use_effect(&cx, (), move |_| {
+    use_effect(cx, (), move |_| {
         *focus.unwrap().write() = focus_id;
         async move {}
     });
 
     render!(
-        rect {
+        container {
             width: "100%",
-            height: "60",
+            height: "80",
             padding: "20",
             direction: "horizontal",
             background: "rgb(20, 20, 20)",
@@ -120,7 +147,6 @@ fn Body(cx: Scope) -> Element {
                             "Font size"
                         }
                     }
-
                 }
                 rect {
                     height: "40%",
@@ -190,7 +216,7 @@ fn Body(cx: Scope) -> Element {
                     onclick: move |_| {
                         if let Ok(v) = destination_line.get().parse::<i32>() {
                             scroll_y.set(-(manual_line_height * (v - 1) as f32) as i32);
-                            cursor.set((0, v as usize - 1));
+
                         }
                     },
                     label {
@@ -209,8 +235,7 @@ fn Body(cx: Scope) -> Element {
         }
         rect {
             width: "100%",
-            height: "calc(100% - 90)",
-            padding: "20",
+            height: "calc(100% - 120)",
             onkeydown: onkeydown,
             onclick: onclick,
             cursor_reference: cursor_ref,
@@ -312,6 +337,80 @@ fn Body(cx: Scope) -> Element {
             label {
                 color: "rgb(200, 200, 200)",
                 "Ln {cursor.1 + 1}, Col {cursor.0 + 1}"
+            }
+        }
+    )
+}
+
+#[allow(non_snake_case)]
+fn Body(cx: Scope) -> Element {
+    let tabs = use_state::<Vec<(PathBuf, Rope, (usize, usize))>>(cx, Vec::new);
+    let selected_tab = use_state::<Option<usize>>(cx, || None);
+
+    let open_file = move |_: MouseEvent| {
+        let tabs = tabs.clone();
+        let selected_tab = selected_tab.clone();
+        cx.spawn(async move {
+            let task = rfd::AsyncFileDialog::new().pick_file();
+            let file = task.await;
+
+            if let Some(file) = file {
+                let path = file.path();
+                let content = read_to_string(&path).await.unwrap();
+                tabs.with_mut(|tabs| {
+                    tabs.push((path.to_path_buf(), Rope::from(content), (0, 0)));
+                    selected_tab.set(Some(tabs.len() - 1));
+                });
+            }
+        });
+    };
+
+    render!(
+        rect {
+            width: "100%",
+            height: "100%",
+            direction: "vertical",
+            background: "rgb(20, 20, 20)",
+            rect {
+                direction: "horizontal",
+                height: "40",
+                padding: "10",
+                Button {
+                    onclick: open_file,
+                    label {
+                        "Open a file"
+                    }
+                }
+                tabs.get().iter().enumerate().map(|(i, (path, _, _))| {
+                    rsx!(
+                        Button {
+                            key: "{i}",
+                            onclick: move |_| {
+                                selected_tab.set(Some(i));
+                            },
+                            label {
+                                "{path.file_name().unwrap().to_str().unwrap()}"
+                            }
+                        }
+                    )
+                })
+            }
+            if let Some(selected_tab) = selected_tab.get() {
+                rsx!(
+                    Editor {
+                        key: "{selected_tab}",
+                        editables: tabs,
+                        editable_index: *selected_tab
+                    }
+                )
+            } else {
+                rsx!(
+                    rect {
+                        label {
+                            "Open a file!"
+                        }
+                    }
+                )
             }
         }
     )

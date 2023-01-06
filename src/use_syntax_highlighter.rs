@@ -28,7 +28,7 @@ pub type SyntaxBlocks = Vec<Vec<(SyntaxType, String)>>;
 
 pub fn use_syntax_highlighter<'a>(
     cx: &'a ScopeState,
-    content: &EditableText,
+    content: &Rope,
 ) -> &'a UseState<SyntaxBlocks> {
     let syntax_blocks = use_state::<SyntaxBlocks>(cx, Vec::new);
     let highlighter = cx.use_hook(Highlighter::new);
@@ -81,8 +81,8 @@ pub fn use_syntax_highlighter<'a>(
                 match event.unwrap() {
                     HighlightEvent::Source { start, end } => {
                         // Prepare the whole block even if it's splitted across multiple lines.
-                        let data = content.get().lines(start..end);
-                        let starting_line = content.get().line_of_offset(start);
+                        let data = content.lines(start..end);
+                        let starting_line = content.line_of_offset(start);
 
                         for (i, d) in data.enumerate() {
                             prepared_block.1.push((starting_line + i, d.to_string()));
