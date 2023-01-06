@@ -797,6 +797,7 @@ dependencies = [
 [[package]]
 name = "freya"
 version = "0.1.0"
+source = "git+https://github.com/marc2332/freya?branch=feat/controlled-scroll-view#b8bcc45b7572cd73ca71183bf9f1a64c0fcca60d"
 dependencies = [
  "anymap 0.12.1",
  "dioxus",
@@ -824,6 +825,7 @@ dependencies = [
 [[package]]
 name = "freya-common"
 version = "0.1.0"
+source = "git+https://github.com/marc2332/freya?branch=feat/controlled-scroll-view#b8bcc45b7572cd73ca71183bf9f1a64c0fcca60d"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -835,6 +837,7 @@ dependencies = [
 [[package]]
 name = "freya-components"
 version = "0.1.0"
+source = "git+https://github.com/marc2332/freya?branch=feat/controlled-scroll-view#b8bcc45b7572cd73ca71183bf9f1a64c0fcca60d"
 dependencies = [
  "dioxus",
  "dioxus-core",
@@ -865,6 +868,7 @@ dependencies = [
 [[package]]
 name = "freya-elements"
 version = "0.1.0"
+source = "git+https://github.com/marc2332/freya?branch=feat/controlled-scroll-view#b8bcc45b7572cd73ca71183bf9f1a64c0fcca60d"
 dependencies = [
  "bumpalo",
  "dioxus-core",
@@ -881,6 +885,7 @@ dependencies = [
 [[package]]
 name = "freya-hooks"
 version = "0.1.0"
+source = "git+https://github.com/marc2332/freya?branch=feat/controlled-scroll-view#b8bcc45b7572cd73ca71183bf9f1a64c0fcca60d"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -899,6 +904,7 @@ dependencies = [
 [[package]]
 name = "freya-layers"
 version = "0.1.0"
+source = "git+https://github.com/marc2332/freya?branch=feat/controlled-scroll-view#b8bcc45b7572cd73ca71183bf9f1a64c0fcca60d"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -913,6 +919,7 @@ dependencies = [
 [[package]]
 name = "freya-layout"
 version = "0.1.0"
+source = "git+https://github.com/marc2332/freya?branch=feat/controlled-scroll-view#b8bcc45b7572cd73ca71183bf9f1a64c0fcca60d"
 dependencies = [
  "dioxus",
  "dioxus-native-core",
@@ -927,6 +934,7 @@ dependencies = [
 [[package]]
 name = "freya-node-state"
 version = "0.1.0"
+source = "git+https://github.com/marc2332/freya?branch=feat/controlled-scroll-view#b8bcc45b7572cd73ca71183bf9f1a64c0fcca60d"
 dependencies = [
  "anymap 0.12.1",
  "dioxus-core",
@@ -945,6 +953,7 @@ dependencies = [
 [[package]]
 name = "freya-processor"
 version = "0.1.0"
+source = "git+https://github.com/marc2332/freya?branch=feat/controlled-scroll-view#b8bcc45b7572cd73ca71183bf9f1a64c0fcca60d"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -967,6 +976,7 @@ dependencies = [
 [[package]]
 name = "freya-renderer"
 version = "0.1.0"
+source = "git+https://github.com/marc2332/freya?branch=feat/controlled-scroll-view#b8bcc45b7572cd73ca71183bf9f1a64c0fcca60d"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
