@@ -14,7 +14,7 @@ fn main() {
         app,
         WindowConfig::<()>::builder()
             .with_width(900)
-            .with_height(500)
+            .with_height(600)
             .with_title("Editor")
             .build(),
     );
@@ -44,11 +44,8 @@ impl<'a> PartialEq for EditorProps<'a> {
 
 #[allow(non_snake_case)]
 fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
-    // Hooks
     let line_height_percentage = use_state(cx, || 0.0);
     let font_size_percentage = use_state(cx, || 15.0);
-    let is_italic = use_state(cx, || false);
-    let is_bold = use_state(cx, || false);
     let (_, content, cursor) = cx
         .props
         .editables
@@ -73,17 +70,6 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     // Simple calculations
     let font_size = font_size_percentage + 5.0;
     let line_height = (line_height_percentage / 25.0) + 1.2;
-    let font_style = {
-        if *is_bold.get() && *is_italic.get() {
-            "bold-italic"
-        } else if *is_italic.get() {
-            "italic"
-        } else if *is_bold.get() {
-            "bold"
-        } else {
-            "normal"
-        }
-    };
     let theme = theme.read();
     let manual_line_height = (font_size * line_height) as f32;
 
@@ -120,13 +106,6 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                 width: "100%",
                 direction: "horizontal",
                 padding: "10",
-                label {
-                    font_size: "30",
-                    "Editor"
-                }
-                rect {
-                    width: "20",
-                }
                 rect {
                     height: "40%",
                     display: "center",
@@ -170,48 +149,6 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                         }
                     }
                 }
-                rect {
-                    height: "40%",
-                    display: "center",
-                    direction: "vertical",
-                    width: "60",
-                    Switch {
-                        enabled: *is_bold.get(),
-                        ontoggled: |_| {
-                            is_bold.set(!is_bold.get());
-                        }
-                    }
-                    rect {
-                        height: "auto",
-                        width: "100%",
-                        display: "center",
-                        direction: "horizontal",
-                        label {
-                            "Bold"
-                        }
-                    }
-                }
-                rect {
-                    height: "40%",
-                    display: "center",
-                    direction: "vertical",
-                    width: "60",
-                    Switch {
-                        enabled: *is_italic.get(),
-                        ontoggled: |_| {
-                            is_italic.set(!is_italic.get());
-                        }
-                    }
-                    rect {
-                        height: "auto",
-                        width: "100%",
-                        display: "center",
-                        direction: "horizontal",
-                        label {
-                            "Italic"
-                        }
-                    }
-                }
                 Button {
                     onclick: move |_| {
                         if let Ok(v) = destination_line.get().parse::<i32>() {
@@ -235,7 +172,7 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
         }
         rect {
             width: "100%",
-            height: "calc(100% - 120)",
+            height: "calc(100% - 110)",
             onkeydown: onkeydown,
             onclick: onclick,
             cursor_reference: cursor_ref,
@@ -244,7 +181,6 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
             rect {
                 width: "100%",
                 height: "100%",
-                padding: "30",
                 ControlledVirtualScrollView {
                     scroll_x: 0,
                     scroll_y: *scroll_y.get(),
@@ -316,7 +252,6 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                                                 width: "100%",
                                                 color: "{get_color_from_type(t)}",
                                                 font_size: "{font_size}",
-                                                font_style: "{font_style}",
                                                 "{word}"
                                             }
                                         )
@@ -367,50 +302,74 @@ fn Body(cx: Scope) -> Element {
 
     render!(
         rect {
+            background: "rgb(20, 20, 20)",
+            direction: "horizontal",
             width: "100%",
             height: "100%",
-            direction: "vertical",
-            background: "rgb(20, 20, 20)",
             rect {
-                direction: "horizontal",
-                height: "40",
-                padding: "10",
+                direction: "vertical",
+                width: "60",
+                height: "100%",
                 Button {
                     onclick: open_file,
                     label {
-                        "Open a file"
+                        "Open"
                     }
                 }
-                tabs.get().iter().enumerate().map(|(i, (path, _, _))| {
-                    rsx!(
-                        Button {
-                            key: "{i}",
-                            onclick: move |_| {
-                                selected_tab.set(Some(i));
-                            },
-                            label {
-                                "{path.file_name().unwrap().to_str().unwrap()}"
-                            }
-                        }
-                    )
-                })
             }
-            if let Some(selected_tab) = selected_tab.get() {
-                rsx!(
-                    Editor {
-                        key: "{selected_tab}",
-                        editables: tabs,
-                        editable_index: *selected_tab
+            rect {
+                background: "rgb(100, 100, 100)",
+                height: "100%",
+                width: "2",
+            }
+            rect {
+                direction: "vertical",
+                height: "100%",
+                width: "calc(100%-62)",
+                rect {
+                    direction: "horizontal",
+                    height: "60",
+                    width: "100%",
+                    tabs.get().iter().enumerate().map(|(i, (path, _, _))| {
+                        rsx!(
+                            Button {
+                                key: "{i}",
+                                onclick: move |_| {
+                                    selected_tab.set(Some(i));
+                                },
+                                label {
+                                    "{path.file_name().unwrap().to_str().unwrap()}"
+                                }
+                            }
+                        )
+                    })
+                }
+                rect {
+                    height: "calc(100%-60)",
+                    width: "100%",
+                    if let Some(selected_tab) = selected_tab.get() {
+                        rsx!(
+                            Editor {
+                                key: "{selected_tab}",
+                                editables: tabs,
+                                editable_index: *selected_tab
+                            }
+                        )
+                    } else {
+                        rsx!(
+                            rect {
+                                display: "center",
+                                width: "100%",
+                                height: "100%",
+                                direction: "both",
+                                label {
+                                    "Open a file!"
+                                }
+                            }
+                        )
                     }
-                )
-            } else {
-                rsx!(
-                    rect {
-                        label {
-                            "Open a file!"
-                        }
-                    }
-                )
+                }
+
             }
         }
     )
