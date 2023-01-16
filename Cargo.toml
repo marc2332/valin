@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-dioxus = { git = "https://github.com/DioxusLabs/dioxus", rev="1737c55575f35ccd18e95d2d42fdbc60ff98cf58"}
+dioxus = { git = "https://github.com/DioxusLabs/dioxus", rev="45abbb7a06bc4697a57c6ab1dfebb822430dcb33"}
 freya-node-state = { git = "https://github.com/marc2332/freya", branch = "feat/controlled-scroll-view" }
 freya = { git = "https://github.com/marc2332/freya", branch = "feat/controlled-scroll-view" }
 tree-sitter-highlight = "0.20.1"
