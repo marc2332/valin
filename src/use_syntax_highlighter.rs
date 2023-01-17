@@ -26,37 +26,34 @@ impl From<&str> for SyntaxType {
 
 pub type SyntaxBlocks = Vec<Vec<(SyntaxType, String)>>;
 
+const HIGHLIGH_TAGS: [&'static str; 19] = [
+    "attribute",
+    "constant",
+    "function.builtin",
+    "function",
+    "keyword",
+    "operator",
+    "property",
+    "punctuation",
+    "punctuation.bracket",
+    "punctuation.delimiter",
+    "string",
+    "string.special",
+    "tag",
+    "type",
+    "type.builtin",
+    "variable",
+    "variable.builtin",
+    "variable.parameter",
+    "number",
+];
+
 pub fn use_syntax_highlighter<'a>(
     cx: &'a ScopeState,
     content: &Rope,
 ) -> &'a UseState<SyntaxBlocks> {
     let syntax_blocks = use_state::<SyntaxBlocks>(cx, Vec::new);
-    let highlighter = cx.use_hook(Highlighter::new);
-
-    // Not proud of using .to_string() here tbh
-    use_effect(cx, &content.to_string(), move |_| {
-        let highlight_names = &mut [
-            "attribute",
-            "constant",
-            "function.builtin",
-            "function",
-            "keyword",
-            "operator",
-            "property",
-            "punctuation",
-            "punctuation.bracket",
-            "punctuation.delimiter",
-            "string",
-            "string.special",
-            "tag",
-            "type",
-            "type.builtin",
-            "variable",
-            "variable.builtin",
-            "variable.parameter",
-            "number",
-        ];
-
+    let javascript_config = cx.use_hook(|| {
         let mut javascript_config = HighlightConfiguration::new(
             tree_sitter_javascript::language(),
             tree_sitter_javascript::HIGHLIGHT_QUERY,
@@ -64,10 +61,13 @@ pub fn use_syntax_highlighter<'a>(
             tree_sitter_javascript::LOCALS_QUERY,
         )
         .unwrap();
+        javascript_config.configure(&HIGHLIGH_TAGS);
+        javascript_config
+    });
+    let highlighter = cx.use_hook(Highlighter::new);
 
-        javascript_config.configure(highlight_names);
-
-        let data = content.to_string();
+    // Not proud of using .to_string() here tbh
+    use_effect(cx, &content.to_string(), move |data| {
         let highlights = highlighter
             .highlight(&javascript_config, data.as_bytes(), None, |_| None)
             .unwrap();
@@ -90,7 +90,7 @@ pub fn use_syntax_highlighter<'a>(
                     }
                     HighlightEvent::HighlightStart(s) => {
                         // Specify the type of the block
-                        prepared_block.0 = SyntaxType::from(highlight_names[s.0]);
+                        prepared_block.0 = SyntaxType::from(HIGHLIGH_TAGS[s.0]);
                     }
                     HighlightEvent::HighlightEnd => {
                         // Push all the block chunks to their specified line
