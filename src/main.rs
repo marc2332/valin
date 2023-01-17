@@ -328,18 +328,19 @@ fn Body(cx: Scope) -> Element {
                 width: "calc(100%-62)",
                 rect {
                     direction: "horizontal",
-                    height: "60",
+                    height: "50",
                     width: "100%",
+                    padding: "5",
                     tabs.get().iter().enumerate().map(|(i, (path, _, _))| {
+                        let is_selected = *selected_tab.get() == Some(i);
                         rsx!(
-                            Button {
+                            FileTab {
                                 key: "{i}",
                                 onclick: move |_| {
                                     selected_tab.set(Some(i));
                                 },
-                                label {
-                                    "{path.file_name().unwrap().to_str().unwrap()}"
-                                }
+                                value: "{path.file_name().unwrap().to_str().unwrap()}",
+                                is_selected: is_selected
                             }
                         )
                     })
@@ -370,6 +371,60 @@ fn Body(cx: Scope) -> Element {
                     }
                 }
 
+            }
+        }
+    )
+}
+
+#[allow(non_snake_case)]
+#[inline_props]
+fn FileTab<'a>(
+    cx: Scope<'a>,
+    value: &'a str,
+    onclick: EventHandler<(), 'a>,
+    is_selected: bool,
+) -> Element {
+    let theme = use_get_theme(cx);
+    let button_theme = &theme.button;
+
+    let background = use_state(cx, || <&str>::clone(&button_theme.background));
+    let set_background = background.setter();
+
+    use_effect(cx, &button_theme.clone(), move |button_theme| async move {
+        set_background(button_theme.background);
+    });
+
+    let selected_background = if *is_selected {
+        button_theme.hover_background
+    } else {
+        background.get()
+    };
+
+    render!(
+        rect {
+            padding: "5",
+            width: "180",
+            height: "100%",
+            rect {
+                color: "{button_theme.font_theme.color}",
+                background: "{selected_background}",
+                shadow: "0 5 15 10 black",
+                radius: "7",
+                onclick: move |_| onclick.call(()),
+                onmouseover: move |_| {
+                    background.set(theme.button.hover_background);
+                },
+                onmouseleave: move |_| {
+                    background.set(theme.button.background);
+                },
+                padding: "15",
+                width: "100%",
+                height: "100%",
+                display: "center",
+                direction: "both",
+                label {
+                    "{value}"
+                }
             }
         }
     )
