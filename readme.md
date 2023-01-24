@@ -7,9 +7,3 @@ WARNING ⚠️: the code sucks (sorry), it's not super efficient either, althoug
 this is how it looks:
 
 ![Demo](./demo.png)
-
-note: if you are in Linux and wanna give it a try, you must specify the "x11" (wayland support is coming) feature in Cargo.toml:
-
-```
-freya = { git = "https://github.com/marc2332/freya", branch = "feat/controlled-scroll-view", features = ["x11"]}
-```
