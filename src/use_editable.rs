@@ -143,8 +143,8 @@ pub fn use_edit<'a>(
                 editables.with_mut(|editables| {
                     let (_, rope, cursor) = editables.get_mut(editable_index).unwrap();
 
-                    match &e.code {
-                        KeyCode::ArrowDown => {
+                    match &e.key {
+                        Key::ArrowDown => {
                             let total_lines = rope.lines(..).count() - 1;
                             // Go one line down
                             if cursor.1 < total_lines {
@@ -161,7 +161,7 @@ pub fn use_edit<'a>(
                                 cursor.1 += 1;
                             }
                         }
-                        KeyCode::ArrowLeft => {
+                        Key::ArrowLeft => {
                             // Go one character to the left
                             if cursor.0 > 0 {
                                 cursor.0 -= 1;
@@ -179,7 +179,7 @@ pub fn use_edit<'a>(
                                 }
                             }
                         }
-                        KeyCode::ArrowRight => {
+                        Key::ArrowRight => {
                             let total_lines = rope.lines(..).count() - 1;
                             let current_line = rope.lines(..).nth(cursor.1).unwrap();
 
@@ -191,7 +191,7 @@ pub fn use_edit<'a>(
                                 cursor.0 += 1;
                             }
                         }
-                        KeyCode::ArrowUp => {
+                        Key::ArrowUp => {
                             // Go one line up if there is any
                             if cursor.1 > 0 {
                                 let prev_line = rope.lines(..).nth(cursor.1 - 1).unwrap();
@@ -206,13 +206,7 @@ pub fn use_edit<'a>(
                                 *cursor = (cursor_column, cursor.1 - 1);
                             }
                         }
-                        KeyCode::Space => {
-                            // Simply adds an space
-                            let char_idx = rope.offset_of_line(cursor.1) + cursor.0;
-                            rope.edit(char_idx..char_idx, " ");
-                            cursor.0 += 1;
-                        }
-                        KeyCode::Backspace => {
+                        Key::Backspace => {
                             if cursor.0 > 0 {
                                 // Remove the character to the left if there is any
                                 let char_idx = rope.offset_of_line(cursor.1) + cursor.0;
@@ -239,7 +233,7 @@ pub fn use_edit<'a>(
                                 *cursor = (prev_line_len, cursor.1 - 1);
                             }
                         }
-                        KeyCode::Enter => {
+                        Key::Enter => {
                             // Breaks the line
                             let total_lines = rope.lines(..).count();
                             let char_idx = rope.offset_of_line(cursor.1) + cursor.0;
@@ -254,16 +248,24 @@ pub fn use_edit<'a>(
 
                             *cursor = (0, cursor.1 + 1);
                         }
-                        character => {
-                            // Adds a new character to the right
-                            if let Some(character) = character.to_text() {
-                                let char_idx = rope.offset_of_line(cursor.1) + cursor.0;
-
-                                rope.edit(char_idx..char_idx, character);
-
-                                cursor.0 += 1;
+                        Key::Character(character) => {
+                            match e.code {
+                                Code::Delete => {}
+                                Code::Space => {
+                                    // Simply adds an space
+                                    let char_idx = rope.offset_of_line(cursor.1) + cursor.0;
+                                    rope.edit(char_idx..char_idx, " ");
+                                    cursor.0 += 1;
+                                }
+                                _ => {
+                                    // Adds a new character to the right
+                                    let char_idx = rope.offset_of_line(cursor.1) + cursor.0;
+                                    rope.edit(char_idx..char_idx, character);
+                                    cursor.0 += 1;
+                                }
                             }
                         }
+                        _ => {}
                     }
                 });
             }

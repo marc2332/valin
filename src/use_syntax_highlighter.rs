@@ -26,7 +26,7 @@ impl From<&str> for SyntaxType {
 
 pub type SyntaxBlocks = Vec<Vec<(SyntaxType, String)>>;
 
-const HIGHLIGH_TAGS: [&'static str; 19] = [
+const HIGHLIGH_TAGS: [&str; 19] = [
     "attribute",
     "constant",
     "function.builtin",
@@ -69,7 +69,7 @@ pub fn use_syntax_highlighter<'a>(
     // Not proud of using .to_string() here tbh
     use_effect(cx, &content.to_string(), move |data| {
         let highlights = highlighter
-            .highlight(&javascript_config, data.as_bytes(), None, |_| None)
+            .highlight(javascript_config, data.as_bytes(), None, |_| None)
             .unwrap();
 
         syntax_blocks.with_mut(|syntax_blocks| {

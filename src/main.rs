@@ -3,8 +3,11 @@ use std::path::PathBuf;
 use freya::prelude::events_data::KeyboardEvent;
 use freya::prelude::*;
 
+mod controlled_virtual_scroll_view;
 mod use_editable;
 mod use_syntax_highlighter;
+
+use controlled_virtual_scroll_view::*;
 use tokio::fs::read_to_string;
 pub use use_editable::{use_edit, EditableMode, EditableText};
 use use_syntax_highlighter::*;
