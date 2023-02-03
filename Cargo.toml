@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-dioxus = { git = "https://github.com/DioxusLabs/dioxus", rev="4f83c1b86d396a24b32da6229b73e95a05855db3", features = ["macro", "hooks"]}
-freya-node-state = { git="https://github.com/marc2332/freya", rev="c8025e36b0a0f5b9cf7f582907a508761d1b305a"}
-freya = { git="https://github.com/marc2332/freya", rev="c8025e36b0a0f5b9cf7f582907a508761d1b305a" }
+dioxus = { git = "https://github.com/DioxusLabs/dioxus", rev="d521da1991719760e271457dfe4f9ddf281afbb3", features = ["macro", "hooks"]}
+freya-node-state = { git="https://github.com/marc2332/freya", rev="0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b"}
+freya = { git="https://github.com/marc2332/freya", rev="0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b" }
 tree-sitter-highlight = "0.20.1"
-tree-sitter-javascript = "0.20.0"
-rfd = "0.10.0"
+tree-sitter-rust = "0.20.3"
+rfd = "0.11.0"
 tokio = { version = "1.23.0", features = ["fs"]}

@@ -1,11 +1,12 @@
 use freya::prelude::*;
 use freya_node_state::CursorReference;
 use std::{
-    path::PathBuf,
     rc::Rc,
     sync::{Arc, Mutex},
 };
 use tokio::sync::{mpsc::unbounded_channel, mpsc::UnboundedSender};
+
+use crate::EditorData;
 
 /// How the editable content must behave.
 pub enum EditableMode {
@@ -21,7 +22,7 @@ pub enum EditableMode {
 
 pub type KeypressNotifier = UnboundedSender<Rc<KeyboardData>>;
 pub type ClickNotifier = UnboundedSender<(Rc<MouseData>, usize)>;
-pub type EditableText = UseState<Vec<(PathBuf, Rope, (usize, usize))>>;
+pub type EditableText = UseState<Vec<EditorData>>;
 
 pub fn use_edit<'a>(
     cx: &'a ScopeState,
@@ -95,23 +96,22 @@ pub fn use_edit<'a>(
 
             while let Some((new_index, editor_num)) = cursor_receiver.recv().await {
                 editables.with_mut(|editables| {
-                    let (_, content, cursor) = editables.get_mut(editable_index).unwrap();
+                    let EditorData { rope, cursor, .. } =
+                        editables.get_mut(editable_index).unwrap();
 
                     let new_cursor_row = match mode {
-                        EditableMode::MultipleLinesSingleEditor => {
-                            content.line_of_offset(new_index)
-                        }
+                        EditableMode::MultipleLinesSingleEditor => rope.line_of_offset(new_index),
                         EditableMode::SingleLineMultipleEditors => editor_num,
                     };
 
                     let new_cursor_col = match mode {
                         EditableMode::MultipleLinesSingleEditor => {
-                            new_index - content.offset_of_line(new_cursor_row)
+                            new_index - rope.offset_of_line(new_cursor_row)
                         }
                         EditableMode::SingleLineMultipleEditors => new_index,
                     };
 
-                    let new_current_line = content.lines(..).nth(new_cursor_row).unwrap();
+                    let new_current_line = rope.lines(..).nth(new_cursor_row).unwrap();
 
                     // Use the line lenght as new column if the clicked column surpases the length
                     let new_cursor = if new_cursor_col >= new_current_line.len() {
@@ -141,7 +141,8 @@ pub fn use_edit<'a>(
 
             while let Some(e) = rx.recv().await {
                 editables.with_mut(|editables| {
-                    let (_, rope, cursor) = editables.get_mut(editable_index).unwrap();
+                    let EditorData { rope, cursor, .. } =
+                        editables.get_mut(editable_index).unwrap();
 
                     match &e.key {
                         Key::ArrowDown => {

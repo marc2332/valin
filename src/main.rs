@@ -49,7 +49,7 @@ impl<'a> PartialEq for EditorProps<'a> {
 fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     let line_height_percentage = use_state(cx, || 0.0);
     let font_size_percentage = use_state(cx, || 15.0);
-    let (_, content, cursor) = cx
+    let EditorData { rope, cursor, .. } = cx
         .props
         .editables
         .get()
@@ -63,14 +63,11 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
         cx.props.editable_index,
     );
 
-    // I could pass a vector of type UseState but what about using Atoms¿?
-
-    let syntax_blocks = use_syntax_highlighter(cx, content);
+    let syntax_blocks = use_syntax_highlighter(cx, rope);
     let scroll_y = use_state(cx, || 0);
     let destination_line = use_state(cx, String::new);
     let (focused, focus_id, focus) = use_raw_focus(cx);
 
-    // Simple calculations
     let font_size = font_size_percentage + 5.0;
     let line_height = (line_height_percentage / 25.0) + 1.2;
     let theme = theme.read();
@@ -280,9 +277,22 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     )
 }
 
+#[derive(Clone)]
+pub struct EditorData {
+    cursor: (usize, usize),
+    rope: Rope,
+    path: PathBuf,
+}
+
+impl EditorData {
+    pub fn new(path: PathBuf, rope: Rope, cursor: (usize, usize)) -> Self {
+        Self { path, rope, cursor }
+    }
+}
+
 #[allow(non_snake_case)]
 fn Body(cx: Scope) -> Element {
-    let tabs = use_state::<Vec<(PathBuf, Rope, (usize, usize))>>(cx, Vec::new);
+    let tabs = use_state::<Vec<EditorData>>(cx, Vec::new);
     let selected_tab = use_state::<Option<usize>>(cx, || None);
 
     let open_file = move |_: MouseEvent| {
@@ -296,7 +306,11 @@ fn Body(cx: Scope) -> Element {
                 let path = file.path();
                 let content = read_to_string(&path).await.unwrap();
                 tabs.with_mut(|tabs| {
-                    tabs.push((path.to_path_buf(), Rope::from(content), (0, 0)));
+                    tabs.push(EditorData::new(
+                        path.to_path_buf(),
+                        Rope::from(content),
+                        (0, 0),
+                    ));
                     selected_tab.set(Some(tabs.len() - 1));
                 });
             }
@@ -334,15 +348,16 @@ fn Body(cx: Scope) -> Element {
                     height: "50",
                     width: "100%",
                     padding: "5",
-                    tabs.get().iter().enumerate().map(|(i, (path, _, _))| {
+                    tabs.get().iter().enumerate().map(|(i, EditorData { path, .. })| {
                         let is_selected = *selected_tab.get() == Some(i);
+                        let file_name = path.file_name().unwrap().to_str().unwrap();
                         rsx!(
                             FileTab {
                                 key: "{i}",
                                 onclick: move |_| {
                                     selected_tab.set(Some(i));
                                 },
-                                value: "{path.file_name().unwrap().to_str().unwrap()}",
+                                value: "{file_name}",
                                 is_selected: is_selected
                             }
                         )

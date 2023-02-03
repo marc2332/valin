@@ -26,11 +26,14 @@ impl From<&str> for SyntaxType {
 
 pub type SyntaxBlocks = Vec<Vec<(SyntaxType, String)>>;
 
-const HIGHLIGH_TAGS: [&str; 19] = [
+const HIGHLIGH_TAGS: [&str; 22] = [
+    "constructor",
     "attribute",
     "constant",
+    "constant.builtin",
     "function.builtin",
     "function",
+    "function.method",
     "keyword",
     "operator",
     "property",
@@ -53,23 +56,23 @@ pub fn use_syntax_highlighter<'a>(
     content: &Rope,
 ) -> &'a UseState<SyntaxBlocks> {
     let syntax_blocks = use_state::<SyntaxBlocks>(cx, Vec::new);
-    let javascript_config = cx.use_hook(|| {
-        let mut javascript_config = HighlightConfiguration::new(
-            tree_sitter_javascript::language(),
-            tree_sitter_javascript::HIGHLIGHT_QUERY,
-            tree_sitter_javascript::INJECTION_QUERY,
-            tree_sitter_javascript::LOCALS_QUERY,
+    let rust_config = cx.use_hook(|| {
+        let mut rust_config = HighlightConfiguration::new(
+            tree_sitter_rust::language(),
+            tree_sitter_rust::HIGHLIGHT_QUERY,
+            "",
+            "",
         )
         .unwrap();
-        javascript_config.configure(&HIGHLIGH_TAGS);
-        javascript_config
+        rust_config.configure(&HIGHLIGH_TAGS);
+        rust_config
     });
     let highlighter = cx.use_hook(Highlighter::new);
 
     // Not proud of using .to_string() here tbh
     use_effect(cx, &content.to_string(), move |data| {
         let highlights = highlighter
-            .highlight(javascript_config, data.as_bytes(), None, |_| None)
+            .highlight(rust_config, data.as_bytes(), None, |_| None)
             .unwrap();
 
         syntax_blocks.with_mut(|syntax_blocks| {
