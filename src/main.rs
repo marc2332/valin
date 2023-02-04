@@ -1,4 +1,7 @@
-use std::path::PathBuf;
+use std::{
+    path::PathBuf,
+    sync::{Arc, Mutex},
+};
 
 use freya::prelude::events_data::KeyboardEvent;
 use freya::prelude::*;
@@ -8,7 +11,7 @@ mod use_editable;
 mod use_syntax_highlighter;
 
 use controlled_virtual_scroll_view::*;
-use tokio::fs::read_to_string;
+use tokio::{fs::read_to_string, sync::mpsc::unbounded_channel};
 pub use use_editable::{use_edit, EditableMode, EditableText};
 use use_syntax_highlighter::*;
 
@@ -35,13 +38,14 @@ fn app(cx: Scope) -> Element {
 
 #[derive(Props, Clone)]
 pub struct EditorProps<'a> {
-    pub editables: &'a EditableText,
-    pub editable_index: usize,
+    pub manager: &'a UseState<EditorManager>,
+    pub pane_index: usize,
+    pub editor: usize,
 }
 
 impl<'a> PartialEq for EditorProps<'a> {
     fn eq(&self, other: &Self) -> bool {
-        self.editable_index == other.editable_index
+        self.editor == other.editor
     }
 }
 
@@ -49,21 +53,37 @@ impl<'a> PartialEq for EditorProps<'a> {
 fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     let line_height_percentage = use_state(cx, || 0.0);
     let font_size_percentage = use_state(cx, || 15.0);
-    let EditorData { rope, cursor, .. } = cx
-        .props
-        .editables
-        .get()
-        .get(cx.props.editable_index)
-        .unwrap();
+    let cursor = cx.props.manager.panes[cx.props.pane_index].editors[cx.props.editor]
+        .lock()
+        .unwrap()
+        .cursor;
     let theme = use_theme(cx);
+    let highlight_trigger = use_ref(cx, || {
+        let (tx, rx) = unbounded_channel::<()>();
+        (tx, Some(rx))
+    });
     let (process_keyevent, process_clickevent, cursor_ref) = use_edit(
         cx,
         EditableMode::SingleLineMultipleEditors,
-        cx.props.editables,
-        cx.props.editable_index,
+        cx.props.manager,
+        cx.props.pane_index,
+        cx.props.editor,
+        highlight_trigger.read().0.clone(),
     );
 
-    let syntax_blocks = use_syntax_highlighter(cx, rope);
+    // Trigger initial highlighting
+    use_effect(cx, (), move |_| {
+        highlight_trigger.read().0.send(()).ok();
+        async move {}
+    });
+
+    let syntax_blocks = use_syntax_highlighter(
+        cx,
+        cx.props.manager,
+        cx.props.pane_index,
+        cx.props.editor,
+        highlight_trigger,
+    );
     let scroll_y = use_state(cx, || 0);
     let destination_line = use_state(cx, String::new);
     let (focused, focus_id, focus) = use_raw_focus(cx);
@@ -79,7 +99,7 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
         }
     };
 
-    let onclick = move |_: MouseEvent| {
+    let onmousedown = move |_: MouseEvent| {
         *focus.unwrap().write() = focus_id;
     };
 
@@ -174,7 +194,7 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
             width: "100%",
             height: "calc(100% - 110)",
             onkeydown: onkeydown,
-            onclick: onclick,
+            onmousedown: onmousedown,
             cursor_reference: cursor_ref,
             direction: "horizontal",
             background: "{theme.body.background}",
@@ -290,14 +310,79 @@ impl EditorData {
     }
 }
 
+#[derive(Clone, Default)]
+pub struct Pane {
+    active_editor: Option<usize>,
+    editors: Vec<Arc<Mutex<EditorData>>>,
+}
+
+impl Pane {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+#[derive(Clone)]
+pub struct EditorManager {
+    focused_pane: usize,
+    panes: Vec<Pane>,
+}
+
+impl Default for EditorManager {
+    fn default() -> Self {
+         Self::new()
+    }
+}
+
+impl EditorManager {
+    pub fn new() -> Self {
+        Self {
+            focused_pane: 0,
+            panes: vec![Pane::new(), Pane::new()],
+        }
+    }
+
+    pub fn push_editor(&mut self, editor: EditorData, pane: Option<usize>, focus: bool) {
+        let pane = pane.unwrap_or(self.focused_pane);
+        self.panes[pane].editors.push(Arc::new(Mutex::new(editor)));
+
+        if focus {
+            self.focused_pane = pane;
+            self.panes[pane].active_editor = Some(self.panes[pane].editors.len() - 1);
+        }
+    }
+
+    pub fn get_panes(&self) -> &[Pane] {
+        &self.panes
+    }
+
+    pub fn get_editors(&self, pane: usize) -> &[Arc<Mutex<EditorData>>] {
+        &self.panes[pane].editors
+    }
+
+    pub fn get_active_editor(&self, pane: usize) -> Option<usize> {
+        self.panes[pane].active_editor
+    }
+
+    pub fn set_active_editor(&mut self, pane: usize, active_editor: usize) {
+        self.panes[pane].active_editor = Some(active_editor);
+    }
+
+    pub fn set_focused_pane(&mut self, pane: usize) {
+        self.focused_pane = pane;
+    }
+
+    pub fn get_focused_pane(&self) -> usize {
+        self.focused_pane
+    }
+}
+
 #[allow(non_snake_case)]
 fn Body(cx: Scope) -> Element {
-    let tabs = use_state::<Vec<EditorData>>(cx, Vec::new);
-    let selected_tab = use_state::<Option<usize>>(cx, || None);
+    let editor_manager = use_state::<EditorManager>(cx, EditorManager::new);
 
     let open_file = move |_: MouseEvent| {
-        let tabs = tabs.clone();
-        let selected_tab = selected_tab.clone();
+        let editor_manager = editor_manager.clone();
         cx.spawn(async move {
             let task = rfd::AsyncFileDialog::new().pick_file();
             let file = task.await;
@@ -305,17 +390,18 @@ fn Body(cx: Scope) -> Element {
             if let Some(file) = file {
                 let path = file.path();
                 let content = read_to_string(&path).await.unwrap();
-                tabs.with_mut(|tabs| {
-                    tabs.push(EditorData::new(
-                        path.to_path_buf(),
-                        Rope::from(content),
-                        (0, 0),
-                    ));
-                    selected_tab.set(Some(tabs.len() - 1));
+                editor_manager.with_mut(|editor_manager| {
+                    editor_manager.push_editor(
+                        EditorData::new(path.to_path_buf(), Rope::from(content), (0, 0)),
+                        None,
+                        true,
+                    );
                 });
             }
         });
     };
+
+    let pane_size = 100.0 / editor_manager.get().get_panes().len() as f32;
 
     render!(
         rect {
@@ -340,56 +426,81 @@ fn Body(cx: Scope) -> Element {
                 width: "2",
             }
             rect {
-                direction: "vertical",
                 height: "100%",
-                width: "calc(100%-62)",
-                rect {
-                    direction: "horizontal",
-                    height: "50",
-                    width: "100%",
-                    padding: "5",
-                    tabs.get().iter().enumerate().map(|(i, EditorData { path, .. })| {
-                        let is_selected = *selected_tab.get() == Some(i);
-                        let file_name = path.file_name().unwrap().to_str().unwrap();
-                        rsx!(
-                            FileTab {
-                                key: "{i}",
-                                onclick: move |_| {
-                                    selected_tab.set(Some(i));
-                                },
-                                value: "{file_name}",
-                                is_selected: is_selected
-                            }
-                        )
-                    })
-                }
-                rect {
-                    height: "calc(100%-60)",
-                    width: "100%",
-                    if let Some(selected_tab) = selected_tab.get() {
-                        rsx!(
-                            Editor {
-                                key: "{selected_tab}",
-                                editables: tabs,
-                                editable_index: *selected_tab
-                            }
-                        )
-                    } else {
-                        rsx!(
+                width: "calc(100% - 62)",
+                direction: "horizontal",
+
+                editor_manager.get().get_panes().iter().enumerate().map(|(pane_index, pane)| {
+                    let is_focused = editor_manager.get().get_focused_pane() == pane_index;
+                    let active_editor = pane.active_editor;
+                    rsx!(
+                        rect {
+                            direction: "vertical",
+                            height: "100%",
+                            width: "{pane_size}%",
                             rect {
-                                display: "center",
+                                direction: "horizontal",
+                                height: "50",
                                 width: "100%",
-                                height: "100%",
-                                direction: "both",
-                                label {
-                                    "Open a file!"
+                                padding: "5",
+                                editor_manager.get().get_editors(pane_index).iter().enumerate().map(|(i, editor)| {
+                                    let path = &editor.lock().unwrap().path;
+                                    let is_selected = active_editor == Some(i);
+                                    let file_name = path.file_name().unwrap().to_str().unwrap().to_owned();
+                                    rsx!(
+                                        FileTab {
+                                            key: "{i}",
+                                            onclick: move |_| {
+                                                editor_manager.with_mut(|editor_manager| {
+                                                    editor_manager.set_active_editor(pane_index, i);
+                                                });
+                                            },
+                                            value: "{file_name}",
+                                            is_selected: is_selected
+                                        }
+                                    )
+                                })
+                            }
+                            rect {
+                                height: "calc(100%-60)",
+                                width: "100%",
+                                if let Some(active_editor) = active_editor {
+                                    rsx!(
+                                        Editor {
+                                            key: "{active_editor}",
+                                            manager: editor_manager,
+                                            pane_index: pane_index,
+                                            editor: active_editor
+                                        }
+                                    )
+                                } else {
+                                    rsx!(
+                                        rect {
+                                            display: "center",
+                                            width: "100%",
+                                            height: "100%",
+                                            direction: "both",
+                                            onclick: move |_| {
+                                                editor_manager.with_mut(|editor_manager| {
+                                                    editor_manager.set_focused_pane(pane_index);
+                                                });
+                                            },
+                                            label {
+                                                "Open a file!"
+                                            }
+                                            label {
+                                                "this pane is focused: {is_focused}"
+                                            }
+                                        }
+                                    )
                                 }
                             }
-                        )
-                    }
-                }
 
+                        }
+                    )
+                })
             }
+
         }
     )
 }
