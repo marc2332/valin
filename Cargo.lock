@@ -1328,7 +1328,7 @@ dependencies = [
 [[package]]
 name = "freya"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b#0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b"
+source = "git+https://github.com/marc2332/freya?rev=288e86658c92e7de9035c7a6bc359d1fe861bcd2#288e86658c92e7de9035c7a6bc359d1fe861bcd2"
 dependencies = [
  "anymap 0.12.1",
  "dioxus",
@@ -1356,7 +1356,7 @@ dependencies = [
 [[package]]
 name = "freya-common"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b#0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b"
+source = "git+https://github.com/marc2332/freya?rev=288e86658c92e7de9035c7a6bc359d1fe861bcd2#288e86658c92e7de9035c7a6bc359d1fe861bcd2"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -1368,7 +1368,7 @@ dependencies = [
 [[package]]
 name = "freya-components"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b#0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b"
+source = "git+https://github.com/marc2332/freya?rev=288e86658c92e7de9035c7a6bc359d1fe861bcd2#288e86658c92e7de9035c7a6bc359d1fe861bcd2"
 dependencies = [
  "dioxus",
  "dioxus-core",
@@ -1386,7 +1386,7 @@ dependencies = [
 [[package]]
 name = "freya-core"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b#0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b"
+source = "git+https://github.com/marc2332/freya?rev=288e86658c92e7de9035c7a6bc359d1fe861bcd2#288e86658c92e7de9035c7a6bc359d1fe861bcd2"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -1413,6 +1413,7 @@ dependencies = [
  "freya",
  "freya-node-state",
  "rfd",
+ "smallvec",
  "tokio",
  "tree-sitter-highlight",
  "tree-sitter-rust",
@@ -1421,7 +1422,7 @@ dependencies = [
 [[package]]
 name = "freya-elements"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b#0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b"
+source = "git+https://github.com/marc2332/freya?rev=288e86658c92e7de9035c7a6bc359d1fe861bcd2#288e86658c92e7de9035c7a6bc359d1fe861bcd2"
 dependencies = [
  "bumpalo",
  "dioxus-core",
@@ -1439,7 +1440,7 @@ dependencies = [
 [[package]]
 name = "freya-hooks"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b#0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b"
+source = "git+https://github.com/marc2332/freya?rev=288e86658c92e7de9035c7a6bc359d1fe861bcd2#288e86658c92e7de9035c7a6bc359d1fe861bcd2"
 dependencies = [
  "bytes",
  "dioxus-core",
@@ -1460,7 +1461,7 @@ dependencies = [
 [[package]]
 name = "freya-layout"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b#0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b"
+source = "git+https://github.com/marc2332/freya?rev=288e86658c92e7de9035c7a6bc359d1fe861bcd2#288e86658c92e7de9035c7a6bc359d1fe861bcd2"
 dependencies = [
  "dioxus",
  "dioxus-core",
@@ -1476,7 +1477,7 @@ dependencies = [
 [[package]]
 name = "freya-node-state"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b#0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b"
+source = "git+https://github.com/marc2332/freya?rev=288e86658c92e7de9035c7a6bc359d1fe861bcd2#288e86658c92e7de9035c7a6bc359d1fe861bcd2"
 dependencies = [
  "anymap 0.12.1",
  "bytes",
@@ -1496,7 +1497,7 @@ dependencies = [
 [[package]]
 name = "freya-renderer"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b#0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b"
+source = "git+https://github.com/marc2332/freya?rev=288e86658c92e7de9035c7a6bc359d1fe861bcd2#288e86658c92e7de9035c7a6bc359d1fe861bcd2"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",

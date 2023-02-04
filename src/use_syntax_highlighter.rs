@@ -1,4 +1,5 @@
 use freya::prelude::*;
+use smallvec::SmallVec;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tree_sitter_highlight::*;
 
@@ -27,7 +28,7 @@ impl From<&str> for SyntaxType {
     }
 }
 
-pub type SyntaxBlocks = Vec<Vec<(SyntaxType, String)>>;
+pub type SyntaxBlocks = Vec<SmallVec<[(SyntaxType, String); 6]>>;
 
 const HIGHLIGH_TAGS: [&str; 22] = [
     "constructor",
@@ -90,7 +91,7 @@ pub fn use_syntax_highlighter<'a>(
                 syntax_blocks.with_mut(|syntax_blocks| {
                     syntax_blocks.clear();
                     let mut prepared_block: (SyntaxType, Vec<(usize, String)>) =
-                        (SyntaxType::Unknown, vec![]);
+                        (SyntaxType::Unknown, Vec::new());
 
                     for event in highlights {
                         match event.unwrap() {
@@ -111,13 +112,13 @@ pub fn use_syntax_highlighter<'a>(
                                 // Push all the block chunks to their specified line
                                 for (i, d) in prepared_block.1 {
                                     if syntax_blocks.get(i).is_none() {
-                                        syntax_blocks.push(vec![]);
+                                        syntax_blocks.push(SmallVec::new());
                                     }
                                     let line = syntax_blocks.last_mut().unwrap();
                                     line.push((prepared_block.0.clone(), d));
                                 }
                                 // Clear the prepared block
-                                prepared_block = (SyntaxType::Unknown, vec![]);
+                                prepared_block = (SyntaxType::Unknown, Vec::new());
                             }
                         }
                     }
@@ -126,7 +127,7 @@ pub fn use_syntax_highlighter<'a>(
                     if !prepared_block.1.is_empty() {
                         for (i, d) in prepared_block.1 {
                             if syntax_blocks.get(i).is_none() {
-                                syntax_blocks.push(vec![]);
+                                syntax_blocks.push(SmallVec::new());
                             }
                             let line = syntax_blocks.last_mut().unwrap();
                             line.push((SyntaxType::Unknown, d));

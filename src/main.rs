@@ -330,7 +330,7 @@ pub struct EditorManager {
 
 impl Default for EditorManager {
     fn default() -> Self {
-         Self::new()
+        Self::new()
     }
 }
 
@@ -338,7 +338,7 @@ impl EditorManager {
     pub fn new() -> Self {
         Self {
             focused_pane: 0,
-            panes: vec![Pane::new(), Pane::new()],
+            panes: vec![Pane::new()],
         }
     }
 
@@ -379,6 +379,8 @@ impl EditorManager {
 
 #[allow(non_snake_case)]
 fn Body(cx: Scope) -> Element {
+    let theme = use_theme(cx);
+    let theme = &theme.read();
     let editor_manager = use_state::<EditorManager>(cx, EditorManager::new);
 
     let open_file = move |_: MouseEvent| {
@@ -401,6 +403,12 @@ fn Body(cx: Scope) -> Element {
         });
     };
 
+    let create_pane = |_| {
+        editor_manager.with_mut(|editor_manager| {
+            editor_manager.panes.push(Pane::new());
+        });
+    };
+
     let pane_size = 100.0 / editor_manager.get().get_panes().len() as f32;
 
     render!(
@@ -419,6 +427,12 @@ fn Body(cx: Scope) -> Element {
                         "Open"
                     }
                 }
+                Button {
+                    onclick: create_pane,
+                    label {
+                        "+"
+                    }
+                }
             }
             rect {
                 background: "rgb(100, 100, 100)",
@@ -429,10 +443,14 @@ fn Body(cx: Scope) -> Element {
                 height: "100%",
                 width: "calc(100% - 62)",
                 direction: "horizontal",
-
                 editor_manager.get().get_panes().iter().enumerate().map(|(pane_index, pane)| {
                     let is_focused = editor_manager.get().get_focused_pane() == pane_index;
                     let active_editor = pane.active_editor;
+                    let bg = if is_focused {
+                        "rgb(247, 127, 0)"
+                    } else {
+                        "transparent"
+                    };
                     rsx!(
                         rect {
                             direction: "vertical",
@@ -452,6 +470,7 @@ fn Body(cx: Scope) -> Element {
                                             key: "{i}",
                                             onclick: move |_| {
                                                 editor_manager.with_mut(|editor_manager| {
+                                                    editor_manager.set_focused_pane(pane_index);
                                                     editor_manager.set_active_editor(pane_index, i);
                                                 });
                                             },
@@ -462,8 +481,15 @@ fn Body(cx: Scope) -> Element {
                                 })
                             }
                             rect {
-                                height: "calc(100%-60)",
+                                height: "calc(100%-50)",
                                 width: "100%",
+                                background: "{bg}",
+                                padding: "3",
+                                onclick: move |_| {
+                                    editor_manager.with_mut(|editor_manager| {
+                                        editor_manager.set_focused_pane(pane_index);
+                                    });
+                                },
                                 if let Some(active_editor) = active_editor {
                                     rsx!(
                                         Editor {
@@ -480,16 +506,9 @@ fn Body(cx: Scope) -> Element {
                                             width: "100%",
                                             height: "100%",
                                             direction: "both",
-                                            onclick: move |_| {
-                                                editor_manager.with_mut(|editor_manager| {
-                                                    editor_manager.set_focused_pane(pane_index);
-                                                });
-                                            },
+                                            background: "{theme.body.background}",
                                             label {
                                                 "Open a file!"
-                                            }
-                                            label {
-                                                "this pane is focused: {is_focused}"
                                             }
                                         }
                                     )
@@ -531,14 +550,14 @@ fn FileTab<'a>(
 
     render!(
         rect {
-            padding: "5",
-            width: "180",
+            padding: "4",
+            width: "150",
             height: "100%",
             rect {
                 color: "{button_theme.font_theme.color}",
                 background: "{selected_background}",
                 shadow: "0 5 15 10 black",
-                radius: "7",
+                radius: "5",
                 onclick: move |_| onclick.call(()),
                 onmouseover: move |_| {
                     background.set(theme.button.hover_background);

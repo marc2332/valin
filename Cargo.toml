@@ -5,9 +5,10 @@ edition = "2021"
 
 [dependencies]
 dioxus = { git = "https://github.com/DioxusLabs/dioxus", rev="d521da1991719760e271457dfe4f9ddf281afbb3", features = ["macro", "hooks"]}
-freya-node-state = { git="https://github.com/marc2332/freya", rev="0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b"}
-freya = { git="https://github.com/marc2332/freya", rev="0ef9b65f311590ebe43a1723c2c9b0ea2c1f940b" }
+freya-node-state = { git="https://github.com/marc2332/freya", rev="288e86658c92e7de9035c7a6bc359d1fe861bcd2"}
+freya = { git="https://github.com/marc2332/freya", rev="288e86658c92e7de9035c7a6bc359d1fe861bcd2" }
 tree-sitter-highlight = "0.20.1"
 tree-sitter-rust = "0.20.3"
 rfd = "0.11.0"
 tokio = { version = "1.23.0", features = ["fs"]}
+smallvec = "1.10.0"
