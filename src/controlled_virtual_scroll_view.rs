@@ -21,8 +21,6 @@ pub struct ControlledVirtualScrollViewProps<'a, T: 'a> {
     #[props(optional)]
     pub builder_values: Option<T>,
     #[props(optional)]
-    pub direction: Option<&'a str>,
-    #[props(optional)]
     pub height: Option<&'a str>,
     #[props(optional)]
     pub width: Option<&'a str>,
@@ -71,17 +69,16 @@ pub fn ControlledVirtualScrollView<'a, T>(
     let padding = cx.props.padding.unwrap_or("0");
     let user_container_width = cx.props.width.unwrap_or("100%");
     let user_container_height = cx.props.height.unwrap_or("100%");
-    let user_direction = cx.props.direction.unwrap_or("vertical");
     let show_scrollbar = cx.props.show_scrollbar.unwrap_or_default();
     let items_length = cx.props.length;
     let items_size = cx.props.item_size;
 
     let inner_size = items_size + (items_size * items_length as f32);
 
-    let vertical_scrollbar_is_visible = user_direction != "horizontal"
-        && is_scrollbar_visible(show_scrollbar, inner_size, size.height);
-    let horizontal_scrollbar_is_visible = user_direction != "vertical"
-        && is_scrollbar_visible(show_scrollbar, inner_size, size.width);
+    let vertical_scrollbar_is_visible =
+        is_scrollbar_visible(show_scrollbar, inner_size, size.height);
+    let horizontal_scrollbar_is_visible =
+        is_scrollbar_visible(show_scrollbar, size.inner_width, size.width);
 
     let container_width = get_container_size(vertical_scrollbar_is_visible);
     let container_height = get_container_size(horizontal_scrollbar_is_visible);
@@ -89,12 +86,12 @@ pub fn ControlledVirtualScrollView<'a, T>(
     let corrected_scrolled_y =
         get_corrected_scroll_position(inner_size, size.height, scrolled_y as f32);
     let corrected_scrolled_x =
-        get_corrected_scroll_position(inner_size, size.width, scrolled_x as f32);
+        get_corrected_scroll_position(size.inner_width, size.width, scrolled_x as f32);
 
     let (scrollbar_y, scrollbar_height) =
         get_scrollbar_pos_and_size(inner_size, size.height, corrected_scrolled_y);
     let (scrollbar_x, scrollbar_width) =
-        get_scrollbar_pos_and_size(inner_size, size.width, corrected_scrolled_x);
+        get_scrollbar_pos_and_size(size.inner_width, size.width, corrected_scrolled_x);
 
     // Moves the Y axis when the user scrolls in the container
     let onwheel = move |e: WheelEvent| {
@@ -108,7 +105,6 @@ pub fn ControlledVirtualScrollView<'a, T>(
         );
 
         onscroll.call((Axis::Y, scroll_position))
-        //scrolled_y.with_mut(|y| *y = scroll_position);
     };
 
     // Drag the scrollbars
@@ -126,7 +122,7 @@ pub fn ControlledVirtualScrollView<'a, T>(
             let cursor_x = coordinates.x - x;
 
             let scroll_position =
-                get_scroll_position_from_cursor(cursor_x as f32, inner_size, size.width);
+                get_scroll_position_from_cursor(cursor_x as f32, size.inner_width, size.width);
 
             onscroll.call((Axis::X, scroll_position))
         }
@@ -161,16 +157,10 @@ pub fn ControlledVirtualScrollView<'a, T>(
         0
     };
 
-    let (viewport_size, scroll_position) = if user_direction == "vertical" {
-        (size.height, corrected_scrolled_y)
-    } else {
-        (size.width, corrected_scrolled_x)
-    };
-
     // Calculate from what to what items must be rendered
     let render_range = get_render_range(
-        viewport_size,
-        scroll_position,
+        size.height,
+        corrected_scrolled_y,
         items_size,
         items_length as f32,
     );
@@ -196,7 +186,8 @@ pub fn ControlledVirtualScrollView<'a, T>(
                     padding: "{padding}",
                     height: "100%",
                     width: "100%",
-                    direction: "{user_direction}",
+                    direction: "vertical",
+                    scroll_x: "{corrected_scrolled_x}",
                     reference: node_ref,
                     onwheel: onwheel,
                     children

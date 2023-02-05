@@ -36,7 +36,7 @@ fn app(cx: Scope) -> Element {
     )
 }
 
-#[derive(Props, Clone)]
+#[derive(Props)]
 pub struct EditorProps<'a> {
     pub manager: &'a UseState<EditorManager>,
     pub panel_index: usize,
@@ -51,7 +51,7 @@ impl<'a> PartialEq for EditorProps<'a> {
 
 #[allow(non_snake_case)]
 fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
-    let line_height_percentage = use_state(cx, || 0.0);
+    let line_height_percentage = use_state(cx, || 4.0);
     let font_size_percentage = use_state(cx, || 15.0);
     let cursor = cx.props.manager.panes[cx.props.panel_index].editors[cx.props.editor]
         .lock()
@@ -84,33 +84,43 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
         cx.props.editor,
         highlight_trigger,
     );
+    let scroll_x = use_state(cx, || 0);
     let scroll_y = use_state(cx, || 0);
     let destination_line = use_state(cx, String::new);
-    let (focused, focus_id, focus) = use_raw_focus(cx);
 
     let font_size = font_size_percentage + 5.0;
     let line_height = (line_height_percentage / 25.0) + 1.2;
     let theme = theme.read();
     let manual_line_height = (font_size * line_height) as f32;
+    let is_panel_focused = cx.props.manager.focused_panel == cx.props.panel_index;
+    let is_editor_focused =
+        cx.props.manager.panes[cx.props.panel_index].active_editor == Some(cx.props.editor);
 
     let onkeydown = move |e: KeyboardEvent| {
-        if focused {
+        if is_editor_focused && is_panel_focused {
             process_keyevent.send(e.data).ok();
         }
     };
 
     let onmousedown = move |_: MouseEvent| {
-        *focus.unwrap().write() = focus_id;
-    };
-
-    let onscroll = move |(axis, scroll): (Axis, i32)| {
-        if Axis::Y == axis {
-            scroll_y.set(scroll)
+        if !is_editor_focused {
+            cx.props.manager.with_mut(|manager| {
+                manager.focused_panel = cx.props.panel_index;
+                manager.panes[cx.props.panel_index].active_editor = Some(cx.props.editor);
+            });
         }
     };
 
+    let onscroll = move |(axis, scroll): (Axis, i32)| match axis {
+        Axis::Y => scroll_y.set(scroll),
+        Axis::X => scroll_x.set(scroll),
+    };
+
     use_effect(cx, (), move |_| {
-        *focus.unwrap().write() = focus_id;
+        cx.props.manager.with_mut(|manager| {
+            manager.focused_panel = cx.props.panel_index;
+            manager.panes[cx.props.panel_index].active_editor = Some(cx.props.editor);
+        });
         async move {}
     });
 
@@ -173,7 +183,6 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                     onclick: move |_| {
                         if let Ok(v) = destination_line.get().parse::<i32>() {
                             scroll_y.set(-(manual_line_height * (v - 1) as f32) as i32);
-
                         }
                     },
                     label {
@@ -202,7 +211,7 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                 width: "100%",
                 height: "100%",
                 ControlledVirtualScrollView {
-                    scroll_x: 0,
+                    scroll_x: *scroll_x.get(),
                     scroll_y: *scroll_y.get(),
                     onscroll: onscroll,
                     width: "100%",
@@ -266,11 +275,13 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                                     cursor_id: "{line_index}",
                                     onmousedown: onmousedown,
                                     height: "{manual_line_height}",
+                                    direction: "horizontal",
                                     line.iter().enumerate().map(|(i, (t, word))| {
                                         rsx!(
                                             text {
+                                                font_family: "Jetbrains Mono",
                                                 key: "{i}",
-                                                width: "100%",
+                                                width: "auto",
                                                 color: "{get_color_from_type(t)}",
                                                 font_size: "{font_size}",
                                                 "{word}"
@@ -406,6 +417,7 @@ fn Body(cx: Scope) -> Element {
     let create_panel = |_| {
         editor_manager.with_mut(|editor_manager| {
             editor_manager.panes.push(Panel::new());
+            editor_manager.focused_panel = editor_manager.panes.len() - 1;
         });
     };
 
@@ -496,7 +508,7 @@ fn Body(cx: Scope) -> Element {
                                             key: "{active_editor}",
                                             manager: editor_manager,
                                             panel_index: panel_index,
-                                            editor: active_editor
+                                            editor: active_editor,
                                         }
                                     )
                                 } else {
