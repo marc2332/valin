@@ -215,7 +215,7 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                         let (cursor, syntax_blocks) = args.unwrap();
                         let process_clickevent = process_clickevent.clone();
                         let line_index = line_index as usize;
-                        let line = syntax_blocks.get().get(line_index).unwrap().clone();
+                        let line = syntax_blocks.get().get(line_index).unwrap();
 
                         let is_line_selected = cursor.1 == line_index;
 
@@ -248,9 +248,10 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                                 rect {
                                     width: "{font_size * 3.0}",
                                     height: "100%",
-                                    display: "center",
                                     direction: "horizontal",
                                     label {
+                                        width: "100%",
+                                        align: "center",
                                         font_size: "{font_size}",
                                         color: "rgb(200, 200, 200)",
                                         "{line_index + 1} "
@@ -342,8 +343,7 @@ impl EditorManager {
         }
     }
 
-    pub fn push_editor(&mut self, editor: EditorData, panel: Option<usize>, focus: bool) {
-        let panel = panel.unwrap_or(self.focused_panel);
+    pub fn push_editor(&mut self, editor: EditorData, panel: usize, focus: bool) {
         self.panes[panel].editors.push(Arc::new(Mutex::new(editor)));
 
         if focus {
@@ -395,7 +395,7 @@ fn Body(cx: Scope) -> Element {
                 editor_manager.with_mut(|editor_manager| {
                     editor_manager.push_editor(
                         EditorData::new(path.to_path_buf(), Rope::from(content), (0, 0)),
-                        None,
+                        editor_manager.focused_panel,
                         true,
                     );
                 });

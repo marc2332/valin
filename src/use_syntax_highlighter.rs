@@ -12,6 +12,9 @@ pub enum SyntaxType {
     Keyword,
     Operator,
     Variable,
+    Function,
+    Comment,
+    Punctuation,
     Unknown,
 }
 
@@ -23,6 +26,9 @@ impl From<&str> for SyntaxType {
             "operator" => SyntaxType::Operator,
             "string" => SyntaxType::String,
             "number" => SyntaxType::Number,
+            "function" => SyntaxType::Function,
+            "comment" => SyntaxType::Comment,
+            "punctuation.bracket" => SyntaxType::Punctuation,
             _ => SyntaxType::Unknown,
         }
     }
@@ -30,7 +36,7 @@ impl From<&str> for SyntaxType {
 
 pub type SyntaxBlocks = Vec<SmallVec<[(SyntaxType, String); 6]>>;
 
-const HIGHLIGH_TAGS: [&str; 22] = [
+const HIGHLIGH_TAGS: [&str; 23] = [
     "constructor",
     "attribute",
     "constant",
@@ -53,6 +59,7 @@ const HIGHLIGH_TAGS: [&str; 22] = [
     "variable.builtin",
     "variable.parameter",
     "number",
+    "comment",
 ];
 
 pub fn use_syntax_highlighter<'a>(
@@ -148,6 +155,9 @@ pub fn get_color_from_type<'a>(t: &SyntaxType) -> &'a str {
         SyntaxType::Operator => "rgb(189, 174, 147)",
         SyntaxType::String => "rgb(184, 187, 38)",
         SyntaxType::Number => "rgb(211, 134, 155)",
+        SyntaxType::Function => "rgb(48, 117, 136)",
+        SyntaxType::Comment => "gray",
+        SyntaxType::Punctuation => "rgb(104, 157, 96)",
         SyntaxType::Unknown => "rgb(189, 174, 147)",
     }
 }
