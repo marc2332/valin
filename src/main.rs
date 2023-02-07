@@ -425,6 +425,7 @@ fn Body(cx: Scope) -> Element {
 
     render!(
         rect {
+            color: "white",
             background: "rgb(20, 20, 20)",
             direction: "horizontal",
             width: "100%",
