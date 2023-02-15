@@ -5,8 +5,8 @@ edition = "2021"
 
 [dependencies]
 dioxus = { git = "https://github.com/DioxusLabs/dioxus", rev="d521da1991719760e271457dfe4f9ddf281afbb3", features = ["macro", "hooks"]}
-freya-node-state = { git="https://github.com/marc2332/freya", rev="48ab8cc977f34abbf241de9f53b5cce3c57213d1"}
-freya = { git="https://github.com/marc2332/freya", rev="48ab8cc977f34abbf241de9f53b5cce3c57213d1" }
+freya-node-state = { git="https://github.com/marc2332/freya", rev="62211b3b53a82c7ce799dd4ab7c41f23ab6ffcf5"}
+freya = { git="https://github.com/marc2332/freya", rev="62211b3b53a82c7ce799dd4ab7c41f23ab6ffcf5" }
 tree-sitter-highlight = "0.20.1"
 tree-sitter-rust = "0.20.3"
 rfd = "0.11.0"
