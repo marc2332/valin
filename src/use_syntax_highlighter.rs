@@ -90,7 +90,7 @@ pub fn use_syntax_highlighter<'a>(
 
             while highlight_receiver.recv().await.is_some() {
                 let manager = manager.current();
-                let editor = &manager.panes[pane_index].editors[editor];
+                let editor = &manager.panel(pane_index).editor(editor);
                 let data = editor.to_string();
 
                 let highlights = highlighter

@@ -7,8 +7,8 @@ mod use_syntax_highlighter;
 
 use controlled_virtual_scroll_view::*;
 use tokio::{fs::read_to_string, sync::mpsc::unbounded_channel};
-use use_editable::EditorData;
-pub use use_editable::{use_edit, EditableMode, EditableText};
+pub use use_editable::{use_edit, EditableText};
+use use_editable::{EditorData, EditorManager, Panel};
 use use_syntax_highlighter::*;
 
 fn main() {
@@ -49,7 +49,12 @@ impl<'a> PartialEq for EditorProps<'a> {
 fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     let line_height_percentage = use_state(cx, || 4.0);
     let font_size_percentage = use_state(cx, || 15.0);
-    let cursor = cx.props.manager.panes[cx.props.panel_index].editors[cx.props.editor].cursor();
+    let cursor = cx
+        .props
+        .manager
+        .panel(cx.props.panel_index)
+        .editor(cx.props.editor)
+        .cursor();
     let theme = use_theme(cx);
     let highlight_trigger = use_ref(cx, || {
         let (tx, rx) = unbounded_channel::<()>();
@@ -84,9 +89,9 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     let line_height = (line_height_percentage / 25.0) + 1.2;
     let theme = theme.read();
     let manual_line_height = (font_size * line_height) as f32;
-    let is_panel_focused = cx.props.manager.focused_panel == cx.props.panel_index;
+    let is_panel_focused = cx.props.manager.focused_panel() == cx.props.panel_index;
     let is_editor_focused =
-        cx.props.manager.panes[cx.props.panel_index].active_editor == Some(cx.props.editor);
+        cx.props.manager.panel(cx.props.panel_index).active_editor() == Some(cx.props.editor);
 
     let onkeydown = move |e: KeyboardEvent| {
         if is_editor_focused && is_panel_focused {
@@ -97,8 +102,10 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     let onmousedown = move |_: MouseEvent| {
         if !is_editor_focused {
             cx.props.manager.with_mut(|manager| {
-                manager.focused_panel = cx.props.panel_index;
-                manager.panes[cx.props.panel_index].active_editor = Some(cx.props.editor);
+                manager.set_focused_panel(cx.props.panel_index);
+                manager
+                    .panel_mut(cx.props.panel_index)
+                    .set_active_editor(cx.props.editor);
             });
         }
     };
@@ -110,8 +117,10 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
 
     use_effect(cx, (), move |_| {
         cx.props.manager.with_mut(|manager| {
-            manager.focused_panel = cx.props.panel_index;
-            manager.panes[cx.props.panel_index].active_editor = Some(cx.props.editor);
+            manager.set_focused_panel(cx.props.panel_index);
+            manager
+                .panel_mut(cx.props.panel_index)
+                .set_active_editor(cx.props.editor);
         });
         async move {}
     });
@@ -209,11 +218,11 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                     width: "100%",
                     height: "100%",
                     show_scrollbar: true,
-                    builder_values: (cursor, syntax_blocks),
+                    builder_values: (cursor.clone(), syntax_blocks),
                     length: syntax_blocks.len() as i32,
                     item_size: manual_line_height,
                     builder: Box::new(move |(k, line_index, args)| {
-                        let (cursor, syntax_blocks) = args.unwrap();
+                        let (cursor, syntax_blocks) = args.as_ref().unwrap();
                         let process_clickevent = process_clickevent.clone();
                         let line_index = line_index as usize;
                         let line = syntax_blocks.get().get(line_index).unwrap();
@@ -301,76 +310,6 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     )
 }
 
-#[derive(Clone, Default)]
-pub struct Panel {
-    active_editor: Option<usize>,
-    editors: Vec<EditorData>,
-}
-
-impl Panel {
-    pub fn new() -> Self {
-        Self::default()
-    }
-}
-
-#[derive(Clone)]
-pub struct EditorManager {
-    focused_panel: usize,
-    panes: Vec<Panel>,
-}
-
-impl Default for EditorManager {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl EditorManager {
-    pub fn new() -> Self {
-        Self {
-            focused_panel: 0,
-            panes: vec![Panel::new()],
-        }
-    }
-
-    pub fn push_editor(&mut self, editor: EditorData, panel: usize, focus: bool) {
-        self.panes[panel].editors.push(editor);
-
-        if focus {
-            self.focused_panel = panel;
-            self.panes[panel].active_editor = Some(self.panes[panel].editors.len() - 1);
-        }
-    }
-
-    pub fn get_panes(&self) -> &[Panel] {
-        &self.panes
-    }
-
-    pub fn get_editors(&self, panel: usize) -> &[EditorData] {
-        &self.panes[panel].editors
-    }
-
-    pub fn get_active_editor(&self, panel: usize) -> Option<usize> {
-        self.panes[panel].active_editor
-    }
-
-    pub fn set_active_editor(&mut self, panel: usize, active_editor: usize) {
-        self.panes[panel].active_editor = Some(active_editor);
-    }
-
-    pub fn set_focused_pane(&mut self, panel: usize) {
-        self.focused_panel = panel;
-    }
-
-    pub fn get_focused_pane(&self) -> usize {
-        self.focused_panel
-    }
-
-    pub fn close_pane(&mut self, panel: usize) {
-        self.panes.remove(panel);
-    }
-}
-
 #[allow(non_snake_case)]
 fn Body(cx: Scope) -> Element {
     let theme = use_theme(cx);
@@ -389,7 +328,7 @@ fn Body(cx: Scope) -> Element {
                 editor_manager.with_mut(|editor_manager| {
                     editor_manager.push_editor(
                         EditorData::new(path.to_path_buf(), Rope::from(content), (0, 0)),
-                        editor_manager.focused_panel,
+                        editor_manager.focused_panel(),
                         true,
                     );
                 });
@@ -399,12 +338,12 @@ fn Body(cx: Scope) -> Element {
 
     let create_panel = |_| {
         editor_manager.with_mut(|editor_manager| {
-            editor_manager.panes.push(Panel::new());
-            editor_manager.focused_panel = editor_manager.panes.len() - 1;
+            editor_manager.push_panel(Panel::new());
+            editor_manager.set_focused_panel(editor_manager.panels().len() - 1);
         });
     };
 
-    let pane_size = 100.0 / editor_manager.get().get_panes().len() as f32;
+    let pane_size = 100.0 / editor_manager.get().panels().len() as f32;
 
     render!(
         rect {
@@ -439,9 +378,9 @@ fn Body(cx: Scope) -> Element {
                 height: "100%",
                 width: "calc(100% - 62)",
                 direction: "horizontal",
-                editor_manager.get().get_panes().iter().enumerate().map(|(panel_index, panel)| {
+                editor_manager.get().panels().iter().enumerate().map(|(panel_index, panel)| {
                     let is_focused = editor_manager.get().get_focused_pane() == panel_index;
-                    let active_editor = panel.active_editor;
+                    let active_editor = panel.active_editor();
                     let bg = if is_focused {
                         "rgb(247, 127, 0)"
                     } else {
@@ -462,7 +401,7 @@ fn Body(cx: Scope) -> Element {
                                 height: "50",
                                 width: "100%",
                                 padding: "2.5",
-                                editor_manager.get().get_editors(panel_index).iter().enumerate().map(|(i, editor)| {
+                                editor_manager.get().panel(panel_index).editors().iter().enumerate().map(|(i, editor)| {
                                     let is_selected = active_editor == Some(i);
                                     let file_name = editor.path().file_name().unwrap().to_str().unwrap().to_owned();
                                     rsx!(
@@ -470,8 +409,8 @@ fn Body(cx: Scope) -> Element {
                                             key: "{i}",
                                             onclick: move |_| {
                                                 editor_manager.with_mut(|editor_manager| {
-                                                    editor_manager.set_focused_pane(panel_index);
-                                                    editor_manager.set_active_editor(panel_index, i);
+                                                    editor_manager.set_focused_panel(panel_index);
+                                                    editor_manager.panel_mut(panel_index).set_active_editor(i);
                                                 });
                                             },
                                             value: "{file_name}",
@@ -487,7 +426,7 @@ fn Body(cx: Scope) -> Element {
                                 padding: "1.5",
                                 onclick: move |_| {
                                     editor_manager.with_mut(|editor_manager| {
-                                        editor_manager.set_focused_pane(panel_index);
+                                        editor_manager.set_focused_panel(panel_index);
                                     });
                                 },
                                 if let Some(active_editor) = active_editor {

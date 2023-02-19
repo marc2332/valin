@@ -10,6 +10,96 @@ use std::{
 };
 use tokio::sync::{mpsc::unbounded_channel, mpsc::UnboundedSender};
 
+#[derive(Clone, Default)]
+pub struct Panel {
+    active_editor: Option<usize>,
+    editors: Vec<EditorData>,
+}
+
+impl Panel {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn active_editor(&self) -> Option<usize> {
+        self.active_editor
+    }
+
+    pub fn editor(&self, editor: usize) -> &EditorData {
+        &self.editors[editor]
+    }
+
+    pub fn editors(&self) -> &[EditorData] {
+        &self.editors
+    }
+
+    pub fn set_active_editor(&mut self, active_editor: usize) {
+        self.active_editor = Some(active_editor);
+    }
+}
+
+#[derive(Clone)]
+pub struct EditorManager {
+    focused_panel: usize,
+    panes: Vec<Panel>,
+}
+
+impl Default for EditorManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl EditorManager {
+    pub fn new() -> Self {
+        Self {
+            focused_panel: 0,
+            panes: vec![Panel::new()],
+        }
+    }
+
+    pub fn focused_panel(&self) -> usize {
+        self.focused_panel
+    }
+
+    pub fn push_editor(&mut self, editor: EditorData, panel: usize, focus: bool) {
+        self.panes[panel].editors.push(editor);
+
+        if focus {
+            self.focused_panel = panel;
+            self.panes[panel].active_editor = Some(self.panes[panel].editors.len() - 1);
+        }
+    }
+
+    pub fn push_panel(&mut self, panel: Panel) {
+        self.panes.push(panel);
+    }
+
+    pub fn panels(&self) -> &[Panel] {
+        &self.panes
+    }
+
+    pub fn panel(&self, panel: usize) -> &Panel {
+        &self.panes[panel]
+    }
+
+    pub fn panel_mut(&mut self, panel: usize) -> &mut Panel {
+        &mut self.panes[panel]
+    }
+
+    pub fn set_focused_panel(&mut self, panel: usize) {
+        self.focused_panel = panel;
+    }
+
+    pub fn get_focused_pane(&self) -> usize {
+        self.focused_panel
+    }
+
+    pub fn close_pane(&mut self, panel: usize) {
+        self.panes.remove(panel);
+    }
+}
+
 /// Iterator over text lines.
 pub struct LinesIterator<'a> {
     lines: Lines<'a>,
@@ -39,8 +129,8 @@ impl EditorData {
         &self.path
     }
 
-    pub fn cursor(&self) -> &TextCursor {
-        &self.cursor
+    pub fn cursor(&self) -> TextCursor {
+        self.cursor.clone()
     }
 
     pub fn rope(&self) -> &Rope {
@@ -113,20 +203,6 @@ impl TextEditor for EditorData {
     fn cursor_mut(&mut self) -> &mut TextCursor {
         &mut self.cursor
     }
-}
-
-use crate::EditorManager;
-
-/// How the editable content must behave.
-pub enum EditableMode {
-    /// Multiple editors of only one line.
-    ///
-    /// Useful for textarea-like editors that need more customization than a simple paragraph for example.
-    SingleLineMultipleEditors,
-    /// One editor of multiple lines.
-    ///
-    /// A paragraph for example.
-    MultipleLinesSingleEditor,
 }
 
 pub type KeypressNotifier = UnboundedSender<Rc<KeyboardData>>;
