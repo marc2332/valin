@@ -29,6 +29,10 @@ impl Panel {
         &self.editors[editor]
     }
 
+    pub fn editor_mut(&mut self, editor: usize) -> &mut EditorData {
+        &mut self.editors[editor]
+    }
+
     pub fn editors(&self) -> &[EditorData] {
         &self.editors
     }
@@ -66,6 +70,10 @@ impl EditorManager {
             font_size: 17.0,
             line_height: 1.3,
         }
+    }
+
+    pub fn set_fontsize(&mut self, fontsize: f32) {
+        self.font_size = fontsize;
     }
 
     pub fn set_focused(&mut self, focused: bool) {

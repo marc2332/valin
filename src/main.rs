@@ -83,6 +83,7 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     );
     let scroll_x = use_state(cx, || 0);
     let scroll_y = use_state(cx, || 0);
+    let (commander_anim, commander_setter, commander_height, _) = use_animation_managed(cx, 0.0);
 
     let theme = theme.read();
     let font_size = cx.props.manager.font_size();
@@ -90,12 +91,6 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     let is_panel_focused = cx.props.manager.focused_panel() == cx.props.panel_index;
     let is_editor_focused = cx.props.manager.is_focused()
         && cx.props.manager.panel(cx.props.panel_index).active_editor() == Some(cx.props.editor);
-
-    let onkeydown = move |e: KeyboardEvent| {
-        if is_editor_focused && is_panel_focused {
-            process_keyevent.send(e.data).ok();
-        }
-    };
 
     let onmousedown = move |_: MouseEvent| {
         if !is_editor_focused {
@@ -123,10 +118,60 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
         async move {}
     });
 
+    let commands = cx.use_hook(|| {
+        vec![
+            Command::new("fs".to_string(), {
+                let editor_manager = cx.props.manager.clone();
+                Box::new(move |size: &str| {
+                    if let Ok(size) = size.parse::<f32>() {
+                        editor_manager.with_mut(|editor_manager| {
+                            editor_manager.set_fontsize(size);
+                        })
+                    }
+                })
+            }),
+            Command::new("to".to_string(), {
+                let editor_manager = cx.props.manager.clone();
+                let scroll_y = scroll_y.clone();
+                Box::new(move |row: &str| {
+                    if let Ok(row) = row.parse::<usize>() {
+                        editor_manager.with_mut(|editor_manager| {
+                            let panel = editor_manager.panel_mut(editor_manager.focused_panel());
+                            if let Some(editor) = panel.active_editor() {
+                                scroll_y.set(-(manual_line_height * (row - 1) as f32) as i32);
+                                let cursor = panel.editor_mut(editor).cursor_mut();
+                                cursor.set_row(row - 1);
+                                cursor.set_col(0);
+                            }
+                        })
+                    }
+                })
+            }),
+        ]
+    });
+
+    let onkeydown = move |e: KeyboardEvent| {
+        if is_panel_focused {
+            if e.code == Code::Escape {
+                cx.props.manager.with_mut(|editor_manager| {
+                    if commander_height == 0.0 {
+                        editor_manager.set_focused(false);
+                        commander_anim(AnimationMode::new_sine_in_out(0.0..=50.0, 100))
+                    } else {
+                        editor_manager.set_focused(true);
+                        commander_anim(AnimationMode::new_sine_in_out(50.0..=0.0, 100))
+                    }
+                });
+            } else if is_editor_focused {
+                process_keyevent.send(e.data).ok();
+            }
+        }
+    };
+
     render!(
         rect {
             width: "100%",
-            height: "calc(100% - 30)",
+            height: "calc(100% - {commander_height + 30.0})",
             onkeydown: onkeydown,
             onmousedown: onmousedown,
             cursor_reference: cursor_ref,
@@ -220,6 +265,16 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                 }
             }
         }
+        Commander {
+            height: commander_height,
+            onsubmit: move |_| {
+                cx.props.manager.with_mut(|editor_manager| {
+                    editor_manager.set_focused(true);
+                    commander_setter(0.0);
+                });
+            }
+            commands: commands
+        }
         rect {
             width: "100%",
             height: "30",
@@ -239,22 +294,6 @@ fn Body(cx: Scope) -> Element {
     let theme = use_theme(cx);
     let theme = &theme.read();
     let editor_manager = use_state::<EditorManager>(cx, EditorManager::new);
-
-    let (commander_anim, _, commander_height, _) = use_animation_managed(cx, 0.0);
-
-    let onkeydown = move |e: KeyboardEvent| {
-        if e.code == Code::Escape {
-            editor_manager.with_mut(|editor_manager| {
-                if commander_height == 0.0 {
-                    editor_manager.set_focused(false);
-                    commander_anim(AnimationMode::new_sine_in_out(0.0..=50.0, 100))
-                } else {
-                    editor_manager.set_focused(true);
-                    commander_anim(AnimationMode::new_sine_in_out(50.0..=0.0, 100))
-                }
-            });
-        }
-    };
 
     let open_file = move |_: MouseEvent| {
         let editor_manager = editor_manager.clone();
@@ -287,7 +326,6 @@ fn Body(cx: Scope) -> Element {
 
     render!(
         rect {
-            onkeydown: onkeydown,
             color: "white",
             background: "rgb(20, 20, 20)",
             direction: "horizontal",
@@ -320,7 +358,7 @@ fn Body(cx: Scope) -> Element {
                 width: "calc(100% - 62)",
                 height: "100%",
                 rect {
-                    height: "calc(100% - {commander_height})",
+                    height: "100%",
                     width: "calc(100%)",
                     direction: "horizontal",
                     editor_manager.get().panels().iter().enumerate().map(|(panel_index, panel)| {
@@ -406,9 +444,6 @@ fn Body(cx: Scope) -> Element {
                         )
                     })
                 }
-                Commander {
-                    height: commander_height
-                }
             }
         }
     )
@@ -468,17 +503,46 @@ fn FileTab<'a>(
     )
 }
 
+struct Command {
+    name: String,
+    run: Box<dyn Fn(&str)>,
+}
+
+impl Command {
+    pub fn new(name: String, run: Box<dyn Fn(&str)>) -> Self {
+        Self { name, run }
+    }
+
+    pub fn run(&self, args: &str) {
+        (self.run)(args);
+    }
+}
+
 #[allow(non_snake_case)]
 #[inline_props]
-fn Commander(cx: Scope, height: f64) -> Element {
+fn Commander<'a>(
+    cx: Scope<'a>,
+    height: f64,
+    commands: &'a Vec<Command>,
+    onsubmit: EventHandler<'a>,
+) -> Element<'a> {
     let value = use_state(cx, String::new);
-    let onsubmit = |_: String| {};
+    let onsubmit = |new_value: String| {
+        let (name, args) = new_value.split_at(new_value.find(' ').unwrap());
+        let command = commands.iter().find(|c| c.name == name);
+        if let Some(command) = command {
+            command.run(args.trim());
+            value.set("".to_string());
+            onsubmit.call(());
+        }
+    };
     render!(
         container {
             width: "100%",
             height: "{height}",
             display: "center",
             direction: "vertical",
+            background: "rgb(20, 20, 20)",
             TextArea {
                 value: "{value}",
                 onchange: |v| value.set(v),
