@@ -81,7 +81,6 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     );
     let scroll_x = use_state(cx, || 0);
     let scroll_y = use_state(cx, || 0);
-    let destination_line = use_state(cx, String::new);
 
     let theme = theme.read();
     let font_size = cx.props.manager.font_size();
@@ -123,40 +122,9 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     });
 
     render!(
-        container {
-            width: "100%",
-            height: "60",
-            padding: "10",
-            direction: "horizontal",
-            background: "rgb(20, 20, 20)",
-            rect {
-                height: "100%",
-                width: "100%",
-                direction: "horizontal",
-                Button {
-                    onclick: move |_| {
-                        if let Ok(v) = destination_line.get().parse::<i32>() {
-                            scroll_y.set(-(manual_line_height * (v - 1) as f32) as i32);
-                        }
-                    },
-                    label {
-                        "Scroll to line:"
-                    }
-                }
-                Input {
-                    value: destination_line.get(),
-                    onchange: move |v: String| {
-                        if v.parse::<i32>().is_ok() || v.is_empty() {
-                            destination_line.set(v);
-                        }
-                    }
-                }
-
-            }
-        }
         rect {
             width: "100%",
-            height: "calc(100% - 90)",
+            height: "calc(100% - 30)",
             onkeydown: onkeydown,
             onmousedown: onmousedown,
             cursor_reference: cursor_ref,

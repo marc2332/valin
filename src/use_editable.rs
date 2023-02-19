@@ -327,6 +327,9 @@ pub fn use_edit<'a>(
             let mut rx = rx.unwrap();
 
             while let Some(pressed_key) = rx.recv().await {
+                if pressed_key.key == Key::Escape {
+                    continue;
+                }
                 editor_manager.with_mut(|editor_manager| {
                     let editor = &mut editor_manager.panes[pane_index].editors[editor_index];
                     let event = editor.process_key(
