@@ -36,10 +36,15 @@ impl Panel {
     pub fn set_active_editor(&mut self, active_editor: usize) {
         self.active_editor = Some(active_editor);
     }
+
+    pub fn remove_active_editor(&mut self) {
+        self.active_editor = None;
+    }
 }
 
 #[derive(Clone)]
 pub struct EditorManager {
+    is_focused: bool,
     focused_panel: usize,
     panes: Vec<Panel>,
     font_size: f32,
@@ -55,11 +60,20 @@ impl Default for EditorManager {
 impl EditorManager {
     pub fn new() -> Self {
         Self {
+            is_focused: true,
             focused_panel: 0,
             panes: vec![Panel::new()],
             font_size: 17.0,
             line_height: 1.3,
         }
+    }
+
+    pub fn set_focused(&mut self, focused: bool) {
+        self.is_focused = focused;
+    }
+
+    pub fn is_focused(&self) -> bool {
+        self.is_focused
     }
 
     pub fn font_size(&self) -> f32 {
@@ -101,10 +115,6 @@ impl EditorManager {
 
     pub fn set_focused_panel(&mut self, panel: usize) {
         self.focused_panel = panel;
-    }
-
-    pub fn get_focused_pane(&self) -> usize {
-        self.focused_panel
     }
 
     pub fn close_pane(&mut self, panel: usize) {

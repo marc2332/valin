@@ -2,10 +2,12 @@ use freya::prelude::events_data::KeyboardEvent;
 use freya::prelude::*;
 
 mod controlled_virtual_scroll_view;
+mod text_area;
 mod use_editable;
 mod use_syntax_highlighter;
 
 use controlled_virtual_scroll_view::*;
+use text_area::*;
 use tokio::{fs::read_to_string, sync::mpsc::unbounded_channel};
 pub use use_editable::{use_edit, EditableText};
 use use_editable::{EditorData, EditorManager, Panel};
@@ -86,8 +88,8 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     let font_size = cx.props.manager.font_size();
     let manual_line_height = cx.props.manager.font_size() * cx.props.manager.line_height();
     let is_panel_focused = cx.props.manager.focused_panel() == cx.props.panel_index;
-    let is_editor_focused =
-        cx.props.manager.panel(cx.props.panel_index).active_editor() == Some(cx.props.editor);
+    let is_editor_focused = cx.props.manager.is_focused()
+        && cx.props.manager.panel(cx.props.panel_index).active_editor() == Some(cx.props.editor);
 
     let onkeydown = move |e: KeyboardEvent| {
         if is_editor_focused && is_panel_focused {
@@ -242,11 +244,15 @@ fn Body(cx: Scope) -> Element {
 
     let onkeydown = move |e: KeyboardEvent| {
         if e.code == Code::Escape {
-            if commander_height == 0.0 {
-                commander_anim(AnimationMode::new_sine_in_out(0.0..=50.0, 100))
-            } else {
-                commander_anim(AnimationMode::new_sine_in_out(50.0..=0.0, 100))
-            }
+            editor_manager.with_mut(|editor_manager| {
+                if commander_height == 0.0 {
+                    editor_manager.set_focused(false);
+                    commander_anim(AnimationMode::new_sine_in_out(0.0..=50.0, 100))
+                } else {
+                    editor_manager.set_focused(true);
+                    commander_anim(AnimationMode::new_sine_in_out(50.0..=0.0, 100))
+                }
+            });
         }
     };
 
@@ -318,7 +324,7 @@ fn Body(cx: Scope) -> Element {
                     width: "calc(100%)",
                     direction: "horizontal",
                     editor_manager.get().panels().iter().enumerate().map(|(panel_index, panel)| {
-                        let is_focused = editor_manager.get().get_focused_pane() == panel_index;
+                        let is_focused = editor_manager.get().focused_panel() == panel_index;
                         let active_editor = panel.active_editor();
                         let bg = if is_focused {
                             "rgb(247, 127, 0)"
@@ -465,15 +471,18 @@ fn FileTab<'a>(
 #[allow(non_snake_case)]
 #[inline_props]
 fn Commander(cx: Scope, height: f64) -> Element {
+    let value = use_state(cx, String::new);
+    let onsubmit = |_: String| {};
     render!(
         container {
             width: "100%",
             height: "{height}",
             display: "center",
             direction: "vertical",
-            padding: "0 25",
-            label {
-                "Command"
+            TextArea {
+                value: "{value}",
+                onchange: |v| value.set(v),
+                onsubmit: onsubmit,
             }
         }
     )
