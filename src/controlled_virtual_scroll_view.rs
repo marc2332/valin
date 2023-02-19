@@ -6,9 +6,32 @@ use freya::prelude::{use_get_theme, use_node, MouseEvent, WheelEvent};
 
 use crate::{
     get_container_size, get_corrected_scroll_position, get_scroll_position_from_cursor,
-    get_scroll_position_from_wheel, get_scrollbar_pos_and_size, is_scrollbar_visible, Axis,
+    get_scrollbar_pos_and_size, is_scrollbar_visible, Axis,
     SCROLLBAR_SIZE,
 };
+
+pub fn get_scroll_position_from_wheel(
+    wheel_movement: f32,
+    inner_size: f32,
+    viewport_size: f32,
+    scroll_position: f32,
+) -> i32 {
+    if viewport_size >= inner_size {
+        return 0;
+    }
+
+    let new_position = scroll_position + (wheel_movement * 45.0);
+
+    if new_position >= 0.0 && wheel_movement > 0.0 {
+        return 0;
+    }
+
+    if new_position <= -(inner_size - viewport_size) && wheel_movement < 0.0 {
+        return -(inner_size - viewport_size) as i32;
+    }
+
+    new_position as i32
+}
 
 type BuilderFunction<'a, T> = dyn Fn((i32, i32, &'a Option<T>)) -> LazyNodes<'a, 'a>;
 
