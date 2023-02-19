@@ -136,9 +136,11 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                 Box::new(move |row: &str| {
                     if let Ok(row) = row.parse::<usize>() {
                         editor_manager.with_mut(|editor_manager| {
+                            let line_height =
+                                editor_manager.font_size() * editor_manager.line_height();
                             let panel = editor_manager.panel_mut(editor_manager.focused_panel());
                             if let Some(editor) = panel.active_editor() {
-                                scroll_y.set(-(manual_line_height * (row - 1) as f32) as i32);
+                                scroll_y.set(-(line_height * (row - 1) as f32) as i32);
                                 let cursor = panel.editor_mut(editor).cursor_mut();
                                 cursor.set_row(row - 1);
                                 cursor.set_col(0);
@@ -371,7 +373,7 @@ fn Body(cx: Scope) -> Element {
                         };
                         let close_panel = move |_: MouseEvent| {
                             editor_manager.with_mut(|editor_manager| {
-                                editor_manager.close_pane(panel_index);
+                                editor_manager.close_panel(panel_index);
                             });
                         };
                         rsx!(
@@ -528,12 +530,15 @@ fn Commander<'a>(
 ) -> Element<'a> {
     let value = use_state(cx, String::new);
     let onsubmit = |new_value: String| {
-        let (name, args) = new_value.split_at(new_value.find(' ').unwrap());
-        let command = commands.iter().find(|c| c.name == name);
-        if let Some(command) = command {
-            command.run(args.trim());
-            value.set("".to_string());
-            onsubmit.call(());
+        let sep = new_value.find(' ');
+        if let Some(sep) = sep {
+            let (name, args) = new_value.split_at(sep);
+            let command = commands.iter().find(|c| c.name == name);
+            if let Some(command) = command {
+                command.run(args.trim());
+                value.set("".to_string());
+                onsubmit.call(());
+            }
         }
     };
     render!(

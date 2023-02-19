@@ -125,8 +125,13 @@ impl EditorManager {
         self.focused_panel = panel;
     }
 
-    pub fn close_pane(&mut self, panel: usize) {
-        self.panes.remove(panel);
+    pub fn close_panel(&mut self, panel: usize) {
+        if self.panes.len() > 1 {
+            self.panes.remove(panel);
+            if self.focused_panel > 0 {
+                self.focused_panel -= 1;
+            }
+        }
     }
 }
 
