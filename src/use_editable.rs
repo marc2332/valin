@@ -42,6 +42,8 @@ impl Panel {
 pub struct EditorManager {
     focused_panel: usize,
     panes: Vec<Panel>,
+    font_size: f32,
+    line_height: f32,
 }
 
 impl Default for EditorManager {
@@ -55,7 +57,17 @@ impl EditorManager {
         Self {
             focused_panel: 0,
             panes: vec![Panel::new()],
+            font_size: 17.0,
+            line_height: 1.3,
         }
+    }
+
+    pub fn font_size(&self) -> f32 {
+        self.font_size
+    }
+
+    pub fn line_height(&self) -> f32 {
+        self.line_height
     }
 
     pub fn focused_panel(&self) -> usize {

@@ -47,8 +47,6 @@ impl<'a> PartialEq for EditorProps<'a> {
 
 #[allow(non_snake_case)]
 fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
-    let line_height_percentage = use_state(cx, || 4.0);
-    let font_size_percentage = use_state(cx, || 15.0);
     let cursor = cx
         .props
         .manager
@@ -85,10 +83,9 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     let scroll_y = use_state(cx, || 0);
     let destination_line = use_state(cx, String::new);
 
-    let font_size = font_size_percentage + 5.0;
-    let line_height = (line_height_percentage / 25.0) + 1.2;
     let theme = theme.read();
-    let manual_line_height = (font_size * line_height) as f32;
+    let font_size = cx.props.manager.font_size();
+    let manual_line_height = cx.props.manager.font_size() * cx.props.manager.line_height();
     let is_panel_focused = cx.props.manager.focused_panel() == cx.props.panel_index;
     let is_editor_focused =
         cx.props.manager.panel(cx.props.panel_index).active_editor() == Some(cx.props.editor);
@@ -136,49 +133,6 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                 height: "100%",
                 width: "100%",
                 direction: "horizontal",
-                rect {
-                    height: "40%",
-                    display: "center",
-                    width: "130",
-                    Slider {
-                        width: 100.0,
-                        value: *font_size_percentage.get(),
-                        onmoved: |p| {
-                            font_size_percentage.set(p);
-                        }
-                    }
-                    rect {
-                        height: "auto",
-                        width: "100%",
-                        display: "center",
-                        direction: "horizontal",
-                        label {
-                            "Font size"
-                        }
-                    }
-                }
-                rect {
-                    height: "40%",
-                    display: "center",
-                    direction: "vertical",
-                    width: "130",
-                    Slider {
-                        width: 100.0,
-                        value: *line_height_percentage.get(),
-                        onmoved: |p| {
-                            line_height_percentage.set(p);
-                        }
-                    }
-                    rect {
-                        height: "auto",
-                        width: "100%",
-                        display: "center",
-                        direction: "horizontal",
-                        label {
-                            "Line height"
-                        }
-                    }
-                }
                 Button {
                     onclick: move |_| {
                         if let Ok(v) = destination_line.get().parse::<i32>() {
@@ -316,6 +270,18 @@ fn Body(cx: Scope) -> Element {
     let theme = &theme.read();
     let editor_manager = use_state::<EditorManager>(cx, EditorManager::new);
 
+    let (commander_anim, _, commander_height, _) = use_animation_managed(cx, 0.0);
+
+    let onkeydown = move |e: KeyboardEvent| {
+        if e.code == Code::Escape {
+            if commander_height == 0.0 {
+                commander_anim(AnimationMode::new_sine_in_out(0.0..=50.0, 100))
+            } else {
+                commander_anim(AnimationMode::new_sine_in_out(50.0..=0.0, 100))
+            }
+        }
+    };
+
     let open_file = move |_: MouseEvent| {
         let editor_manager = editor_manager.clone();
         cx.spawn(async move {
@@ -347,6 +313,7 @@ fn Body(cx: Scope) -> Element {
 
     render!(
         rect {
+            onkeydown: onkeydown,
             color: "white",
             background: "rgb(20, 20, 20)",
             direction: "horizontal",
@@ -375,93 +342,100 @@ fn Body(cx: Scope) -> Element {
                 width: "2",
             }
             rect {
-                height: "100%",
+                direction: "vertical",
                 width: "calc(100% - 62)",
-                direction: "horizontal",
-                editor_manager.get().panels().iter().enumerate().map(|(panel_index, panel)| {
-                    let is_focused = editor_manager.get().get_focused_pane() == panel_index;
-                    let active_editor = panel.active_editor();
-                    let bg = if is_focused {
-                        "rgb(247, 127, 0)"
-                    } else {
-                        "transparent"
-                    };
-                    let close_panel = move |_: MouseEvent| {
-                        editor_manager.with_mut(|editor_manager| {
-                            editor_manager.close_pane(panel_index);
-                        });
-                    };
-                    rsx!(
-                        rect {
-                            direction: "vertical",
-                            height: "100%",
-                            width: "{pane_size}%",
+                height: "100%",
+                rect {
+                    height: "calc(100% - {commander_height})",
+                    width: "calc(100%)",
+                    direction: "horizontal",
+                    editor_manager.get().panels().iter().enumerate().map(|(panel_index, panel)| {
+                        let is_focused = editor_manager.get().get_focused_pane() == panel_index;
+                        let active_editor = panel.active_editor();
+                        let bg = if is_focused {
+                            "rgb(247, 127, 0)"
+                        } else {
+                            "transparent"
+                        };
+                        let close_panel = move |_: MouseEvent| {
+                            editor_manager.with_mut(|editor_manager| {
+                                editor_manager.close_pane(panel_index);
+                            });
+                        };
+                        rsx!(
                             rect {
-                                direction: "horizontal",
-                                height: "50",
-                                width: "100%",
-                                padding: "2.5",
-                                editor_manager.get().panel(panel_index).editors().iter().enumerate().map(|(i, editor)| {
-                                    let is_selected = active_editor == Some(i);
-                                    let file_name = editor.path().file_name().unwrap().to_str().unwrap().to_owned();
-                                    rsx!(
-                                        FileTab {
-                                            key: "{i}",
-                                            onclick: move |_| {
-                                                editor_manager.with_mut(|editor_manager| {
-                                                    editor_manager.set_focused_panel(panel_index);
-                                                    editor_manager.panel_mut(panel_index).set_active_editor(i);
-                                                });
-                                            },
-                                            value: "{file_name}",
-                                            is_selected: is_selected
-                                        }
-                                    )
-                                })
-                            }
-                            rect {
-                                height: "calc(100%-50)",
-                                width: "100%",
-                                background: "{bg}",
-                                padding: "1.5",
-                                onclick: move |_| {
-                                    editor_manager.with_mut(|editor_manager| {
-                                        editor_manager.set_focused_panel(panel_index);
-                                    });
-                                },
-                                if let Some(active_editor) = active_editor {
-                                    rsx!(
-                                        Editor {
-                                            key: "{active_editor}",
-                                            manager: editor_manager,
-                                            panel_index: panel_index,
-                                            editor: active_editor,
-                                        }
-                                    )
-                                } else {
-                                    rsx!(
-                                        rect {
-                                            display: "center",
-                                            width: "100%",
-                                            height: "100%",
-                                            direction: "both",
-                                            background: "{theme.body.background}",
-                                            Button {
-                                                onclick: close_panel,
-                                                label {
-                                                    "Close panel"
+                                direction: "vertical",
+                                height: "100%",
+                                width: "{pane_size}%",
+                                rect {
+                                    direction: "horizontal",
+                                    height: "50",
+                                    width: "100%",
+                                    padding: "2.5",
+                                    editor_manager.get().panel(panel_index).editors().iter().enumerate().map(|(i, editor)| {
+                                        let is_selected = active_editor == Some(i);
+                                        let file_name = editor.path().file_name().unwrap().to_str().unwrap().to_owned();
+                                        rsx!(
+                                            FileTab {
+                                                key: "{i}",
+                                                onclick: move |_| {
+                                                    editor_manager.with_mut(|editor_manager| {
+                                                        editor_manager.set_focused_panel(panel_index);
+                                                        editor_manager.panel_mut(panel_index).set_active_editor(i);
+                                                    });
+                                                },
+                                                value: "{file_name}",
+                                                is_selected: is_selected
+                                            }
+                                        )
+                                    })
+                                }
+                                rect {
+                                    height: "calc(100%-50)",
+                                    width: "100%",
+                                    background: "{bg}",
+                                    padding: "1.5",
+                                    onclick: move |_| {
+                                        editor_manager.with_mut(|editor_manager| {
+                                            editor_manager.set_focused_panel(panel_index);
+                                        });
+                                    },
+                                    if let Some(active_editor) = active_editor {
+                                        rsx!(
+                                            Editor {
+                                                key: "{active_editor}",
+                                                manager: editor_manager,
+                                                panel_index: panel_index,
+                                                editor: active_editor,
+                                            }
+                                        )
+                                    } else {
+                                        rsx!(
+                                            rect {
+                                                display: "center",
+                                                width: "100%",
+                                                height: "100%",
+                                                direction: "both",
+                                                background: "{theme.body.background}",
+                                                Button {
+                                                    onclick: close_panel,
+                                                    label {
+                                                        "Close panel"
+                                                    }
                                                 }
                                             }
-                                        }
-                                    )
+                                        )
+                                    }
                                 }
+
                             }
-
-                        }
-                    )
-                })
+                        )
+                    })
+                }
+                Commander {
+                    height: commander_height
+                }
             }
-
         }
     )
 }
@@ -515,6 +489,23 @@ fn FileTab<'a>(
                 label {
                     "{value}"
                 }
+            }
+        }
+    )
+}
+
+#[allow(non_snake_case)]
+#[inline_props]
+fn Commander(cx: Scope, height: f64) -> Element {
+    render!(
+        container {
+            width: "100%",
+            height: "{height}",
+            display: "center",
+            direction: "vertical",
+            padding: "0 25",
+            label {
+                "Command"
             }
         }
     )
