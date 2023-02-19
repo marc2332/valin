@@ -1,7 +1,7 @@
 use freya::prelude::*;
 use smallvec::SmallVec;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use tree_sitter_highlight::*;
+use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter};
 
 use crate::EditorManager;
 
@@ -71,7 +71,6 @@ pub fn use_syntax_highlighter<'a>(
 ) -> &'a UseState<SyntaxBlocks> {
     let syntax_blocks = use_state::<SyntaxBlocks>(cx, Vec::new);
 
-    // Not proud of using .to_string() here tbh
     use_effect(cx, (), move |_| {
         let syntax_blocks = syntax_blocks.clone();
         let manager = manager.clone();
@@ -88,9 +87,12 @@ pub fn use_syntax_highlighter<'a>(
             .unwrap();
             rust_config.configure(&HIGHLIGH_TAGS);
             let mut highlighter = Highlighter::new();
+
             while highlight_receiver.recv().await.is_some() {
-                let editor = manager.panes[pane_index].editors[editor].lock().unwrap();
-                let data = editor.rope.slice_to_cow(0..);
+                let manager = manager.current();
+                let editor = &manager.panel(pane_index).editor(editor);
+                let data = editor.to_string();
+
                 let highlights = highlighter
                     .highlight(&rust_config, data.as_bytes(), None, |_| None)
                     .unwrap();
@@ -104,11 +106,19 @@ pub fn use_syntax_highlighter<'a>(
                         match event.unwrap() {
                             HighlightEvent::Source { start, end } => {
                                 // Prepare the whole block even if it's splitted across multiple lines.
-                                let data = editor.rope.lines(start..end);
-                                let starting_line = editor.rope.line_of_offset(start);
+                                let data_begining = editor.rope().byte_slice(start..end);
+                                let starting_line = editor.char_to_line(start);
 
-                                for (i, d) in data.enumerate() {
-                                    prepared_block.1.push((starting_line + i, d.to_string()));
+                                let mut back = String::new();
+                                let mut line = starting_line;
+
+                                for (i, d) in data_begining.chars().enumerate() {
+                                    back.push(d);
+                                    if start + i == end - 1 || d == '\n' {
+                                        prepared_block.1.push((line, back.clone()));
+                                        line += 1;
+                                        back.clear();
+                                    }
                                 }
                             }
                             HighlightEvent::HighlightStart(s) => {
