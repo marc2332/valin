@@ -1,8 +1,3 @@
-use std::{
-    path::PathBuf,
-    sync::{Arc, Mutex},
-};
-
 use freya::prelude::events_data::KeyboardEvent;
 use freya::prelude::*;
 
@@ -12,6 +7,7 @@ mod use_syntax_highlighter;
 
 use controlled_virtual_scroll_view::*;
 use tokio::{fs::read_to_string, sync::mpsc::unbounded_channel};
+use use_editable::EditorData;
 pub use use_editable::{use_edit, EditableMode, EditableText};
 use use_syntax_highlighter::*;
 
@@ -53,10 +49,7 @@ impl<'a> PartialEq for EditorProps<'a> {
 fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     let line_height_percentage = use_state(cx, || 4.0);
     let font_size_percentage = use_state(cx, || 15.0);
-    let cursor = cx.props.manager.panes[cx.props.panel_index].editors[cx.props.editor]
-        .lock()
-        .unwrap()
-        .cursor;
+    let cursor = cx.props.manager.panes[cx.props.panel_index].editors[cx.props.editor].cursor();
     let theme = use_theme(cx);
     let highlight_trigger = use_ref(cx, || {
         let (tx, rx) = unbounded_channel::<()>();
@@ -64,7 +57,6 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     });
     let (process_keyevent, process_clickevent, cursor_ref) = use_edit(
         cx,
-        EditableMode::SingleLineMultipleEditors,
         cx.props.manager,
         cx.props.panel_index,
         cx.props.editor,
@@ -127,15 +119,14 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     render!(
         container {
             width: "100%",
-            height: "80",
-            padding: "20",
+            height: "60",
+            padding: "10",
             direction: "horizontal",
             background: "rgb(20, 20, 20)",
             rect {
                 height: "100%",
                 width: "100%",
                 direction: "horizontal",
-                padding: "10",
                 rect {
                     height: "40%",
                     display: "center",
@@ -197,11 +188,12 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                         }
                     }
                 }
+
             }
         }
         rect {
             width: "100%",
-            height: "calc(100% - 110)",
+            height: "calc(100% - 90)",
             onkeydown: onkeydown,
             onmousedown: onmousedown,
             cursor_reference: cursor_ref,
@@ -226,11 +218,11 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                         let line_index = line_index as usize;
                         let line = syntax_blocks.get().get(line_index).unwrap();
 
-                        let is_line_selected = cursor.1 == line_index;
+                        let is_line_selected = cursor.row() == line_index;
 
                         // Only show the cursor in the active line
                         let character_index = if is_line_selected {
-                            cursor.0.to_string()
+                            cursor.col().to_string()
                         } else {
                             "none".to_string()
                         };
@@ -300,32 +292,19 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
             height: "30",
             background: "rgb(20, 20, 20)",
             direction: "horizontal",
-            padding: "10",
+            padding: "5",
             label {
                 color: "rgb(200, 200, 200)",
-                "Ln {cursor.1 + 1}, Col {cursor.0 + 1}"
+                "Ln {cursor.row() + 1}, Col {cursor.col() + 1}"
             }
         }
     )
 }
 
-#[derive(Clone)]
-pub struct EditorData {
-    cursor: (usize, usize),
-    rope: Rope,
-    path: PathBuf,
-}
-
-impl EditorData {
-    pub fn new(path: PathBuf, rope: Rope, cursor: (usize, usize)) -> Self {
-        Self { path, rope, cursor }
-    }
-}
-
 #[derive(Clone, Default)]
 pub struct Panel {
     active_editor: Option<usize>,
-    editors: Vec<Arc<Mutex<EditorData>>>,
+    editors: Vec<EditorData>,
 }
 
 impl Panel {
@@ -355,7 +334,7 @@ impl EditorManager {
     }
 
     pub fn push_editor(&mut self, editor: EditorData, panel: usize, focus: bool) {
-        self.panes[panel].editors.push(Arc::new(Mutex::new(editor)));
+        self.panes[panel].editors.push(editor);
 
         if focus {
             self.focused_panel = panel;
@@ -367,7 +346,7 @@ impl EditorManager {
         &self.panes
     }
 
-    pub fn get_editors(&self, panel: usize) -> &[Arc<Mutex<EditorData>>] {
+    pub fn get_editors(&self, panel: usize) -> &[EditorData] {
         &self.panes[panel].editors
     }
 
@@ -385,6 +364,10 @@ impl EditorManager {
 
     pub fn get_focused_pane(&self) -> usize {
         self.focused_panel
+    }
+
+    pub fn close_pane(&mut self, panel: usize) {
+        self.panes.remove(panel);
     }
 }
 
@@ -464,6 +447,11 @@ fn Body(cx: Scope) -> Element {
                     } else {
                         "transparent"
                     };
+                    let close_panel = move |_: MouseEvent| {
+                        editor_manager.with_mut(|editor_manager| {
+                            editor_manager.close_pane(panel_index);
+                        });
+                    };
                     rsx!(
                         rect {
                             direction: "vertical",
@@ -473,11 +461,10 @@ fn Body(cx: Scope) -> Element {
                                 direction: "horizontal",
                                 height: "50",
                                 width: "100%",
-                                padding: "5",
+                                padding: "2.5",
                                 editor_manager.get().get_editors(panel_index).iter().enumerate().map(|(i, editor)| {
-                                    let path = &editor.lock().unwrap().path;
                                     let is_selected = active_editor == Some(i);
-                                    let file_name = path.file_name().unwrap().to_str().unwrap().to_owned();
+                                    let file_name = editor.path().file_name().unwrap().to_str().unwrap().to_owned();
                                     rsx!(
                                         FileTab {
                                             key: "{i}",
@@ -497,7 +484,7 @@ fn Body(cx: Scope) -> Element {
                                 height: "calc(100%-50)",
                                 width: "100%",
                                 background: "{bg}",
-                                padding: "3",
+                                padding: "1.5",
                                 onclick: move |_| {
                                     editor_manager.with_mut(|editor_manager| {
                                         editor_manager.set_focused_pane(panel_index);
@@ -520,8 +507,11 @@ fn Body(cx: Scope) -> Element {
                                             height: "100%",
                                             direction: "both",
                                             background: "{theme.body.background}",
-                                            label {
-                                                "Open a file!"
+                                            Button {
+                                                onclick: close_panel,
+                                                label {
+                                                    "Close panel"
+                                                }
                                             }
                                         }
                                     )
@@ -563,7 +553,7 @@ fn FileTab<'a>(
 
     render!(
         rect {
-            padding: "4",
+            padding: "2",
             width: "150",
             height: "100%",
             rect {
@@ -578,7 +568,7 @@ fn FileTab<'a>(
                 onmouseleave: move |_| {
                     background.set(theme.button.background);
                 },
-                padding: "15",
+                padding: "7",
                 width: "100%",
                 height: "100%",
                 display: "center",

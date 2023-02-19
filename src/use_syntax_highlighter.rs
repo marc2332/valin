@@ -1,7 +1,7 @@
 use freya::prelude::*;
 use smallvec::SmallVec;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use tree_sitter_highlight::*;
+use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter};
 
 use crate::EditorManager;
 
@@ -87,13 +87,14 @@ pub fn use_syntax_highlighter<'a>(
             .unwrap();
             rust_config.configure(&HIGHLIGH_TAGS);
             let mut highlighter = Highlighter::new();
+
             while highlight_receiver.recv().await.is_some() {
-               
-                let editor = manager.panes[pane_index].editors[editor].lock().unwrap();
-                let data = editor.rope.to_string();
+                let manager = manager.current();
+                let editor = &manager.panes[pane_index].editors[editor];
+                let data = editor.to_string();
 
                 let highlights = highlighter
-                    .highlight(&rust_config, &data.as_bytes(), None, |_| None)
+                    .highlight(&rust_config, data.as_bytes(), None, |_| None)
                     .unwrap();
 
                 syntax_blocks.with_mut(|syntax_blocks| {
@@ -105,19 +106,19 @@ pub fn use_syntax_highlighter<'a>(
                         match event.unwrap() {
                             HighlightEvent::Source { start, end } => {
                                 // Prepare the whole block even if it's splitted across multiple lines.
-                                let data_begining = editor.rope.byte_slice(start..end);
-                                let starting_line = editor.rope.char_to_line(start);
+                                let data_begining = editor.rope().byte_slice(start..end);
+                                let starting_line = editor.char_to_line(start);
 
                                 let mut back = String::new();
                                 let mut line = starting_line;
-                               
+
                                 for (i, d) in data_begining.chars().enumerate() {
                                     back.push(d);
-                                    if start + i == end - 1 ||  d == '\n' {
+                                    if start + i == end - 1 || d == '\n' {
                                         prepared_block.1.push((line, back.clone()));
                                         line += 1;
                                         back.clear();
-                                    }                                   
+                                    }
                                 }
                             }
                             HighlightEvent::HighlightStart(s) => {

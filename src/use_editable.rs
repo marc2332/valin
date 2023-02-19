@@ -1,12 +1,121 @@
 use freya::prelude::*;
 use freya_node_state::CursorReference;
+use ropey::iter::Lines;
 use std::{
+    fmt::Display,
+    ops::Range,
+    path::PathBuf,
     rc::Rc,
     sync::{Arc, Mutex},
 };
 use tokio::sync::{mpsc::unbounded_channel, mpsc::UnboundedSender};
 
-use crate::{EditorData, EditorManager};
+/// Iterator over text lines.
+pub struct LinesIterator<'a> {
+    lines: Lines<'a>,
+}
+
+impl<'a> Iterator for LinesIterator<'a> {
+    type Item = Line<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let line = self.lines.next();
+
+        line.map(|line| Line {
+            text: line.as_str().unwrap_or(""),
+        })
+    }
+}
+
+#[derive(Clone)]
+pub struct EditorData {
+    cursor: TextCursor,
+    rope: Rope,
+    path: PathBuf,
+}
+
+impl EditorData {
+    pub fn path(&self) -> &PathBuf {
+        &self.path
+    }
+
+    pub fn cursor(&self) -> &TextCursor {
+        &self.cursor
+    }
+
+    pub fn rope(&self) -> &Rope {
+        &self.rope
+    }
+}
+
+impl EditorData {
+    pub fn new(path: PathBuf, rope: Rope, (row, col): (usize, usize)) -> Self {
+        Self {
+            path,
+            rope,
+            cursor: TextCursor::new(row, col),
+        }
+    }
+}
+
+impl Display for EditorData {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.rope.to_string())
+    }
+}
+
+impl TextEditor for EditorData {
+    type LinesIterator<'a> = LinesIterator<'a>
+    where
+        Self: 'a;
+
+    fn lines(&self) -> Self::LinesIterator<'_> {
+        let lines = self.rope.lines();
+        LinesIterator { lines }
+    }
+
+    fn insert_char(&mut self, char: char, char_idx: usize) {
+        self.rope.insert_char(char_idx, char);
+    }
+
+    fn insert(&mut self, value: &str, char_idx: usize) {
+        self.rope.insert(char_idx, value);
+    }
+
+    fn remove(&mut self, range: Range<usize>) {
+        self.rope.remove(range)
+    }
+
+    fn char_to_line(&self, char_idx: usize) -> usize {
+        self.rope.char_to_line(char_idx)
+    }
+
+    fn line_to_char(&self, line_idx: usize) -> usize {
+        self.rope.line_to_char(line_idx)
+    }
+
+    fn line(&self, line_idx: usize) -> Option<Line<'_>> {
+        let line = self.rope.get_line(line_idx);
+
+        line.map(|line| Line {
+            text: line.as_str().unwrap_or(""),
+        })
+    }
+
+    fn len_lines<'a>(&self) -> usize {
+        self.rope.len_lines()
+    }
+
+    fn cursor(&self) -> &TextCursor {
+        &self.cursor
+    }
+
+    fn cursor_mut(&mut self) -> &mut TextCursor {
+        &mut self.cursor
+    }
+}
+
+use crate::EditorManager;
 
 /// How the editable content must behave.
 pub enum EditableMode {
@@ -26,10 +135,9 @@ pub type EditableText = UseState<Vec<Arc<Mutex<EditorData>>>>;
 
 pub fn use_edit<'a>(
     cx: &'a ScopeState,
-    mode: EditableMode,
-    manager: &UseState<EditorManager>,
+    editor_manager: &UseState<EditorManager>,
     pane_index: usize,
-    editor: usize,
+    editor_index: usize,
     highlight_trigger: UnboundedSender<()>,
 ) -> (KeypressNotifier, ClickNotifier, AttributeValue<'a>) {
     let cursor_channels = use_ref(cx, || {
@@ -89,197 +197,58 @@ pub fn use_edit<'a>(
     // Listen for new calculations from the layout engine
     use_effect(cx, &pane_index, move |_| {
         let cursor_ref = cursor_ref.clone();
-        let manager = manager.clone();
+        let editor_manager = editor_manager.clone();
         let cursor_channels = cursor_channels.clone();
         async move {
             let cursor_receiver = cursor_channels.write().1.take();
             let mut cursor_receiver = cursor_receiver.unwrap();
             let cursor_ref = cursor_ref.clone();
 
-            while let Some((new_index, editor_num)) = cursor_receiver.recv().await {
-                manager.with_mut(|manager| {
-                    let mut editor = manager.panes[pane_index].editors[editor].lock().unwrap();
+            while let Some((new_cursor_col, new_cursor_row)) = cursor_receiver.recv().await {
+                let editor = &editor_manager.panes[pane_index].editors[editor_index];
 
-                    let new_cursor_row = match mode {
-                        EditableMode::MultipleLinesSingleEditor => {
-                            editor.rope.line(new_index).chars().len()
-                        }
-                        EditableMode::SingleLineMultipleEditors => editor_num,
-                    };
+                let new_current_line = editor.rope.line(new_cursor_row);
 
-                    let new_cursor_col = match mode {
-                        EditableMode::MultipleLinesSingleEditor => {
-                            new_index - editor.rope.line_to_char(new_cursor_row)
-                        }
-                        EditableMode::SingleLineMultipleEditors => new_index,
-                    };
+                // Use the line lenght as new column if the clicked column surpases the length
+                let new_cursor = if new_cursor_col >= new_current_line.chars().len() {
+                    (new_current_line.chars().len(), new_cursor_row)
+                } else {
+                    (new_cursor_col, new_cursor_row)
+                };
 
-                    let new_current_line = editor.rope.line(new_cursor_row);
+                // Only update if it's actually different
+                if editor.cursor.as_tuple() != new_cursor {
+                    editor_manager.with_mut(|editor_manager| {
+                        let editor = &mut editor_manager.panes[pane_index].editors[editor_index];
+                        editor.cursor.set_col(new_cursor.0);
+                        editor.cursor.set_row(new_cursor.1);
+                    });
+                }
 
-                    // Use the line lenght as new column if the clicked column surpases the length
-                    let new_cursor = if new_cursor_col >= new_current_line.chars().len() {
-                        (new_current_line.chars().len(), new_cursor_row)
-                    } else {
-                        (new_cursor_col, new_cursor_row)
-                    };
-
-                    // Only update if it's actually different
-                    if editor.cursor != new_cursor {
-                        editor.cursor = new_cursor;
-                    }
-
-                    // Remove the current calcutions so the layout engine doesn't try to calculate again
-                    cursor_ref.write().positions.lock().unwrap().take();
-                });
+                // Remove the current calcutions so the layout engine doesn't try to calculate again
+                cursor_ref.write().positions.lock().unwrap().take();
             }
         }
     });
 
     use_effect(cx, &pane_index, move |_| {
         let keypress_channel = keypress_channel.clone();
-        let manager = manager.clone();
+        let editor_manager = editor_manager.clone();
         async move {
             let rx = keypress_channel.write().1.take();
             let mut rx = rx.unwrap();
 
-            while let Some(e) = rx.recv().await {
-                manager.with_mut(|manager| {
-                    let mut editor = manager.panes[pane_index].editors[editor].lock().unwrap();
-
-                    match &e.key {
-                        Key::ArrowDown => {
-                            let total_lines = editor.rope.len_lines();
-                            // Go one line down
-                            if editor.cursor.1 < total_lines - 1 {
-                                let next_line =
-                                    editor.rope.line(editor.cursor.1 + 1);
-
-                                // Try to use the current editor.cursorcolumn, otherwise use the new line length
-                                let cursor_index = if editor.cursor.0 <= next_line.chars().len() {
-                                    editor.cursor.0
-                                } else {
-                                    next_line.chars().len()
-                                };
-
-                                editor.cursor.0 = cursor_index;
-                                editor.cursor.1 += 1;
-                            }
-                        }
-                        Key::ArrowLeft => {
-                            // Go one character to the left
-                            if editor.cursor.0 > 0 {
-                                editor.cursor.0 -= 1;
-                            } else if editor.cursor.1 > 0 {
-                                // Go one line up if there is no more characters on the left
-                                let prev_line = editor.rope.get_line(editor.cursor.1 - 1);
-                                if let Some(prev_line) = prev_line {
-                                    // Use the new line length as new editor.cursorcolumn, otherwise just set it to 0
-                                    let len = if prev_line.chars().len() > 0 {
-                                        prev_line.chars().len()
-                                    } else {
-                                        0
-                                    };
-                                    editor.cursor = (len, editor.cursor.1 - 1);
-                                }
-                            }
-                        }
-                        Key::ArrowRight => {
-                            let total_lines = editor.rope.len_lines();
-                            let current_line = editor.rope.line(editor.cursor.1);
-
-                            // Go one line down if there isn't more characters on the right
-                            if editor.cursor.1 < total_lines - 1
-                                && editor.cursor.0 == current_line.chars().len()
-                            {
-                                editor.cursor = (0, editor.cursor.1 + 1);
-                            } else if editor.cursor.0 < current_line.chars().len() {
-                                // Go one character to the right if possible
-                                editor.cursor.0 += 1;
-                            }
-                        }
-                        Key::ArrowUp => {
-                            // Go one line up if there is any
-                            if editor.cursor.1 > 0 {
-                                let prev_line =
-                                    editor.rope.line(editor.cursor.1 - 1);
-
-                                // Try to use the current editor.cursorcolumn, otherwise use the new line length
-                                let cursor_column = if editor.cursor.0 <= prev_line.chars().len() {
-                                    editor.cursor.0
-                                } else {
-                                    prev_line.chars().len()
-                                };
-
-                                editor.cursor = (cursor_column, editor.cursor.1 - 1);
-                            }
-                        }
-                        Key::Backspace => {
-                            if editor.cursor.0 > 0 {
-                                // Remove the character to the left if there is any
-                                let char_idx =
-                                    editor.rope.line_to_char(editor.cursor.1) + editor.cursor.0;
-                                editor.rope.remove(char_idx - 1..char_idx);
-                                editor.cursor.0 -= 1;
-
-                                highlight_trigger.send(()).ok();
-                            } else if editor.cursor.1 > 0 {
-                                // Moves the whole current line to the end of the line above.
-                                let prev_line_len = editor
-                                    .rope
-                                    .line(editor.cursor.1 - 1)
-                                    .len_chars();
-                                let current_line =
-                                    editor.rope.get_line(editor.cursor.1).clone();
-
-                                if let Some(current_line) = current_line {
-                                    let prev_char_idx =
-                                        editor.rope.line_to_char(editor.cursor.1 - 1) + prev_line_len - 1;
-                                    let char_idx = editor.rope.line_to_char(editor.cursor.1)  + current_line.len_chars();
-
-                                    let current_line = current_line.to_string();
-
-                                    editor.rope.insert(prev_char_idx, &current_line);
-                                    editor.rope.remove(char_idx..(char_idx + current_line.len()) + 1);
-                                   
-                                }
-                                editor.cursor = (prev_line_len, editor.cursor.1 - 1);
-                                
-                                highlight_trigger.send(()).ok();
-                            }
-                        }
-                        Key::Enter => {
-                            // Breaks the line
-                            let char_idx =
-                                editor.rope.line_to_char(editor.cursor.1) + editor.cursor.0;
-
-                            editor.rope.insert(char_idx, "\n");
-
-                            editor.cursor = (0, editor.cursor.1 + 1);
-                            highlight_trigger.send(()).ok();
-                        }
-                        Key::Character(character) => {
-                            match e.code {
-                                Code::Delete => {}
-                                Code::Space => {
-                                    // Simply adds an space
-                                    let char_idx = editor.rope.line_to_char(editor.cursor.1)
-                                        + editor.cursor.0;
-                                    editor.rope.insert(char_idx, " ");
-                                    editor.cursor.0 += 1;
-                                }
-                                _ => {
-                                    // Adds a new character to the right
-                                    let char_idx = editor.rope.line_to_char(editor.cursor.1)
-                                        + editor.cursor.0;
-                                    editor.rope.insert(char_idx, character);
-                                    editor.cursor.0 += 1;
-                                }
-                            }
-                            highlight_trigger.send(()).ok();
-                        }
-                        _ => {}
+            while let Some(pressed_key) = rx.recv().await {
+                editor_manager.with_mut(|editor_manager| {
+                    let editor = &mut editor_manager.panes[pane_index].editors[editor_index];
+                    let event = editor.process_key(
+                        &pressed_key.key,
+                        &pressed_key.code,
+                        &pressed_key.modifiers,
+                    );
+                    if event == TextEvent::TextChanged {
+                        highlight_trigger.send(()).ok();
                     }
-                    
                 });
             }
         }
