@@ -293,7 +293,7 @@ pub fn use_edit<'a>(
             let cursor_ref = cursor_ref.clone();
 
             while let Some((new_cursor_col, new_cursor_row)) = cursor_receiver.recv().await {
-                let editor = &editor_manager.panes[pane_index].editors[editor_index];
+                let editor = &editor_manager.current().panes[pane_index].editors[editor_index];
 
                 let new_current_line = editor.rope.line(new_cursor_row);
 
