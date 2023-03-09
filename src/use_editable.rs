@@ -1,5 +1,7 @@
 use freya::prelude::*;
+use freya_common::EventMessage;
 use freya_node_state::CursorReference;
+use glutin::event_loop::EventLoopProxy;
 use ropey::iter::Lines;
 use std::{
     fmt::Display,
@@ -29,6 +31,10 @@ impl Panel {
         &self.editors[editor]
     }
 
+    pub fn editor_mut(&mut self, editor: usize) -> &mut EditorData {
+        &mut self.editors[editor]
+    }
+
     pub fn editors(&self) -> &[EditorData] {
         &self.editors
     }
@@ -36,12 +42,19 @@ impl Panel {
     pub fn set_active_editor(&mut self, active_editor: usize) {
         self.active_editor = Some(active_editor);
     }
+
+    pub fn remove_active_editor(&mut self) {
+        self.active_editor = None;
+    }
 }
 
 #[derive(Clone)]
 pub struct EditorManager {
+    is_focused: bool,
     focused_panel: usize,
     panes: Vec<Panel>,
+    font_size: f32,
+    line_height: f32,
 }
 
 impl Default for EditorManager {
@@ -53,9 +66,32 @@ impl Default for EditorManager {
 impl EditorManager {
     pub fn new() -> Self {
         Self {
+            is_focused: true,
             focused_panel: 0,
             panes: vec![Panel::new()],
+            font_size: 17.0,
+            line_height: 1.3,
         }
+    }
+
+    pub fn set_fontsize(&mut self, fontsize: f32) {
+        self.font_size = fontsize;
+    }
+
+    pub fn set_focused(&mut self, focused: bool) {
+        self.is_focused = focused;
+    }
+
+    pub fn is_focused(&self) -> bool {
+        self.is_focused
+    }
+
+    pub fn font_size(&self) -> f32 {
+        self.font_size
+    }
+
+    pub fn line_height(&self) -> f32 {
+        self.line_height
     }
 
     pub fn focused_panel(&self) -> usize {
@@ -91,12 +127,13 @@ impl EditorManager {
         self.focused_panel = panel;
     }
 
-    pub fn get_focused_pane(&self) -> usize {
-        self.focused_panel
-    }
-
-    pub fn close_pane(&mut self, panel: usize) {
-        self.panes.remove(panel);
+    pub fn close_panel(&mut self, panel: usize) {
+        if self.panes.len() > 1 {
+            self.panes.remove(panel);
+            if self.focused_panel > 0 {
+                self.focused_panel -= 1;
+            }
+        }
     }
 }
 
@@ -251,6 +288,7 @@ pub fn use_edit<'a>(
         let cursor_ref = cursor_ref.clone();
         use_effect(cx, &pane_index, move |_| {
             let click_channel = click_channel.clone();
+            let event_loop_proxy = cx.consume_context::<EventLoopProxy<EventMessage>>();
             async move {
                 let rx = click_channel.write().1.take();
                 let mut rx = rx.unwrap();
@@ -265,6 +303,13 @@ pub fn use_edit<'a>(
                         .lock()
                         .unwrap()
                         .replace((points.x as f32, points.y as f32));
+
+                    // Request the renderer to relayout
+                    if let Some(event_loop_proxy) = &event_loop_proxy {
+                        event_loop_proxy
+                            .send_event(EventMessage::RequestRelayout)
+                            .unwrap();
+                    }
                 }
             }
         });
@@ -315,6 +360,9 @@ pub fn use_edit<'a>(
             let mut rx = rx.unwrap();
 
             while let Some(pressed_key) = rx.recv().await {
+                if pressed_key.key == Key::Escape {
+                    continue;
+                }
                 editor_manager.with_mut(|editor_manager| {
                     let editor = &mut editor_manager.panes[pane_index].editors[editor_index];
                     let event = editor.process_key(

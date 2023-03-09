@@ -2,10 +2,12 @@ use freya::prelude::events_data::KeyboardEvent;
 use freya::prelude::*;
 
 mod controlled_virtual_scroll_view;
+mod text_area;
 mod use_editable;
 mod use_syntax_highlighter;
 
 use controlled_virtual_scroll_view::*;
+use text_area::*;
 use tokio::{fs::read_to_string, sync::mpsc::unbounded_channel};
 pub use use_editable::{use_edit, EditableText};
 use use_editable::{EditorData, EditorManager, Panel};
@@ -47,8 +49,6 @@ impl<'a> PartialEq for EditorProps<'a> {
 
 #[allow(non_snake_case)]
 fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
-    let line_height_percentage = use_state(cx, || 4.0);
-    let font_size_percentage = use_state(cx, || 15.0);
     let cursor = cx
         .props
         .manager
@@ -83,21 +83,14 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     );
     let scroll_x = use_state(cx, || 0);
     let scroll_y = use_state(cx, || 0);
-    let destination_line = use_state(cx, String::new);
+    let (commander_anim, commander_setter, commander_height, _) = use_animation_managed(cx, 0.0);
 
-    let font_size = font_size_percentage + 5.0;
-    let line_height = (line_height_percentage / 25.0) + 1.2;
     let theme = theme.read();
-    let manual_line_height = (font_size * line_height) as f32;
+    let font_size = cx.props.manager.font_size();
+    let manual_line_height = cx.props.manager.font_size() * cx.props.manager.line_height();
     let is_panel_focused = cx.props.manager.focused_panel() == cx.props.panel_index;
-    let is_editor_focused =
-        cx.props.manager.panel(cx.props.panel_index).active_editor() == Some(cx.props.editor);
-
-    let onkeydown = move |e: KeyboardEvent| {
-        if is_editor_focused && is_panel_focused {
-            process_keyevent.send(e.data).ok();
-        }
-    };
+    let is_editor_focused = cx.props.manager.is_focused()
+        && cx.props.manager.panel(cx.props.panel_index).active_editor() == Some(cx.props.editor);
 
     let onmousedown = move |_: MouseEvent| {
         if !is_editor_focused {
@@ -125,84 +118,62 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
         async move {}
     });
 
-    render!(
-        container {
-            width: "100%",
-            height: "60",
-            padding: "10",
-            direction: "horizontal",
-            background: "rgb(20, 20, 20)",
-            rect {
-                height: "100%",
-                width: "100%",
-                direction: "horizontal",
-                rect {
-                    height: "40%",
-                    display: "center",
-                    width: "130",
-                    Slider {
-                        width: 100.0,
-                        value: *font_size_percentage.get(),
-                        onmoved: |p| {
-                            font_size_percentage.set(p);
-                        }
+    let commands = cx.use_hook(|| {
+        vec![
+            Command::new("fs".to_string(), {
+                let editor_manager = cx.props.manager.clone();
+                Box::new(move |size: &str| {
+                    if let Ok(size) = size.parse::<f32>() {
+                        editor_manager.with_mut(|editor_manager| {
+                            editor_manager.set_fontsize(size);
+                        })
                     }
-                    rect {
-                        height: "auto",
-                        width: "100%",
-                        display: "center",
-                        direction: "horizontal",
-                        label {
-                            "Font size"
-                        }
+                })
+            }),
+            Command::new("to".to_string(), {
+                let editor_manager = cx.props.manager.clone();
+                let scroll_y = scroll_y.clone();
+                Box::new(move |row: &str| {
+                    if let Ok(row) = row.parse::<usize>() {
+                        editor_manager.with_mut(|editor_manager| {
+                            let line_height =
+                                editor_manager.font_size() * editor_manager.line_height();
+                            let panel = editor_manager.panel_mut(editor_manager.focused_panel());
+                            if let Some(editor) = panel.active_editor() {
+                                scroll_y.set(-(line_height * (row - 1) as f32) as i32);
+                                let cursor = panel.editor_mut(editor).cursor_mut();
+                                cursor.set_row(row - 1);
+                                cursor.set_col(0);
+                            }
+                        })
                     }
-                }
-                rect {
-                    height: "40%",
-                    display: "center",
-                    direction: "vertical",
-                    width: "130",
-                    Slider {
-                        width: 100.0,
-                        value: *line_height_percentage.get(),
-                        onmoved: |p| {
-                            line_height_percentage.set(p);
-                        }
-                    }
-                    rect {
-                        height: "auto",
-                        width: "100%",
-                        display: "center",
-                        direction: "horizontal",
-                        label {
-                            "Line height"
-                        }
-                    }
-                }
-                Button {
-                    onclick: move |_| {
-                        if let Ok(v) = destination_line.get().parse::<i32>() {
-                            scroll_y.set(-(manual_line_height * (v - 1) as f32) as i32);
-                        }
-                    },
-                    label {
-                        "Scroll to line:"
-                    }
-                }
-                Input {
-                    value: destination_line.get(),
-                    onchange: move |v: String| {
-                        if v.parse::<i32>().is_ok() || v.is_empty() {
-                            destination_line.set(v);
-                        }
-                    }
-                }
+                })
+            }),
+        ]
+    });
 
+    let onkeydown = move |e: KeyboardEvent| {
+        if is_panel_focused {
+            if e.code == Code::Escape {
+                cx.props.manager.with_mut(|editor_manager| {
+                    if commander_height == 0.0 {
+                        editor_manager.set_focused(false);
+                        commander_anim(AnimationMode::new_sine_in_out(0.0..=50.0, 100))
+                    } else {
+                        editor_manager.set_focused(true);
+                        commander_anim(AnimationMode::new_sine_in_out(50.0..=0.0, 100))
+                    }
+                });
+            } else if is_editor_focused {
+                process_keyevent.send(e.data).ok();
             }
         }
+    };
+
+    render!(
         rect {
             width: "100%",
-            height: "calc(100% - 90)",
+            height: "calc(100% - {commander_height + 30.0})",
             onkeydown: onkeydown,
             onmousedown: onmousedown,
             cursor_reference: cursor_ref,
@@ -296,6 +267,16 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                 }
             }
         }
+        Commander {
+            height: commander_height,
+            onsubmit: move |_| {
+                cx.props.manager.with_mut(|editor_manager| {
+                    editor_manager.set_focused(true);
+                    commander_setter(0.0);
+                });
+            }
+            commands: commands
+        }
         rect {
             width: "100%",
             height: "30",
@@ -375,93 +356,97 @@ fn Body(cx: Scope) -> Element {
                 width: "2",
             }
             rect {
-                height: "100%",
+                direction: "vertical",
                 width: "calc(100% - 62)",
-                direction: "horizontal",
-                editor_manager.get().panels().iter().enumerate().map(|(panel_index, panel)| {
-                    let is_focused = editor_manager.get().get_focused_pane() == panel_index;
-                    let active_editor = panel.active_editor();
-                    let bg = if is_focused {
-                        "rgb(247, 127, 0)"
-                    } else {
-                        "transparent"
-                    };
-                    let close_panel = move |_: MouseEvent| {
-                        editor_manager.with_mut(|editor_manager| {
-                            editor_manager.close_pane(panel_index);
-                        });
-                    };
-                    rsx!(
-                        rect {
-                            direction: "vertical",
-                            height: "100%",
-                            width: "{pane_size}%",
+                height: "100%",
+                rect {
+                    height: "100%",
+                    width: "calc(100%)",
+                    direction: "horizontal",
+                    editor_manager.get().panels().iter().enumerate().map(|(panel_index, panel)| {
+                        let is_focused = editor_manager.get().focused_panel() == panel_index;
+                        let active_editor = panel.active_editor();
+                        let bg = if is_focused {
+                            "rgb(247, 127, 0)"
+                        } else {
+                            "transparent"
+                        };
+                        let close_panel = move |_: MouseEvent| {
+                            editor_manager.with_mut(|editor_manager| {
+                                editor_manager.close_panel(panel_index);
+                            });
+                        };
+                        rsx!(
                             rect {
-                                direction: "horizontal",
-                                height: "50",
-                                width: "100%",
-                                padding: "2.5",
-                                editor_manager.get().panel(panel_index).editors().iter().enumerate().map(|(i, editor)| {
-                                    let is_selected = active_editor == Some(i);
-                                    let file_name = editor.path().file_name().unwrap().to_str().unwrap().to_owned();
-                                    rsx!(
-                                        FileTab {
-                                            key: "{i}",
-                                            onclick: move |_| {
-                                                editor_manager.with_mut(|editor_manager| {
-                                                    editor_manager.set_focused_panel(panel_index);
-                                                    editor_manager.panel_mut(panel_index).set_active_editor(i);
-                                                });
-                                            },
-                                            value: "{file_name}",
-                                            is_selected: is_selected
-                                        }
-                                    )
-                                })
-                            }
-                            rect {
-                                height: "calc(100%-50)",
-                                width: "100%",
-                                background: "{bg}",
-                                padding: "1.5",
-                                onclick: move |_| {
-                                    editor_manager.with_mut(|editor_manager| {
-                                        editor_manager.set_focused_panel(panel_index);
-                                    });
-                                },
-                                if let Some(active_editor) = active_editor {
-                                    rsx!(
-                                        Editor {
-                                            key: "{active_editor}",
-                                            manager: editor_manager,
-                                            panel_index: panel_index,
-                                            editor: active_editor,
-                                        }
-                                    )
-                                } else {
-                                    rsx!(
-                                        rect {
-                                            display: "center",
-                                            width: "100%",
-                                            height: "100%",
-                                            direction: "both",
-                                            background: "{theme.body.background}",
-                                            Button {
-                                                onclick: close_panel,
-                                                label {
-                                                    "Close panel"
+                                direction: "vertical",
+                                height: "100%",
+                                width: "{pane_size}%",
+                                rect {
+                                    direction: "horizontal",
+                                    height: "50",
+                                    width: "100%",
+                                    padding: "2.5",
+                                    editor_manager.get().panel(panel_index).editors().iter().enumerate().map(|(i, editor)| {
+                                        let is_selected = active_editor == Some(i);
+                                        let file_name = editor.path().file_name().unwrap().to_str().unwrap().to_owned();
+                                        rsx!(
+                                            FileTab {
+                                                key: "{i}",
+                                                onclick: move |_| {
+                                                    editor_manager.with_mut(|editor_manager| {
+                                                        editor_manager.set_focused_panel(panel_index);
+                                                        editor_manager.panel_mut(panel_index).set_active_editor(i);
+                                                    });
+                                                },
+                                                value: "{file_name}",
+                                                is_selected: is_selected
+                                            }
+                                        )
+                                    })
+                                }
+                                rect {
+                                    height: "calc(100%-50)",
+                                    width: "100%",
+                                    background: "{bg}",
+                                    padding: "1.5",
+                                    onclick: move |_| {
+                                        editor_manager.with_mut(|editor_manager| {
+                                            editor_manager.set_focused_panel(panel_index);
+                                        });
+                                    },
+                                    if let Some(active_editor) = active_editor {
+                                        rsx!(
+                                            Editor {
+                                                key: "{active_editor}",
+                                                manager: editor_manager,
+                                                panel_index: panel_index,
+                                                editor: active_editor,
+                                            }
+                                        )
+                                    } else {
+                                        rsx!(
+                                            rect {
+                                                display: "center",
+                                                width: "100%",
+                                                height: "100%",
+                                                direction: "both",
+                                                background: "{theme.body.background}",
+                                                Button {
+                                                    onclick: close_panel,
+                                                    label {
+                                                        "Close panel"
+                                                    }
                                                 }
                                             }
-                                        }
-                                    )
+                                        )
+                                    }
                                 }
+
                             }
-
-                        }
-                    )
-                })
+                        )
+                    })
+                }
             }
-
         }
     )
 }
@@ -515,6 +500,58 @@ fn FileTab<'a>(
                 label {
                     "{value}"
                 }
+            }
+        }
+    )
+}
+
+struct Command {
+    name: String,
+    run: Box<dyn Fn(&str)>,
+}
+
+impl Command {
+    pub fn new(name: String, run: Box<dyn Fn(&str)>) -> Self {
+        Self { name, run }
+    }
+
+    pub fn run(&self, args: &str) {
+        (self.run)(args);
+    }
+}
+
+#[allow(non_snake_case)]
+#[inline_props]
+fn Commander<'a>(
+    cx: Scope<'a>,
+    height: f64,
+    commands: &'a Vec<Command>,
+    onsubmit: EventHandler<'a>,
+) -> Element<'a> {
+    let value = use_state(cx, String::new);
+    let onsubmit = |new_value: String| {
+        let sep = new_value.find(' ');
+        if let Some(sep) = sep {
+            let (name, args) = new_value.split_at(sep);
+            let command = commands.iter().find(|c| c.name == name);
+            if let Some(command) = command {
+                command.run(args.trim());
+                value.set("".to_string());
+                onsubmit.call(());
+            }
+        }
+    };
+    render!(
+        container {
+            width: "100%",
+            height: "{height}",
+            display: "center",
+            direction: "vertical",
+            background: "rgb(20, 20, 20)",
+            TextArea {
+                value: "{value}",
+                onchange: |v| value.set(v),
+                onsubmit: onsubmit,
             }
         }
     )
