@@ -6,8 +6,7 @@ use freya::prelude::{use_get_theme, use_node, MouseEvent, WheelEvent};
 
 use crate::{
     get_container_size, get_corrected_scroll_position, get_scroll_position_from_cursor,
-    get_scrollbar_pos_and_size, is_scrollbar_visible, Axis,
-    SCROLLBAR_SIZE,
+    get_scrollbar_pos_and_size, is_scrollbar_visible, Axis, SCROLLBAR_SIZE,
 };
 
 pub fn get_scroll_position_from_wheel(

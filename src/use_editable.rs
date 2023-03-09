@@ -1,5 +1,7 @@
 use freya::prelude::*;
+use freya_common::EventMessage;
 use freya_node_state::CursorReference;
+use glutin::event_loop::EventLoopProxy;
 use ropey::iter::Lines;
 use std::{
     fmt::Display,
@@ -286,6 +288,7 @@ pub fn use_edit<'a>(
         let cursor_ref = cursor_ref.clone();
         use_effect(cx, &pane_index, move |_| {
             let click_channel = click_channel.clone();
+            let event_loop_proxy = cx.consume_context::<EventLoopProxy<EventMessage>>();
             async move {
                 let rx = click_channel.write().1.take();
                 let mut rx = rx.unwrap();
@@ -300,6 +303,13 @@ pub fn use_edit<'a>(
                         .lock()
                         .unwrap()
                         .replace((points.x as f32, points.y as f32));
+
+                    // Request the renderer to relayout
+                    if let Some(event_loop_proxy) = &event_loop_proxy {
+                        event_loop_proxy
+                            .send_event(EventMessage::RequestRelayout)
+                            .unwrap();
+                    }
                 }
             }
         });
