@@ -1,4 +1,4 @@
-use freya::prelude::*;
+use freya::prelude::{keyboard::Key, *};
 
 /// [`TextArea`] component properties.
 #[derive(Props)]

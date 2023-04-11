@@ -1,5 +1,5 @@
-use freya::prelude::events_data::KeyboardEvent;
 use freya::prelude::*;
+use freya::prelude::{events::KeyboardEvent, keyboard::Code};
 
 mod controlled_virtual_scroll_view;
 mod text_area;
@@ -60,7 +60,7 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
         let (tx, rx) = unbounded_channel::<()>();
         (tx, Some(rx))
     });
-    let (process_keyevent, process_clickevent, cursor_ref) = use_edit(
+    let editable = use_edit(
         cx,
         cx.props.manager,
         cx.props.panel_index,
@@ -83,8 +83,9 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     );
     let scroll_x = use_state(cx, || 0);
     let scroll_y = use_state(cx, || 0);
-    let (commander_anim, commander_setter, commander_height, _) = use_animation_managed(cx, 0.0);
+    let anim = use_animation(cx, 0.0);
 
+    let cursor_attr = editable.cursor_attr(cx);
     let theme = theme.read();
     let font_size = cx.props.manager.font_size();
     let manual_line_height = cx.props.manager.font_size() * cx.props.manager.line_height();
@@ -152,31 +153,54 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
         ]
     });
 
-    let onkeydown = move |e: KeyboardEvent| {
-        if is_panel_focused {
-            if e.code == Code::Escape {
-                cx.props.manager.with_mut(|editor_manager| {
-                    if commander_height == 0.0 {
-                        editor_manager.set_focused(false);
-                        commander_anim(AnimationMode::new_sine_in_out(0.0..=50.0, 100))
-                    } else {
-                        editor_manager.set_focused(true);
-                        commander_anim(AnimationMode::new_sine_in_out(50.0..=0.0, 100))
-                    }
-                });
-            } else if is_editor_focused {
-                process_keyevent.send(e.data).ok();
+    let onclick = {
+        to_owned![editable];
+        move |_: MouseEvent| {
+            if is_panel_focused && is_editor_focused {
+                editable.process_event(&EditableEvent::Click);
             }
+        }
+    };
+
+    let onkeydown = {
+        to_owned![editable, anim];
+        move |e: KeyboardEvent| {
+            if is_panel_focused {
+                if e.code == Code::Escape {
+                    cx.props.manager.with_mut(|editor_manager| {
+                        if anim.value() == 0.0 {
+                            editor_manager.set_focused(false);
+                            anim.start(Animation::new_sine_in_out(0.0..=50.0, 100))
+                        } else {
+                            editor_manager.set_focused(true);
+                            anim.start(Animation::new_sine_in_out(50.0..=0.0, 100))
+                        }
+                    });
+                } else if is_editor_focused {
+                    editable.process_event(&EditableEvent::KeyDown(e.data));
+                }
+            }
+        }
+    };
+
+    let onsubmit = {
+        to_owned![anim];
+        move |_| {
+            cx.props.manager.with_mut(|editor_manager| {
+                editor_manager.set_focused(true);
+                anim.clear();
+            });
         }
     };
 
     render!(
         rect {
             width: "100%",
-            height: "calc(100% - {commander_height + 30.0})",
+            height: "calc(100% - {anim.value() + 30.0})",
             onkeydown: onkeydown,
+            onglobalclick: onclick,
             onmousedown: onmousedown,
-            cursor_reference: cursor_ref,
+            cursor_reference: cursor_attr,
             direction: "horizontal",
             background: "{theme.body.background}",
             rect {
@@ -189,14 +213,14 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                     width: "100%",
                     height: "100%",
                     show_scrollbar: true,
-                    builder_values: (cursor.clone(), syntax_blocks),
+                    builder_values: (cursor.clone(), syntax_blocks, editable),
                     length: syntax_blocks.len() as i32,
                     item_size: manual_line_height,
-                    builder: Box::new(move |(k, line_index, args)| {
-                        let (cursor, syntax_blocks) = args.as_ref().unwrap();
-                        let process_clickevent = process_clickevent.clone();
+                    builder: Box::new(move |(k, line_index, cx, args)| {
+                        let (cursor, syntax_blocks, editable) = args.as_ref().unwrap();
                         let line_index = line_index as usize;
                         let line = syntax_blocks.get().get(line_index).unwrap();
+                        let highlights_attr = editable.highlights_attr(cx, line_index);
 
                         let is_line_selected = cursor.row() == line_index;
 
@@ -214,8 +238,18 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                             ""
                         };
 
-                        let onmousedown = move |e: MouseEvent| {
-                            process_clickevent.send((e.data, line_index)).ok();
+                        let onmousedown = {
+                            to_owned![editable];
+                            move |e: MouseEvent| {
+                                editable.process_event(&EditableEvent::MouseDown(e.data, line_index));
+                            }
+                        };
+
+                        let onmouseover = {
+                            to_owned![editable];
+                            move |e: MouseEvent| {
+                                editable.process_event(&EditableEvent::MouseOver(e.data, line_index));
+                            }
                         };
 
                         rsx!(
@@ -246,6 +280,9 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                                     cursor_mode: "editable",
                                     cursor_id: "{line_index}",
                                     onmousedown: onmousedown,
+                                    onmouseover: onmouseover,
+                                    highlights: highlights_attr,
+                                    highlight_color: "rgb(90, 90, 90)",
                                     height: "{manual_line_height}",
                                     direction: "horizontal",
                                     line.iter().enumerate().map(|(i, (t, word))| {
@@ -268,13 +305,8 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
             }
         }
         Commander {
-            height: commander_height,
-            onsubmit: move |_| {
-                cx.props.manager.with_mut(|editor_manager| {
-                    editor_manager.set_focused(true);
-                    commander_setter(0.0);
-                });
-            }
+            height: anim.value(),
+            onsubmit: onsubmit,
             commands: commands
         }
         rect {
