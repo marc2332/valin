@@ -11,6 +11,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tokio::sync::{mpsc::unbounded_channel, mpsc::UnboundedSender};
+use uuid::Uuid;
 use winit::event_loop::EventLoopProxy;
 
 #[derive(Clone, Default)]
@@ -416,7 +417,9 @@ impl UseEditable {
         if self.selecting_text_with_mouse.read().is_some() {
             if let Some(event_loop_proxy) = &self.event_loop_proxy {
                 event_loop_proxy
-                    .send_event(EventMessage::RequestRelayout)
+                    .send_event(EventMessage::RemeasureTextGroup(
+                        self.cursor_reference.text_id,
+                    ))
                     .unwrap();
             }
         }
@@ -430,6 +433,7 @@ pub fn use_edit<'a>(
     editor_index: usize,
     highlight_trigger: UnboundedSender<()>,
 ) -> UseEditable {
+    let id = cx.use_hook(Uuid::new_v4);
     let event_loop_proxy = cx.consume_context::<EventLoopProxy<EventMessage>>();
 
     let cursor_channels = cx.use_hook(|| {
@@ -438,6 +442,7 @@ pub fn use_edit<'a>(
     });
 
     let cursor_reference = cx.use_hook(|| CursorReference {
+        text_id: *id,
         agent: cursor_channels.0.clone(),
         cursor_position: Arc::new(Mutex::new(None)),
         id: Arc::new(Mutex::new(None)),
