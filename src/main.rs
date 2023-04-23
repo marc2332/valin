@@ -258,7 +258,6 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                                 height: "{manual_line_height}",
                                 direction: "horizontal",
                                 background: "{line_background}",
-                                radius: "7",
                                 rect {
                                     width: "{font_size * 3.0}",
                                     height: "100%",
@@ -284,6 +283,8 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                                     highlight_color: "rgb(90, 90, 90)",
                                     height: "{manual_line_height}",
                                     direction: "horizontal",
+                                    font_size: "{font_size}",
+                                    font_family: "Jetbrains Mono",
                                     line.iter().enumerate().map(|(i, (syntax_type, word))| {
                                         rsx!(
                                             text {

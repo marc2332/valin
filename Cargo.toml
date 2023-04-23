@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-freya-node-state = { git = "https://github.com/marc2332/freya", rev = "e28554885a30d44b3eae89ddd46b531a493f02ca" }
-freya = { git = "https://github.com/marc2332/freya", rev = "e28554885a30d44b3eae89ddd46b531a493f02ca" }
-freya-common = { git = "https://github.com/marc2332/freya", rev = "e28554885a30d44b3eae89ddd46b531a493f02ca" }
+freya-node-state = { git = "https://github.com/marc2332/freya", rev = "4f2982dd25d393a16857691246963ec69720301d" }
+freya = { git = "https://github.com/marc2332/freya", rev = "4f2982dd25d393a16857691246963ec69720301d" }
+freya-common = { git = "https://github.com/marc2332/freya", rev = "4f2982dd25d393a16857691246963ec69720301d" }
 
 dioxus = { git = "https://github.com/DioxusLabs/dioxus", rev="49c5a5043a16fc82210af146c345793dd448e519", features = ["macro", "hooks"]}
 

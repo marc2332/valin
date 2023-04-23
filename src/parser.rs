@@ -47,7 +47,7 @@ impl From<SyntaxSemantic> for SyntaxType {
     }
 }
 
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Clone, Debug)]
 pub enum TextType {
     String(String),
     Char(char),
