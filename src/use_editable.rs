@@ -426,8 +426,8 @@ impl UseEditable {
     }
 }
 
-pub fn use_edit<'a>(
-    cx: &'a ScopeState,
+pub fn use_edit(
+    cx: &ScopeState,
     text_editor: &UseState<EditorManager>,
     pane_index: usize,
     editor_index: usize,

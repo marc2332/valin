@@ -1,66 +1,8 @@
 use freya::prelude::*;
-use smallvec::SmallVec;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
-use tree_sitter_highlight::{HighlightConfiguration, HighlightEvent, Highlighter};
 
+use crate::parser::*;
 use crate::EditorManager;
-
-#[derive(Clone)]
-pub enum SyntaxType {
-    Number,
-    String,
-    Keyword,
-    Operator,
-    Variable,
-    Function,
-    Comment,
-    Punctuation,
-    Unknown,
-}
-
-impl From<&str> for SyntaxType {
-    fn from(s: &str) -> Self {
-        match s {
-            "keyword" => SyntaxType::Keyword,
-            "variable" => SyntaxType::Variable,
-            "operator" => SyntaxType::Operator,
-            "string" => SyntaxType::String,
-            "number" => SyntaxType::Number,
-            "function" => SyntaxType::Function,
-            "comment" => SyntaxType::Comment,
-            "punctuation.bracket" => SyntaxType::Punctuation,
-            _ => SyntaxType::Unknown,
-        }
-    }
-}
-
-pub type SyntaxBlocks = Vec<SmallVec<[(SyntaxType, String); 6]>>;
-
-const HIGHLIGH_TAGS: [&str; 23] = [
-    "constructor",
-    "attribute",
-    "constant",
-    "constant.builtin",
-    "function.builtin",
-    "function",
-    "function.method",
-    "keyword",
-    "operator",
-    "property",
-    "punctuation",
-    "punctuation.bracket",
-    "punctuation.delimiter",
-    "string",
-    "string.special",
-    "tag",
-    "type",
-    "type.builtin",
-    "variable",
-    "variable.builtin",
-    "variable.parameter",
-    "number",
-    "comment",
-];
 
 pub fn use_syntax_highlighter<'a>(
     cx: &'a ScopeState,
@@ -78,96 +20,14 @@ pub fn use_syntax_highlighter<'a>(
         let mut highlight_receiver = highlight_receiver.take().unwrap();
 
         async move {
-            let mut rust_config = HighlightConfiguration::new(
-                tree_sitter_rust::language(),
-                tree_sitter_rust::HIGHLIGHT_QUERY,
-                "",
-                "",
-            )
-            .unwrap();
-            rust_config.configure(&HIGHLIGH_TAGS);
-            let mut highlighter = Highlighter::new();
-
             while highlight_receiver.recv().await.is_some() {
                 let manager = manager.current();
                 let editor = &manager.panel(pane_index).editor(editor);
-                let data = editor.to_string();
 
-                let highlights = highlighter
-                    .highlight(&rust_config, data.as_bytes(), None, |_| None)
-                    .unwrap();
-
-                syntax_blocks.with_mut(|syntax_blocks| {
-                    syntax_blocks.clear();
-                    let mut prepared_block: (SyntaxType, Vec<(usize, String)>) =
-                        (SyntaxType::Unknown, Vec::new());
-
-                    for event in highlights {
-                        match event.unwrap() {
-                            HighlightEvent::Source { start, end } => {
-                                // Prepare the whole block even if it's splitted across multiple lines.
-                                let data_begining = editor.rope().byte_slice(start..end);
-                                let starting_line = editor.char_to_line(start);
-
-                                let mut back = String::new();
-                                let mut line = starting_line;
-
-                                for (i, d) in data_begining.chars().enumerate() {
-                                    back.push(d);
-                                    if start + i == end - 1 || d == '\n' {
-                                        prepared_block.1.push((line, back.clone()));
-                                        line += 1;
-                                        back.clear();
-                                    }
-                                }
-                            }
-                            HighlightEvent::HighlightStart(s) => {
-                                // Specify the type of the block
-                                prepared_block.0 = SyntaxType::from(HIGHLIGH_TAGS[s.0]);
-                            }
-                            HighlightEvent::HighlightEnd => {
-                                // Push all the block chunks to their specified line
-                                for (i, d) in prepared_block.1 {
-                                    if syntax_blocks.get(i).is_none() {
-                                        syntax_blocks.push(SmallVec::new());
-                                    }
-                                    let line = syntax_blocks.last_mut().unwrap();
-                                    line.push((prepared_block.0.clone(), d));
-                                }
-                                // Clear the prepared block
-                                prepared_block = (SyntaxType::Unknown, Vec::new());
-                            }
-                        }
-                    }
-
-                    // Mark all the remaining text as not readable
-                    if !prepared_block.1.is_empty() {
-                        for (i, d) in prepared_block.1 {
-                            if syntax_blocks.get(i).is_none() {
-                                syntax_blocks.push(SmallVec::new());
-                            }
-                            let line = syntax_blocks.last_mut().unwrap();
-                            line.push((SyntaxType::Unknown, d));
-                        }
-                    }
-                });
+                syntax_blocks.with_mut(|syntax_blocks| parse(editor, syntax_blocks));
             }
         }
     });
 
     syntax_blocks
-}
-
-pub fn get_color_from_type<'a>(t: &SyntaxType) -> &'a str {
-    match t {
-        SyntaxType::Keyword => "rgb(248, 73, 52)",
-        SyntaxType::Variable => "rgb(189, 174, 147)",
-        SyntaxType::Operator => "rgb(189, 174, 147)",
-        SyntaxType::String => "rgb(184, 187, 38)",
-        SyntaxType::Number => "rgb(211, 134, 155)",
-        SyntaxType::Function => "rgb(48, 117, 136)",
-        SyntaxType::Comment => "gray",
-        SyntaxType::Punctuation => "rgb(104, 157, 96)",
-        SyntaxType::Unknown => "rgb(189, 174, 147)",
-    }
 }

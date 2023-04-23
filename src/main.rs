@@ -2,6 +2,7 @@ use freya::prelude::*;
 use freya::prelude::{events::KeyboardEvent, keyboard::Code};
 
 mod controlled_virtual_scroll_view;
+mod parser;
 mod text_area;
 mod use_editable;
 mod use_syntax_highlighter;
@@ -55,7 +56,6 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
         .panel(cx.props.panel_index)
         .editor(cx.props.editor)
         .cursor();
-    let theme = use_theme(cx);
     let highlight_trigger = use_ref(cx, || {
         let (tx, rx) = unbounded_channel::<()>();
         (tx, Some(rx))
@@ -86,7 +86,6 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     let anim = use_animation(cx, 0.0);
 
     let cursor_attr = editable.cursor_attr(cx);
-    let theme = theme.read();
     let font_size = cx.props.manager.font_size();
     let manual_line_height = cx.props.manager.font_size() * cx.props.manager.line_height();
     let is_panel_focused = cx.props.manager.focused_panel() == cx.props.panel_index;
@@ -202,7 +201,7 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
             onmousedown: onmousedown,
             cursor_reference: cursor_attr,
             direction: "horizontal",
-            background: "{theme.body.background}",
+            background: "rgb(50, 48, 47)",
             rect {
                 width: "100%",
                 height: "100%",
@@ -285,13 +284,13 @@ fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                                     highlight_color: "rgb(90, 90, 90)",
                                     height: "{manual_line_height}",
                                     direction: "horizontal",
-                                    line.iter().enumerate().map(|(i, (t, word))| {
+                                    line.iter().enumerate().map(|(i, (syntax_type, word))| {
                                         rsx!(
                                             text {
                                                 font_family: "Jetbrains Mono",
                                                 key: "{i}",
                                                 width: "auto",
-                                                color: "{get_color_from_type(t)}",
+                                                color: "{syntax_type.color()}",
                                                 font_size: "{font_size}",
                                                 "{word}"
                                             }
