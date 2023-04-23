@@ -154,8 +154,9 @@ pub fn parse(editor: &EditorData, syntax_blocks: &mut SyntaxBlocks) {
             }
             syntax_blocks.push(line.drain(0..).collect());
         } else if ch == '"' {
-            if let Some(mut st) = string_stack.take() {
+            if tracking_string {
                 push_unknown(&mut unknown_stack, &mut line, &mut last_semantic);
+                let mut st = string_stack.take().unwrap_or_default();
 
                 // Strings
                 st.push('"');
