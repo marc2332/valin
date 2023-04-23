@@ -1058,7 +1058,7 @@ dependencies = [
 [[package]]
 name = "freya"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=4f2982dd25d393a16857691246963ec69720301d#4f2982dd25d393a16857691246963ec69720301d"
+source = "git+https://github.com/marc2332/freya?rev=45242c08fb94c4d406268ab976080c991bd113bf#45242c08fb94c4d406268ab976080c991bd113bf"
 dependencies = [
  "anymap 0.12.1",
  "dioxus",
@@ -1087,7 +1087,7 @@ dependencies = [
 [[package]]
 name = "freya-common"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=4f2982dd25d393a16857691246963ec69720301d#4f2982dd25d393a16857691246963ec69720301d"
+source = "git+https://github.com/marc2332/freya?rev=45242c08fb94c4d406268ab976080c991bd113bf#45242c08fb94c4d406268ab976080c991bd113bf"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -1101,7 +1101,7 @@ dependencies = [
 [[package]]
 name = "freya-components"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=4f2982dd25d393a16857691246963ec69720301d#4f2982dd25d393a16857691246963ec69720301d"
+source = "git+https://github.com/marc2332/freya?rev=45242c08fb94c4d406268ab976080c991bd113bf#45242c08fb94c4d406268ab976080c991bd113bf"
 dependencies = [
  "dioxus",
  "dioxus-router",
@@ -1117,7 +1117,7 @@ dependencies = [
 [[package]]
 name = "freya-core"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=4f2982dd25d393a16857691246963ec69720301d#4f2982dd25d393a16857691246963ec69720301d"
+source = "git+https://github.com/marc2332/freya?rev=45242c08fb94c4d406268ab976080c991bd113bf#45242c08fb94c4d406268ab976080c991bd113bf"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -1139,7 +1139,7 @@ dependencies = [
 [[package]]
 name = "freya-dom"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=4f2982dd25d393a16857691246963ec69720301d#4f2982dd25d393a16857691246963ec69720301d"
+source = "git+https://github.com/marc2332/freya?rev=45242c08fb94c4d406268ab976080c991bd113bf#45242c08fb94c4d406268ab976080c991bd113bf"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -1170,7 +1170,7 @@ dependencies = [
 [[package]]
 name = "freya-elements"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=4f2982dd25d393a16857691246963ec69720301d#4f2982dd25d393a16857691246963ec69720301d"
+source = "git+https://github.com/marc2332/freya?rev=45242c08fb94c4d406268ab976080c991bd113bf#45242c08fb94c4d406268ab976080c991bd113bf"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -1186,7 +1186,7 @@ dependencies = [
 [[package]]
 name = "freya-hooks"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=4f2982dd25d393a16857691246963ec69720301d#4f2982dd25d393a16857691246963ec69720301d"
+source = "git+https://github.com/marc2332/freya?rev=45242c08fb94c4d406268ab976080c991bd113bf#45242c08fb94c4d406268ab976080c991bd113bf"
 dependencies = [
  "bytes",
  "dioxus-core",
@@ -1209,7 +1209,7 @@ dependencies = [
 [[package]]
 name = "freya-layout"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=4f2982dd25d393a16857691246963ec69720301d#4f2982dd25d393a16857691246963ec69720301d"
+source = "git+https://github.com/marc2332/freya?rev=45242c08fb94c4d406268ab976080c991bd113bf#45242c08fb94c4d406268ab976080c991bd113bf"
 dependencies = [
  "dioxus",
  "dioxus-core",
@@ -1227,7 +1227,7 @@ dependencies = [
 [[package]]
 name = "freya-node-state"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=4f2982dd25d393a16857691246963ec69720301d#4f2982dd25d393a16857691246963ec69720301d"
+source = "git+https://github.com/marc2332/freya?rev=45242c08fb94c4d406268ab976080c991bd113bf#45242c08fb94c4d406268ab976080c991bd113bf"
 dependencies = [
  "anymap 0.12.1",
  "bytes",
@@ -1249,7 +1249,7 @@ dependencies = [
 [[package]]
 name = "freya-renderer"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=4f2982dd25d393a16857691246963ec69720301d#4f2982dd25d393a16857691246963ec69720301d"
+source = "git+https://github.com/marc2332/freya?rev=45242c08fb94c4d406268ab976080c991bd113bf#45242c08fb94c4d406268ab976080c991bd113bf"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",

@@ -74,7 +74,7 @@ const GENERIC_KEYWORDS: &[&str] = &[
 const SPECIAL_KEYWORDS: &[&str] = &["self", "Self", "false", "true"];
 
 const CHARS: &[char] = &[
-    '.', '{', '}', '(', ')', '=', ';', '\'', ',', '>', '<', ']', '[', '#', '&', '-', '+', '*', '^',
+    '.', '{', '}', '(', ')', '=', ';', '\'', ',', '>', '<', ']', '[', '#', '&', '-', '+', '^', '\\',
 ];
 
 #[derive(PartialEq, Clone, Debug)]
@@ -139,41 +139,17 @@ pub fn parse(editor: &EditorData, syntax_blocks: &mut SyntaxBlocks) {
         if ch == '\r' {
             continue;
         }
-        if ch == '\n' || is_last_line {
-            if tracking_comment != CommentTracking::None {
-                if let Some(ct) = comment_stack.take() {
-                    line.push((SyntaxType::Comment, TextType::String(ct)));
-                }
-                if tracking_comment == CommentTracking::OneLine {
-                    tracking_comment = CommentTracking::None
-                }
-            }
-
+        if tracking_string && ch == '"' {
             push_unknown(&mut unknown_stack, &mut line, &mut last_semantic);
-            push_space(&mut unknown_stack, &mut line);
-            if let Some(st) = string_stack.take() {
-                line.push((SyntaxType::String, TextType::String(st)));
-            }
-            syntax_blocks.push(line.drain(0..).collect());
-        } else if ch == '"' {
-            if tracking_string {
-                push_unknown(&mut unknown_stack, &mut line, &mut last_semantic);
-                let mut st = string_stack.take().unwrap_or_default();
+            let mut st = string_stack.take().unwrap_or_default();
 
-                // Strings
-                st.push('"');
-                line.push((SyntaxType::String, TextType::String(st)));
-                tracking_string = false;
-            } else {
-                string_stack = Some(String::from('"'));
-                tracking_string = true;
-            }
-        } else if tracking_string {
-            if let Some(st) = string_stack.as_mut() {
-                st.push(ch);
-            } else {
-                string_stack = Some(String::from(ch));
-            }
+            // Strings
+            st.push('"');
+            line.push((SyntaxType::String, TextType::String(st)));
+            tracking_string = false;
+        } else if tracking_comment == CommentTracking::None && ch == '"' {
+            string_stack = Some(String::from('"'));
+            tracking_string = true;
         } else if tracking_comment != CommentTracking::None {
             if let Some(ct) = comment_stack.as_mut() {
                 ct.push(ch);
@@ -189,24 +165,27 @@ pub fn parse(editor: &EditorData, syntax_blocks: &mut SyntaxBlocks) {
             } else {
                 comment_stack = Some(String::from(ch));
             }
+        } else if tracking_string {
+            if let Some(st) = string_stack.as_mut() {
+                st.push(ch);
+            } else {
+                string_stack = Some(String::from(ch));
+            }
+        } else if ch.is_numeric() {
+            push_unknown(&mut unknown_stack, &mut line, &mut last_semantic);
+            // Numbers
+            line.push((SyntaxType::Number, TextType::Char(ch)));
+
+            last_semantic = SyntaxSemantic::Unknown;
         } else if CHARS.contains(&ch) {
             push_unknown(&mut unknown_stack, &mut line, &mut last_semantic);
 
             if ch == '.' && last_semantic != SyntaxSemantic::PropertyAccess {
                 last_semantic = SyntaxSemantic::PropertyAccess;
             }
-
             // Punctuation
             line.push((SyntaxType::Punctuation, TextType::Char(ch)));
-        } else if ch.is_numeric() {
-            push_unknown(&mut unknown_stack, &mut line, &mut last_semantic);
-
-            // Numbers
-            line.push((SyntaxType::Number, TextType::Char(ch)));
-
-            last_semantic = SyntaxSemantic::Unknown;
         } else {
-            // Check start of comments
             if tracking_comment == CommentTracking::None && (ch == '*' || ch == '/') {
                 if let Some(us) = unknown_stack.as_mut() {
                     if us == "/" {
@@ -221,7 +200,6 @@ pub fn parse(editor: &EditorData, syntax_blocks: &mut SyntaxBlocks) {
                         } else if ch == '/' {
                             tracking_comment = CommentTracking::OneLine
                         }
-                        continue;
                     }
                 }
             }
@@ -239,6 +217,24 @@ pub fn parse(editor: &EditorData, syntax_blocks: &mut SyntaxBlocks) {
             if ch.is_whitespace() {
                 push_space(&mut unknown_stack, &mut line);
             }
+        }
+
+        if ch == '\n' || is_last_line {
+            if tracking_comment != CommentTracking::None {
+                if let Some(ct) = comment_stack.take() {
+                    line.push((SyntaxType::Comment, TextType::String(ct)));
+                }
+                if tracking_comment == CommentTracking::OneLine {
+                    tracking_comment = CommentTracking::None
+                }
+            }
+
+            push_unknown(&mut unknown_stack, &mut line, &mut last_semantic);
+            push_space(&mut unknown_stack, &mut line);
+            if let Some(st) = string_stack.take() {
+                line.push((SyntaxType::String, TextType::String(st)));
+            }
+            syntax_blocks.push(line.drain(0..).collect());
         }
     }
 
