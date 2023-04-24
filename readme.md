@@ -2,6 +2,8 @@
 
 ⚠️ This is a **work in progress experimental** code editor using [Freya 🦀](https://github.com/marc2332/freya).
 
+![Demo](./demo.png)
+
 - [x] Open files
 - [ ] Save files
 - [x] Syntax highlighting (only Rust for now)
@@ -11,8 +13,3 @@
 - [ ] Paste (ctr-v)
 - [ ] Undo (ctr-z)
 - [ ] Redo (ctr-y)
-
-
-this is how it looks:
-
-![Demo](./demo.png)
