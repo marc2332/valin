@@ -4,14 +4,18 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+freya-node-state = { git = "https://github.com/marc2332/freya", rev = "e28554885a30d44b3eae89ddd46b531a493f02ca" }
+freya = { git = "https://github.com/marc2332/freya", rev = "e28554885a30d44b3eae89ddd46b531a493f02ca" }
+freya-common = { git = "https://github.com/marc2332/freya", rev = "e28554885a30d44b3eae89ddd46b531a493f02ca" }
+
 dioxus = { git = "https://github.com/DioxusLabs/dioxus", rev="49c5a5043a16fc82210af146c345793dd448e519", features = ["macro", "hooks"]}
-freya-node-state = { git="https://github.com/marc2332/freya", rev="ca14282f4aa9af8c68b4d5911beff1960281f147"}
-freya = { git="https://github.com/marc2332/freya", rev="ca14282f4aa9af8c68b4d5911beff1960281f147" }
-freya-common = { git="https://github.com/marc2332/freya", rev="ca14282f4aa9af8c68b4d5911beff1960281f147" }
+
 tree-sitter-highlight = "0.20.1"
 tree-sitter-rust = "0.20.3"
 rfd = "0.11.0"
 tokio = { version = "1.23.0", features = ["fs"]}
 smallvec = "1.10.0"
 ropey = "1.6.0"
-glutin = { version = "0.29.0"}
+glutin = { version = "0.30.6"}
+winit = "0.28.2"
+uuid = { version =  "1.2.2", features = ["v4"]}
