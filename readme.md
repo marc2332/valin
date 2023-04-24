@@ -1,8 +1,17 @@
-# Simple code editor made with [Freya 🦀](https://github.com/marc2332/freya)
+# freya-editor 
 
-This is a >**work in progress**< simple code editor that showcases how to use tree-sitter and freya together.
+⚠️ This is a **work in progress experimental** code editor using [Freya 🦀](https://github.com/marc2332/freya).
 
-WARNING ⚠️: the code sucks (sorry), it's not super efficient either, although it can handle a few thousands lines without problem. Also, don't expect ctrl-c, ctrl-v, text selection, etc.. to work.
+- [x] Open files
+- [ ] Save files
+- [x] Syntax highlighting
+- [x] Text editing
+- [x] Text selection
+- [ ] Copy (ctr-c)
+- [ ] Paste (ctr-v)
+- [ ] Undo (ctr-z)
+- [ ] Redo (ctr-y)
+
 
 this is how it looks:
 
