@@ -4,7 +4,7 @@
 
 - [x] Open files
 - [ ] Save files
-- [x] Syntax highlighting
+- [x] Syntax highlighting (only Rust for now)
 - [x] Text editing
 - [x] Text selection
 - [ ] Copy (ctr-c)
