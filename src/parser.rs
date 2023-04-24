@@ -1,9 +1,8 @@
 use std::fmt::{Display, Write};
 
+use ropey::Rope;
 use smallvec::SmallVec;
 use tokio::time::Instant;
-
-use crate::use_editable::EditorData;
 
 #[derive(Clone, Debug)]
 pub enum SyntaxType {
@@ -73,7 +72,7 @@ const GENERIC_KEYWORDS: &[&str] = &[
 
 const SPECIAL_KEYWORDS: &[&str] = &["self", "Self", "false", "true"];
 
-const CHARS: &[char] = &[
+const SPECIAL_CHARACTER: &[char] = &[
     '.', '{', '}', '(', ')', '=', ';', '\'', ',', '>', '<', ']', '[', '#', '&', '-', '+', '^', '\\',
 ];
 
@@ -84,17 +83,18 @@ enum CommentTracking {
     MultiLine,
 }
 
-fn push_unknown(
-    unknown_stack: &mut Option<String>,
+fn flush_generic_stack(
+    generic_stack: &mut Option<String>,
     syntax_blocks: &mut SyntaxLine,
     last_semantic: &mut SyntaxSemantic,
 ) {
-    if let Some(word) = unknown_stack {
+    if let Some(word) = generic_stack {
         let trimmed = word.trim();
         if trimmed.is_empty() {
             return;
         }
-        let word = unknown_stack.take().unwrap();
+        let word = generic_stack.take().unwrap();
+
         if GENERIC_KEYWORDS.contains(&word.as_str().trim()) {
             syntax_blocks.push((SyntaxType::Keyword, TextType::String(word)));
         } else if SPECIAL_KEYWORDS.contains(&word.as_str().trim()) || word.to_uppercase() == word {
@@ -102,60 +102,81 @@ fn push_unknown(
         } else {
             syntax_blocks.push(((*last_semantic).into(), TextType::String(word)));
         }
+
         *last_semantic = SyntaxSemantic::Unknown;
     }
 }
 
-fn push_space(unknown_stack: &mut Option<String>, syntax_blocks: &mut SyntaxLine) {
-    if let Some(word) = &unknown_stack {
+fn flush_spaces_stack(generic_stack: &mut Option<String>, syntax_blocks: &mut SyntaxLine) {
+    if let Some(word) = &generic_stack {
         let trimmed = word.trim();
         if trimmed.is_empty() {
             syntax_blocks.push((
                 SyntaxType::Unknown,
-                TextType::String(unknown_stack.take().unwrap()),
+                TextType::String(generic_stack.take().unwrap()),
             ));
         }
     }
 }
 
-pub fn parse(editor: &EditorData, syntax_blocks: &mut SyntaxBlocks) {
+pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
+    // Clear any blocks from before
     syntax_blocks.clear();
 
     let timer = Instant::now();
 
+    // Track comments
     let mut tracking_comment = CommentTracking::None;
     let mut comment_stack: Option<String> = None;
 
+    // Track strings
     let mut tracking_string = false;
     let mut string_stack: Option<String> = None;
 
-    let mut unknown_stack: Option<String> = None;
+    // Track anything else
+    let mut generic_stack: Option<String> = None;
     let mut last_semantic = SyntaxSemantic::Unknown;
 
+    // Elements of the current line
     let mut line = SyntaxLine::new();
 
-    for (i, ch) in editor.rope().chars().enumerate() {
-        let is_last_line = editor.rope().len_chars() - 1 == i;
+    for (i, ch) in rope.chars().enumerate() {
+        let is_last_character = rope.len_chars() - 1 == i;
+
+        // Ignore the return
         if ch == '\r' {
             continue;
         }
+
+        // Flush all whitespaces from the backback if the character is not an space
+        if !ch.is_whitespace() {
+            flush_spaces_stack(&mut generic_stack, &mut line);
+        }
+
+        // Stop tracking a string
         if tracking_string && ch == '"' {
-            push_unknown(&mut unknown_stack, &mut line, &mut last_semantic);
+            flush_generic_stack(&mut generic_stack, &mut line, &mut last_semantic);
+
             let mut st = string_stack.take().unwrap_or_default();
 
             // Strings
             st.push('"');
             line.push((SyntaxType::String, TextType::String(st)));
             tracking_string = false;
-        } else if tracking_comment == CommentTracking::None && ch == '"' {
+        }
+        // Start tracking a string
+        else if tracking_comment == CommentTracking::None && ch == '"' {
             string_stack = Some(String::from('"'));
             tracking_string = true;
-        } else if tracking_comment != CommentTracking::None {
+        }
+        // While tracking a comment
+        else if tracking_comment != CommentTracking::None {
             if let Some(ct) = comment_stack.as_mut() {
                 ct.push(ch);
 
-                // Check end of multine comments
+                // Stop a multi line comment
                 if ch == '/' && ct.ends_with("*/") {
+                    generic_stack.take().unwrap();
                     line.push((
                         SyntaxType::Comment,
                         TextType::String(comment_stack.take().unwrap()),
@@ -165,36 +186,39 @@ pub fn parse(editor: &EditorData, syntax_blocks: &mut SyntaxBlocks) {
             } else {
                 comment_stack = Some(String::from(ch));
             }
-        } else if tracking_string {
-            if let Some(st) = string_stack.as_mut() {
-                st.push(ch);
-            } else {
-                string_stack = Some(String::from(ch));
-            }
-        } else if ch.is_numeric() {
-            push_unknown(&mut unknown_stack, &mut line, &mut last_semantic);
+        }
+        // While tracking a string
+        else if tracking_string {
+            push_to_stack(&mut string_stack, ch);
+        }
+        // If is a number
+        else if ch.is_numeric() {
+            flush_generic_stack(&mut generic_stack, &mut line, &mut last_semantic);
             // Numbers
             line.push((SyntaxType::Number, TextType::Char(ch)));
 
             last_semantic = SyntaxSemantic::Unknown;
-        } else if CHARS.contains(&ch) {
-            push_unknown(&mut unknown_stack, &mut line, &mut last_semantic);
+        }
+        // If is a special character
+        else if SPECIAL_CHARACTER.contains(&ch) {
+            flush_generic_stack(&mut generic_stack, &mut line, &mut last_semantic);
 
             if ch == '.' && last_semantic != SyntaxSemantic::PropertyAccess {
                 last_semantic = SyntaxSemantic::PropertyAccess;
             }
             // Punctuation
             line.push((SyntaxType::Punctuation, TextType::Char(ch)));
-        } else {
+        }
+        // Unknown (for now at least) characters
+        else {
+            // Start tracking a comment (both one line and multine)
             if tracking_comment == CommentTracking::None && (ch == '*' || ch == '/') {
-                if let Some(us) = unknown_stack.as_mut() {
+                if let Some(us) = generic_stack.as_mut() {
                     if us == "/" {
-                        comment_stack = unknown_stack.take();
-                        if let Some(ct) = comment_stack.as_mut() {
-                            ct.push(ch);
-                        } else {
-                            comment_stack = Some(ch.to_string());
-                        }
+                        comment_stack = generic_stack.take();
+
+                        push_to_stack(&mut comment_stack, ch);
+
                         if ch == '*' {
                             tracking_comment = CommentTracking::MultiLine
                         } else if ch == '/' {
@@ -204,33 +228,30 @@ pub fn parse(editor: &EditorData, syntax_blocks: &mut SyntaxBlocks) {
                 }
             }
 
+            // Flush the generic stack before adding the space
             if ch.is_whitespace() {
-                push_unknown(&mut unknown_stack, &mut line, &mut last_semantic);
+                flush_generic_stack(&mut generic_stack, &mut line, &mut last_semantic);
             }
 
-            if let Some(ks) = unknown_stack.as_mut() {
-                ks.push(ch);
-            } else {
-                unknown_stack = Some(ch.to_string())
-            }
-
-            if ch.is_whitespace() {
-                push_space(&mut unknown_stack, &mut line);
-            }
+            push_to_stack(&mut generic_stack, ch);
         }
 
-        if ch == '\n' || is_last_line {
+        if ch == '\n' || is_last_character {
+            // Flush OneLine and MultiLine comments
             if tracking_comment != CommentTracking::None {
                 if let Some(ct) = comment_stack.take() {
                     line.push((SyntaxType::Comment, TextType::String(ct)));
                 }
+
+                // Stop tracking one line comments on line ending
                 if tracking_comment == CommentTracking::OneLine {
                     tracking_comment = CommentTracking::None
                 }
             }
 
-            push_unknown(&mut unknown_stack, &mut line, &mut last_semantic);
-            push_space(&mut unknown_stack, &mut line);
+            flush_generic_stack(&mut generic_stack, &mut line, &mut last_semantic);
+            flush_spaces_stack(&mut generic_stack, &mut line);
+
             if let Some(st) = string_stack.take() {
                 line.push((SyntaxType::String, TextType::String(st)));
             }
@@ -239,4 +260,13 @@ pub fn parse(editor: &EditorData, syntax_blocks: &mut SyntaxBlocks) {
     }
 
     println!("{:?}", timer.elapsed().as_millis());
+}
+
+// Push if exists otherwise create the stack
+fn push_to_stack(stack: &mut Option<String>, ch: char) {
+    if let Some(stack) = stack.as_mut() {
+        stack.push(ch);
+    } else {
+        stack.replace(ch.to_string());
+    }
 }

@@ -24,7 +24,7 @@ pub fn use_syntax_highlighter<'a>(
                 let manager = manager.current();
                 let editor = &manager.panel(pane_index).editor(editor);
 
-                syntax_blocks.with_mut(|syntax_blocks| parse(editor, syntax_blocks));
+                syntax_blocks.with_mut(|syntax_blocks| parse(editor.rope(), syntax_blocks));
             }
         }
     });
