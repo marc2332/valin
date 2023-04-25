@@ -6,7 +6,6 @@ use tokio::time::Instant;
 
 #[derive(Clone, Debug)]
 pub enum SyntaxType {
-    Number,
     String,
     Keyword,
     SpecialKeyword,
@@ -21,7 +20,6 @@ impl SyntaxType {
         match self {
             SyntaxType::Keyword => "rgb(215, 85, 67)",
             SyntaxType::String => "rgb(184, 187, 38)",
-            SyntaxType::Number => "rgb(211, 134, 155)",
             SyntaxType::Punctuation => "rgb(104, 157, 96)",
             SyntaxType::Unknown => "rgb(189, 174, 147)",
             SyntaxType::Property => "rgb(168, 168, 37)",
@@ -67,7 +65,7 @@ pub type SyntaxBlocks = Vec<SyntaxLine>;
 const GENERIC_KEYWORDS: &[&str] = &[
     "use", "impl", "if", "let", "fn", "struct", "enum", "const", "pub", "crate", "else", "mut",
     "for", "i8", "u8", "i16", "u16", "i32", "u32", "f32", "i64", "u64", "f64", "i128", "u128",
-    "usize", "isize", "move", "async", "in", "of",
+    "usize", "isize", "move", "async", "in", "of", "dyn", "type",
 ];
 
 const SPECIAL_KEYWORDS: &[&str] = &["self", "Self", "false", "true"];
@@ -95,11 +93,16 @@ fn flush_generic_stack(
         }
         let word = generic_stack.take().unwrap();
 
+        // Match special keywords
         if GENERIC_KEYWORDS.contains(&word.as_str().trim()) {
             syntax_blocks.push((SyntaxType::Keyword, TextType::String(word)));
-        } else if SPECIAL_KEYWORDS.contains(&word.as_str().trim()) || word.to_uppercase() == word {
+        }
+        // Match other special keyword, CONSTANTS and numbers
+        else if SPECIAL_KEYWORDS.contains(&word.as_str().trim()) || word.to_uppercase() == word {
             syntax_blocks.push((SyntaxType::SpecialKeyword, TextType::String(word)));
-        } else {
+        }
+        // Match anything else
+        else {
             syntax_blocks.push(((*last_semantic).into(), TextType::String(word)));
         }
 
@@ -191,14 +194,6 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
         else if tracking_string {
             push_to_stack(&mut string_stack, ch);
         }
-        // If is a number
-        else if ch.is_numeric() {
-            flush_generic_stack(&mut generic_stack, &mut line, &mut last_semantic);
-            // Numbers
-            line.push((SyntaxType::Number, TextType::Char(ch)));
-
-            last_semantic = SyntaxSemantic::Unknown;
-        }
         // If is a special character
         else if SPECIAL_CHARACTER.contains(&ch) {
             flush_generic_stack(&mut generic_stack, &mut line, &mut last_semantic);
@@ -255,7 +250,13 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
             if let Some(st) = string_stack.take() {
                 line.push((SyntaxType::String, TextType::String(st)));
             }
+
             syntax_blocks.push(line.drain(0..).collect());
+
+            // Leave an empty line at the end
+            if ch == '\n' && is_last_character {
+                syntax_blocks.push(SmallVec::default());
+            }
         }
     }
 
