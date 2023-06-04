@@ -19,7 +19,7 @@ pub fn get_scroll_position_from_wheel(
         return 0;
     }
 
-    let new_position = scroll_position + (wheel_movement * 45.0);
+    let new_position = scroll_position + (wheel_movement * 10.0);
 
     if new_position >= 0.0 && wheel_movement > 0.0 {
         return 0;
@@ -107,7 +107,7 @@ pub fn ControlledVirtualScrollView<'a, T>(
     let vertical_scrollbar_is_visible =
         is_scrollbar_visible(show_scrollbar, inner_size, size.area.height());
     let horizontal_scrollbar_is_visible =
-        is_scrollbar_visible(show_scrollbar, size.inner.width(), size.area.width());
+        is_scrollbar_visible(show_scrollbar, size.inner.width, size.area.width());
 
     let container_width = get_container_size(vertical_scrollbar_is_visible);
     let container_height = get_container_size(horizontal_scrollbar_is_visible);
@@ -115,12 +115,12 @@ pub fn ControlledVirtualScrollView<'a, T>(
     let corrected_scrolled_y =
         get_corrected_scroll_position(inner_size, size.area.height(), scrolled_y as f32);
     let corrected_scrolled_x =
-        get_corrected_scroll_position(size.inner.width(), size.area.width(), scrolled_x as f32);
+        get_corrected_scroll_position(size.inner.width, size.area.width(), scrolled_x as f32);
 
     let (scrollbar_y, scrollbar_height) =
         get_scrollbar_pos_and_size(inner_size, size.area.height(), corrected_scrolled_y);
     let (scrollbar_x, scrollbar_width) =
-        get_scrollbar_pos_and_size(size.inner.width(), size.area.width(), corrected_scrolled_x);
+        get_scrollbar_pos_and_size(size.inner.width, size.area.width(), corrected_scrolled_x);
 
     // Moves the Y axis when the user scrolls in the container
     let onwheel = move |e: WheelEvent| {
@@ -152,7 +152,7 @@ pub fn ControlledVirtualScrollView<'a, T>(
 
             let scroll_position = get_scroll_position_from_cursor(
                 cursor_x as f32,
-                size.inner.width(),
+                size.inner.width,
                 size.area.width(),
             );
 
