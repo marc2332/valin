@@ -108,12 +108,6 @@ fn Body(cx: Scope) -> Element {
     };
 
     let panes_width = 100.0 / editor_manager.get().panels().len() as f32;
-    let panes_height = if *show_commander.current() {
-        "calc(100% - 50)"
-    } else {
-        "100%"
-    }
-    .to_string();
 
     render!(
         rect {
@@ -149,8 +143,16 @@ fn Body(cx: Scope) -> Element {
                 direction: "vertical",
                 width: "calc(100% - 62)",
                 height: "100%",
+                if *show_commander.current(){
+                    rsx!(
+                        Commander {
+                            onsubmit: onsubmit,
+                            commands: commands
+                        }
+                    )
+                }
                 rect {
-                    height: "{panes_height}",
+                    height: "100%",
                     width: "100%",
                     direction: "horizontal",
                     editor_manager.get().panels().iter().enumerate().map(move |(panel_index, panel)| {
@@ -236,18 +238,6 @@ fn Body(cx: Scope) -> Element {
                             }
                         )
                     })
-                }
-                if *show_commander.current(){
-                    rsx!(
-                        rect {
-                            height: "50",
-                            width: "100%",
-                            Commander {
-                                onsubmit: onsubmit,
-                                commands: commands
-                            }
-                        }
-                    )
                 }
             }
         }
