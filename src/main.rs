@@ -18,8 +18,8 @@ fn main() {
     launch_cfg(
         app,
         WindowConfig::<()>::builder()
-            .with_width(900)
-            .with_height(600)
+            .with_width(900.0)
+            .with_height(600.0)
             .with_title("Editor")
             .build(),
     );

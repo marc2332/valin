@@ -1,6 +1,6 @@
 use dioxus::core::AttributeValue;
 use freya::prelude::{keyboard::Key, *};
-use freya_common::{CursorLayoutResponse, EventMessage, Point2D};
+use freya_common::{CursorLayoutResponse, EventMessage};
 use freya_node_state::CursorReference;
 use ropey::iter::Lines;
 use std::{
@@ -11,6 +11,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tokio::sync::{mpsc::unbounded_channel, mpsc::UnboundedSender};
+use torin::geometry::CursorPoint;
 use uuid::Uuid;
 use winit::event_loop::EventLoopProxy;
 
@@ -339,7 +340,7 @@ pub type EditorState = UseState<EditorManager>;
 pub struct UseEditable {
     pub(crate) editor: EditorState,
     pub(crate) cursor_reference: CursorReference,
-    pub(crate) selecting_text_with_mouse: UseRef<Option<Point2D>>,
+    pub(crate) selecting_text_with_mouse: UseRef<Option<CursorPoint>>,
     pub(crate) event_loop_proxy: Option<EventLoopProxy<EventMessage>>,
     pub(crate) pane_index: usize,
     pub(crate) editor_index: usize,
@@ -445,7 +446,7 @@ pub fn use_edit(
         text_id: *id,
         agent: cursor_channels.0.clone(),
         cursor_position: Arc::new(Mutex::new(None)),
-        id: Arc::new(Mutex::new(None)),
+        cursor_id: Arc::new(Mutex::new(None)),
         cursor_selections: Arc::new(Mutex::new(None)),
     });
 
