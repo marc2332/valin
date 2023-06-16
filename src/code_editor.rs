@@ -51,8 +51,8 @@ pub fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
         cx.props.editor,
         highlight_trigger,
     );
-    let scroll_x = use_state(cx, || 0);
-    let scroll_y = use_state(cx, || 0);
+    let offset_x = use_state(cx, || 0);
+    let offset_y = use_state(cx, || 0);
     let anim = use_animation(cx, 0.0);
 
     let cursor_attr = editable.cursor_attr(cx);
@@ -74,8 +74,8 @@ pub fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
     };
 
     let onscroll = move |(axis, scroll): (Axis, i32)| match axis {
-        Axis::Y => scroll_y.set(scroll),
-        Axis::X => scroll_x.set(scroll),
+        Axis::Y => offset_y.set(scroll),
+        Axis::X => offset_x.set(scroll),
     };
 
     use_effect(cx, (), move |_| {
@@ -120,8 +120,8 @@ pub fn Editor<'a>(cx: Scope<'a, EditorProps<'a>>) -> Element<'a> {
                 width: "100%",
                 height: "100%",
                 ControlledVirtualScrollView {
-                    scroll_x: *scroll_x.get(),
-                    scroll_y: *scroll_y.get(),
+                    offset_x: *offset_x.get(),
+                    offset_y: *offset_y.get(),
                     onscroll: onscroll,
                     width: "100%",
                     height: "100%",

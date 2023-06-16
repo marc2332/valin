@@ -8,21 +8,23 @@ pub fn FileTab<'a>(
     onclick: EventHandler<(), 'a>,
     is_selected: bool,
 ) -> Element {
+    let status = use_state(cx, ButtonStatus::default);
     let theme = use_get_theme(cx);
-    let button_theme = &theme.button;
 
-    let background = use_state(cx, || <&str>::clone(&button_theme.background));
-    let set_background = background.setter();
-
-    use_effect(cx, &button_theme.clone(), move |button_theme| async move {
-        set_background(button_theme.background);
-    });
-
-    let selected_background = if *is_selected {
-        button_theme.hover_background
-    } else {
-        background.get()
+    let onmouseenter = move |_| {
+        status.set(ButtonStatus::Hovering);
     };
+
+    let onmouseleave = move |_| {
+        status.set(ButtonStatus::default());
+    };
+
+    let background = match *status.get() {
+        _ if *is_selected => theme.button.hover_background,
+        ButtonStatus::Hovering => theme.button.hover_background,
+        ButtonStatus::Idle => theme.button.background,
+    };
+    let color = theme.button.font_theme.color;
 
     render!(
         rect {
@@ -30,17 +32,13 @@ pub fn FileTab<'a>(
             width: "150",
             height: "100%",
             rect {
-                color: "{button_theme.font_theme.color}",
-                background: "{selected_background}",
-                shadow: "0 5 15 10 black",
+                color: "{color}",
+                background: "{background}",
+                shadow: "0 2 17 2 rgb(0, 0, 0, 100)",
                 radius: "5",
                 onclick: move |_| onclick.call(()),
-                onmouseover: move |_| {
-                    background.set(theme.button.hover_background);
-                },
-                onmouseleave: move |_| {
-                    background.set(theme.button.background);
-                },
+                onmouseenter: onmouseenter,
+                onmouseleave: onmouseleave,
                 padding: "7",
                 width: "100%",
                 height: "100%",

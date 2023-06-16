@@ -43,20 +43,20 @@ pub fn Commander<'a>(
             width: "100%",
             height: "0",
             layer: "-100",
-            scroll_y: "50",
-            container {
+            offset_y: "50",
+            rect {
                 width: "100%",
-                height: "100",
+                height: "75",
                 display: "center",
                 direction: "both",
                 padding: "10",
                 rect {
-                    background: "rgb(20, 20, 20)",
-                    shadow: "0 10 40 15 black",
-                    radius: "12",
+                    background: "rgb(80, 80, 80)",
+                    shadow: "0 2 20 5 rgb(0, 0, 0, 100)",
+                    radius: "10",
                     onmousedown: |_| {},
                     width: "300",
-                    padding: "18",
+                    padding: "5",
                     TextArea {
                         value: "{value}",
                         onchange: |v| value.set(v),

@@ -37,9 +37,8 @@ pub fn TextArea<'a>(cx: Scope<'a, TextAreaProps<'a>>) -> Element {
             width: "100%",
             height: "100%",
             color: "{button_theme.font_theme.color}",
-            background: "rgb(47, 47, 47)",
             radius: "5",
-            padding: "10",
+            padding: "12 10",
             label {
                 "{value}"
             }
