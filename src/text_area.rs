@@ -16,6 +16,7 @@ pub fn TextArea<'a>(cx: Scope<'a, TextAreaProps<'a>>) -> Element {
     let theme = use_get_theme(cx);
     let button_theme = &theme.button;
     let value = cx.props.value;
+
     let onkeydown = move |e: Event<KeyboardData>| {
         if let Key::Character(text_char) = &e.data.key {
             // Add a new char
@@ -37,7 +38,7 @@ pub fn TextArea<'a>(cx: Scope<'a, TextAreaProps<'a>>) -> Element {
             height: "100%",
             color: "{button_theme.font_theme.color}",
             radius: "5",
-            padding: "15",
+            padding: "12 10",
             label {
                 "{value}"
             }

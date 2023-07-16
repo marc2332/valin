@@ -19,7 +19,7 @@ pub fn get_scroll_position_from_wheel(
         return 0;
     }
 
-    let new_position = scroll_position + (wheel_movement * 10.0);
+    let new_position = scroll_position + (wheel_movement * 5.0);
 
     if new_position >= 0.0 && wheel_movement > 0.0 {
         return 0;
@@ -57,8 +57,8 @@ pub struct ControlledVirtualScrollViewProps<'a, T: 'a> {
     pub padding: Option<&'a str>,
     #[props(optional)]
     pub show_scrollbar: Option<bool>,
-    pub scroll_y: i32,
-    pub scroll_x: i32,
+    pub offset_y: i32,
+    pub offset_x: i32,
     pub onscroll: Option<EventHandler<'a, (Axis, i32)>>,
 }
 
@@ -88,8 +88,8 @@ pub fn ControlledVirtualScrollView<'a, T>(
 ) -> Element {
     let theme = use_get_theme(cx);
     let clicking_scrollbar = use_state::<Option<(Axis, f64)>>(cx, || None);
-    let scrolled_y = cx.props.scroll_y;
-    let scrolled_x = cx.props.scroll_x;
+    let scrolled_y = cx.props.offset_y;
+    let scrolled_x = cx.props.offset_x;
     let onscroll = cx.props.onscroll.as_ref().unwrap();
     let (node_ref, size) = use_node(cx);
 
@@ -219,7 +219,7 @@ pub fn ControlledVirtualScrollView<'a, T>(
                     height: "100%",
                     width: "100%",
                     direction: "vertical",
-                    scroll_x: "{corrected_scrolled_x}",
+                    offset_x: "{corrected_scrolled_x}",
                     reference: node_ref,
                     onwheel: onwheel,
                     children
@@ -227,7 +227,7 @@ pub fn ControlledVirtualScrollView<'a, T>(
                 container {
                     width: "100%",
                     height: "{horizontal_scrollbar_size}",
-                    scroll_x: "{scrollbar_x}",
+                    offset_x: "{scrollbar_x}",
                     onmouseleave: |_| {},
                     background: "{scrollbar_theme.background}",
                     rect {
@@ -242,7 +242,7 @@ pub fn ControlledVirtualScrollView<'a, T>(
             container {
                 width: "{vertical_scrollbar_size}",
                 height: "100%",
-                scroll_y: "{scrollbar_y}",
+                offset_y: "{scrollbar_y}",
                 onmouseleave: |_| {},
                 background: "{scrollbar_theme.background}",
                 rect {

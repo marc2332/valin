@@ -34,20 +34,12 @@ impl Panel {
         &self.editors[editor]
     }
 
-    pub fn editor_mut(&mut self, editor: usize) -> &mut EditorData {
-        &mut self.editors[editor]
-    }
-
     pub fn editors(&self) -> &[EditorData] {
         &self.editors
     }
 
     pub fn set_active_editor(&mut self, active_editor: usize) {
         self.active_editor = Some(active_editor);
-    }
-
-    pub fn remove_active_editor(&mut self) {
-        self.active_editor = None;
     }
 }
 
@@ -332,7 +324,6 @@ impl TextEditor for EditorData {
     }
 }
 
-pub type EditableText = UseState<Vec<Arc<Mutex<EditorData>>>>;
 pub type EditorState = UseState<EditorManager>;
 
 /// Manage an editable content.
@@ -348,11 +339,6 @@ pub struct UseEditable {
 }
 
 impl UseEditable {
-    /// Reference to the editor.
-    pub fn editor(&self) -> &EditorState {
-        &self.editor
-    }
-
     /// Create a cursor attribute.
     pub fn cursor_attr<'a, T>(&self, cx: Scope<'a, T>) -> AttributeValue<'a> {
         cx.any_value(CustomAttributeValues::CursorReference(

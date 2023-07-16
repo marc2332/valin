@@ -502,10 +502,7 @@ checksum = "ec837a71355b28f6556dbd569b37b3f363091c0bd4b2e735674521b4c5fd9bc5"
 dependencies = [
  "android-tzdata",
  "iana-time-zone",
- "js-sys",
  "num-traits",
- "time",
- "wasm-bindgen",
  "winapi",
 ]
 
@@ -734,7 +731,7 @@ dependencies = [
 [[package]]
 name = "dioxus"
 version = "0.3.2"
-source = "git+https://github.com/DioxusLabs/dioxus?rev=0527cff3a59ba3176f7510a7234c5977ce1b17d7#0527cff3a59ba3176f7510a7234c5977ce1b17d7"
+source = "git+https://github.com/DioxusLabs/dioxus?rev=b264211cc2685232426317d3055046838047d3db#b264211cc2685232426317d3055046838047d3db"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -747,7 +744,7 @@ dependencies = [
 [[package]]
 name = "dioxus-core"
 version = "0.3.3"
-source = "git+https://github.com/DioxusLabs/dioxus?rev=0527cff3a59ba3176f7510a7234c5977ce1b17d7#0527cff3a59ba3176f7510a7234c5977ce1b17d7"
+source = "git+https://github.com/DioxusLabs/dioxus?rev=b264211cc2685232426317d3055046838047d3db#b264211cc2685232426317d3055046838047d3db"
 dependencies = [
  "bumpalo",
  "bumpslab",
@@ -765,7 +762,7 @@ dependencies = [
 [[package]]
 name = "dioxus-core-macro"
 version = "0.3.0"
-source = "git+https://github.com/DioxusLabs/dioxus?rev=0527cff3a59ba3176f7510a7234c5977ce1b17d7#0527cff3a59ba3176f7510a7234c5977ce1b17d7"
+source = "git+https://github.com/DioxusLabs/dioxus?rev=b264211cc2685232426317d3055046838047d3db#b264211cc2685232426317d3055046838047d3db"
 dependencies = [
  "dioxus-rsx",
  "proc-macro2",
@@ -776,7 +773,7 @@ dependencies = [
 [[package]]
 name = "dioxus-hooks"
 version = "0.3.1"
-source = "git+https://github.com/DioxusLabs/dioxus?rev=0527cff3a59ba3176f7510a7234c5977ce1b17d7#0527cff3a59ba3176f7510a7234c5977ce1b17d7"
+source = "git+https://github.com/DioxusLabs/dioxus?rev=b264211cc2685232426317d3055046838047d3db#b264211cc2685232426317d3055046838047d3db"
 dependencies = [
  "dioxus-core",
  "futures-channel",
@@ -786,7 +783,7 @@ dependencies = [
 [[package]]
 name = "dioxus-hot-reload"
 version = "0.1.1"
-source = "git+https://github.com/DioxusLabs/dioxus?rev=0527cff3a59ba3176f7510a7234c5977ce1b17d7#0527cff3a59ba3176f7510a7234c5977ce1b17d7"
+source = "git+https://github.com/DioxusLabs/dioxus?rev=b264211cc2685232426317d3055046838047d3db#b264211cc2685232426317d3055046838047d3db"
 dependencies = [
  "chrono",
  "dioxus-core",
@@ -804,7 +801,7 @@ dependencies = [
 [[package]]
 name = "dioxus-html"
 version = "0.3.1"
-source = "git+https://github.com/DioxusLabs/dioxus?rev=0527cff3a59ba3176f7510a7234c5977ce1b17d7#0527cff3a59ba3176f7510a7234c5977ce1b17d7"
+source = "git+https://github.com/DioxusLabs/dioxus?rev=b264211cc2685232426317d3055046838047d3db#b264211cc2685232426317d3055046838047d3db"
 dependencies = [
  "async-trait",
  "dioxus-core",
@@ -820,7 +817,7 @@ dependencies = [
 [[package]]
 name = "dioxus-native-core"
 version = "0.2.0"
-source = "git+https://github.com/DioxusLabs/dioxus?rev=0527cff3a59ba3176f7510a7234c5977ce1b17d7#0527cff3a59ba3176f7510a7234c5977ce1b17d7"
+source = "git+https://github.com/DioxusLabs/dioxus?rev=b264211cc2685232426317d3055046838047d3db#b264211cc2685232426317d3055046838047d3db"
 dependencies = [
  "anymap 1.0.0-beta.2",
  "crossbeam-deque",
@@ -841,7 +838,7 @@ dependencies = [
 [[package]]
 name = "dioxus-native-core-macro"
 version = "0.3.0"
-source = "git+https://github.com/DioxusLabs/dioxus?rev=0527cff3a59ba3176f7510a7234c5977ce1b17d7#0527cff3a59ba3176f7510a7234c5977ce1b17d7"
+source = "git+https://github.com/DioxusLabs/dioxus?rev=b264211cc2685232426317d3055046838047d3db#b264211cc2685232426317d3055046838047d3db"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -850,7 +847,7 @@ dependencies = [
 [[package]]
 name = "dioxus-router"
 version = "0.3.0"
-source = "git+https://github.com/DioxusLabs/dioxus?rev=0527cff3a59ba3176f7510a7234c5977ce1b17d7#0527cff3a59ba3176f7510a7234c5977ce1b17d7"
+source = "git+https://github.com/DioxusLabs/dioxus?rev=b264211cc2685232426317d3055046838047d3db#b264211cc2685232426317d3055046838047d3db"
 dependencies = [
  "dioxus",
  "futures-channel",
@@ -865,7 +862,7 @@ dependencies = [
 [[package]]
 name = "dioxus-rsx"
 version = "0.0.3"
-source = "git+https://github.com/DioxusLabs/dioxus?rev=0527cff3a59ba3176f7510a7234c5977ce1b17d7#0527cff3a59ba3176f7510a7234c5977ce1b17d7"
+source = "git+https://github.com/DioxusLabs/dioxus?rev=b264211cc2685232426317d3055046838047d3db#b264211cc2685232426317d3055046838047d3db"
 dependencies = [
  "dioxus-core",
  "internment",
@@ -1101,7 +1098,7 @@ dependencies = [
 [[package]]
 name = "freya"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648#66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648"
+source = "git+https://github.com/marc2332/freya?rev=e254d8254afdb7a56ae623d6ee133405e88d9c48#e254d8254afdb7a56ae623d6ee133405e88d9c48"
 dependencies = [
  "anymap 0.12.1",
  "dioxus",
@@ -1131,7 +1128,7 @@ dependencies = [
 [[package]]
 name = "freya-common"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648#66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648"
+source = "git+https://github.com/marc2332/freya?rev=e254d8254afdb7a56ae623d6ee133405e88d9c48#e254d8254afdb7a56ae623d6ee133405e88d9c48"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -1147,7 +1144,7 @@ dependencies = [
 [[package]]
 name = "freya-components"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648#66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648"
+source = "git+https://github.com/marc2332/freya?rev=e254d8254afdb7a56ae623d6ee133405e88d9c48#e254d8254afdb7a56ae623d6ee133405e88d9c48"
 dependencies = [
  "dioxus",
  "dioxus-router",
@@ -1166,7 +1163,7 @@ dependencies = [
 [[package]]
 name = "freya-core"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648#66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648"
+source = "git+https://github.com/marc2332/freya?rev=e254d8254afdb7a56ae623d6ee133405e88d9c48#e254d8254afdb7a56ae623d6ee133405e88d9c48"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -1189,7 +1186,7 @@ dependencies = [
 [[package]]
 name = "freya-dom"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648#66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648"
+source = "git+https://github.com/marc2332/freya?rev=e254d8254afdb7a56ae623d6ee133405e88d9c48#e254d8254afdb7a56ae623d6ee133405e88d9c48"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -1225,7 +1222,7 @@ dependencies = [
 [[package]]
 name = "freya-elements"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648#66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648"
+source = "git+https://github.com/marc2332/freya?rev=e254d8254afdb7a56ae623d6ee133405e88d9c48#e254d8254afdb7a56ae623d6ee133405e88d9c48"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -1242,7 +1239,7 @@ dependencies = [
 [[package]]
 name = "freya-hooks"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648#66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648"
+source = "git+https://github.com/marc2332/freya?rev=e254d8254afdb7a56ae623d6ee133405e88d9c48#e254d8254afdb7a56ae623d6ee133405e88d9c48"
 dependencies = [
  "bytes",
  "dioxus-core",
@@ -1266,7 +1263,7 @@ dependencies = [
 [[package]]
 name = "freya-layout"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648#66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648"
+source = "git+https://github.com/marc2332/freya?rev=e254d8254afdb7a56ae623d6ee133405e88d9c48#e254d8254afdb7a56ae623d6ee133405e88d9c48"
 dependencies = [
  "dioxus",
  "dioxus-core",
@@ -1285,7 +1282,7 @@ dependencies = [
 [[package]]
 name = "freya-node-state"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648#66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648"
+source = "git+https://github.com/marc2332/freya?rev=e254d8254afdb7a56ae623d6ee133405e88d9c48#e254d8254afdb7a56ae623d6ee133405e88d9c48"
 dependencies = [
  "anymap 0.12.1",
  "bytes",
@@ -1309,7 +1306,7 @@ dependencies = [
 [[package]]
 name = "freya-renderer"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648#66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648"
+source = "git+https://github.com/marc2332/freya?rev=e254d8254afdb7a56ae623d6ee133405e88d9c48#e254d8254afdb7a56ae623d6ee133405e88d9c48"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -1511,7 +1508,7 @@ checksum = "c85e1d9ab2eadba7e5040d4e09cbd6d072b76a557ad64e797c2cb9d4da21d7e4"
 dependencies = [
  "cfg-if",
  "libc",
- "wasi 0.11.0+wasi-snapshot-preview1",
+ "wasi",
 ]
 
 [[package]]
@@ -2202,7 +2199,7 @@ checksum = "927a765cd3fc26206e66b296465fa9d3e5ab003e651c1b3c060e7956d96b19d2"
 dependencies = [
  "libc",
  "log",
- "wasi 0.11.0+wasi-snapshot-preview1",
+ "wasi",
  "windows-sys 0.48.0",
 ]
 
@@ -3268,9 +3265,9 @@ checksum = "7bd3e3206899af3f8b12af284fafc038cc1dc2b41d1b89dd17297221c5d225de"
 
 [[package]]
 name = "skia-bindings"
-version = "0.62.0"
+version = "0.63.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1a212f303074c5ef1f4bead4de67db0c91f56aa5da8e75f622869414a0e41a8"
+checksum = "0ffc650a2d45d9acb7e251568dc6193d882cf66aeb78e5dcc08bc2b816ffbbd5"
 dependencies = [
  "bindgen",
  "cc",
@@ -3286,9 +3283,9 @@ dependencies = [
 
 [[package]]
 name = "skia-safe"
-version = "0.62.0"
+version = "0.63.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c6fb5ab010b9e90ab2d639650ddb2cba6bfad6d8742f93131968de865abc2c4a"
+checksum = "8ae6df6412e061d9792938efc923dc41236edf778058ecc63dc385cd5d5a9ac1"
 dependencies = [
  "base64 0.21.2",
  "bitflags 2.3.1",
@@ -3497,17 +3494,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "time"
-version = "0.1.45"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b797afad3f312d1c66a56d11d0316f916356d11bd158fbc6ca6389ff6bf805a"
-dependencies = [
- "libc",
- "wasi 0.10.0+wasi-snapshot-preview1",
- "winapi",
-]
-
-[[package]]
 name = "tiny-skia"
 version = "0.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3642,7 +3628,7 @@ dependencies = [
 [[package]]
 name = "torin"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648#66e9eb9aef7a5d8a43c61e7e6c5b5ffc3ba2f648"
+source = "git+https://github.com/marc2332/freya?rev=e254d8254afdb7a56ae623d6ee133405e88d9c48#e254d8254afdb7a56ae623d6ee133405e88d9c48"
 dependencies = [
  "dioxus-core",
  "dioxus-native-core",
@@ -3837,12 +3823,6 @@ dependencies = [
  "log",
  "try-lock",
 ]
-
-[[package]]
-name = "wasi"
-version = "0.10.0+wasi-snapshot-preview1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a143597ca7c7793eff794def352d41792a93c481eb1042423ff7ff72ba2c31f"
 
 [[package]]
 name = "wasi"
