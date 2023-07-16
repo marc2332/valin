@@ -107,6 +107,10 @@ fn Body(cx: Scope) -> Element {
         })
     };
 
+    let onglobalclick = |_| {
+        show_commander.set(false);
+    };
+
     let panes_width = 100.0 / editor_manager.get().panels().len() as f32;
 
     render!(
@@ -117,6 +121,7 @@ fn Body(cx: Scope) -> Element {
             width: "100%",
             height: "100%",
             onkeydown: onkeydown,
+            onglobalclick: onglobalclick,
             rect {
                 direction: "vertical",
                 width: "60",

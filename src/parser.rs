@@ -259,8 +259,6 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
             }
         }
     }
-
-    println!("{:?}", timer.elapsed().as_millis());
 }
 
 // Push if exists otherwise create the stack
