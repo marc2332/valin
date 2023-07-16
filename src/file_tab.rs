@@ -35,7 +35,7 @@ pub fn FileTab<'a>(
                 color: "{color}",
                 background: "{background}",
                 shadow: "0 2 17 2 rgb(0, 0, 0, 100)",
-                radius: "5",
+                corner_radius: "5",
                 onclick: move |_| onclick.call(()),
                 onmouseenter: onmouseenter,
                 onmouseleave: onmouseleave,

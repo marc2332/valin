@@ -204,7 +204,8 @@ pub fn ControlledVirtualScrollView<'a, T>(
     });
 
     render!(
-        container {
+        rect {
+            overflow: "clip",
             direction: "horizontal",
             width: "{user_container_width}",
             height: "{user_container_height}",
@@ -214,7 +215,8 @@ pub fn ControlledVirtualScrollView<'a, T>(
                 direction: "vertical",
                 width: "{container_width}",
                 height: "{container_height}",
-                container {
+                rect {
+                    overflow: "clip",
                     padding: "{padding}",
                     height: "100%",
                     width: "100%",
@@ -224,7 +226,8 @@ pub fn ControlledVirtualScrollView<'a, T>(
                     onwheel: onwheel,
                     children
                 }
-                container {
+                rect {
+                    overflow: "clip",
                     width: "100%",
                     height: "{horizontal_scrollbar_size}",
                     offset_x: "{scrollbar_x}",
@@ -234,12 +237,13 @@ pub fn ControlledVirtualScrollView<'a, T>(
                         onmousedown: onmousedown_x,
                         width: "{scrollbar_width}",
                         height: "100%",
-                        radius: "10",
+                        corner_radius: "10",
                         background: "{scrollbar_theme.thumb_background}",
                     }
                 }
             }
-            container {
+            rect {
+                overflow: "clip",
                 width: "{vertical_scrollbar_size}",
                 height: "100%",
                 offset_y: "{scrollbar_y}",
@@ -249,7 +253,7 @@ pub fn ControlledVirtualScrollView<'a, T>(
                     onmousedown: onmousedown_y,
                     width: "100%",
                     height: "{scrollbar_height}",
-                    radius: "10",
+                    corner_radius: "10",
                     background: "{scrollbar_theme.thumb_background}",
                 }
             }

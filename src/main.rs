@@ -1,6 +1,7 @@
 mod code_editor;
 mod commander;
 mod controlled_virtual_scroll_view;
+mod file_explorer;
 mod file_tab;
 mod parser;
 mod text_area;
@@ -8,6 +9,7 @@ mod use_editable;
 mod use_syntax_highlighter;
 
 use code_editor::*;
+use file_explorer::*;
 use file_tab::*;
 use freya::prelude::{keyboard::Code, *};
 use text_area::*;
@@ -19,7 +21,7 @@ use crate::commander::*;
 fn main() {
     launch_cfg(
         app,
-        WindowConfig::<()>::builder()
+        LaunchConfig::<()>::builder()
             .with_width(900.0)
             .with_height(600.0)
             .with_title("Editor")
@@ -145,8 +147,16 @@ fn Body(cx: Scope) -> Element {
                 width: "2",
             }
             rect {
+                width: "270",
+                height: "100%",
                 direction: "vertical",
-                width: "calc(100% - 62)",
+                FileExplorer {
+
+                }
+            }
+            rect {
+                direction: "vertical",
+                width: "calc(100% - 332)",
                 height: "100%",
                 if *show_commander.current(){
                     rsx!(

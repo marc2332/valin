@@ -2,7 +2,6 @@ use std::fmt::{Display, Write};
 
 use ropey::Rope;
 use smallvec::SmallVec;
-use tokio::time::Instant;
 
 #[derive(Clone, Debug)]
 pub enum SyntaxType {
@@ -125,8 +124,6 @@ fn flush_spaces_stack(generic_stack: &mut Option<String>, syntax_blocks: &mut Sy
 pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
     // Clear any blocks from before
     syntax_blocks.clear();
-
-    let timer = Instant::now();
 
     // Track comments
     let mut tracking_comment = CommentTracking::None;
