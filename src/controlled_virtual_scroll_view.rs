@@ -1,8 +1,7 @@
 use std::ops::Range;
 
-use dioxus::prelude::*;
 use freya::prelude::dioxus_elements;
-use freya::prelude::{use_get_theme, use_node, MouseEvent, WheelEvent};
+use freya::prelude::*;
 
 use crate::{
     get_container_size, get_corrected_scroll_position, get_scroll_position_from_cursor,
@@ -19,7 +18,7 @@ pub fn get_scroll_position_from_wheel(
         return 0;
     }
 
-    let new_position = scroll_position + (wheel_movement * 5.0);
+    let new_position = scroll_position + (wheel_movement * 2.0);
 
     if new_position >= 0.0 && wheel_movement > 0.0 {
         return 0;
@@ -34,8 +33,8 @@ pub fn get_scroll_position_from_wheel(
 
 type BuilderFunction<'a, T> = dyn Fn(
     (
-        i32,
-        i32,
+        usize,
+        usize,
         Scope<'a, ControlledVirtualScrollViewProps<T>>,
         &'a Option<T>,
     ),
@@ -44,7 +43,7 @@ type BuilderFunction<'a, T> = dyn Fn(
 /// Properties for the ControlledVirtualScrollView component.
 #[derive(Props)]
 pub struct ControlledVirtualScrollViewProps<'a, T: 'a> {
-    length: i32,
+    length: usize,
     item_size: f32,
     builder: Box<BuilderFunction<'a, T>>,
     #[props(optional)]
@@ -67,7 +66,7 @@ fn get_render_range(
     scroll_position: f32,
     item_size: f32,
     item_length: f32,
-) -> Range<i32> {
+) -> Range<usize> {
     let render_index_start = (-scroll_position) / item_size;
     let potentially_visible_length = viewport_size / item_size;
     let remaining_length = item_length - render_index_start;
@@ -78,7 +77,7 @@ fn get_render_range(
         render_index_start + potentially_visible_length
     };
 
-    render_index_start as i32..(render_index_end as i32)
+    render_index_start as usize..(render_index_end as usize)
 }
 
 /// A controlled ScrollView with virtual scrolling.
@@ -86,14 +85,11 @@ fn get_render_range(
 pub fn ControlledVirtualScrollView<'a, T>(
     cx: Scope<'a, ControlledVirtualScrollViewProps<'a, T>>,
 ) -> Element {
-    let theme = use_get_theme(cx);
     let clicking_scrollbar = use_state::<Option<(Axis, f64)>>(cx, || None);
     let scrolled_y = cx.props.offset_y;
     let scrolled_x = cx.props.offset_x;
     let onscroll = cx.props.onscroll.as_ref().unwrap();
     let (node_ref, size) = use_node(cx);
-
-    let scrollbar_theme = &theme.scrollbar;
 
     let padding = cx.props.padding.unwrap_or("0");
     let user_container_width = cx.props.width.unwrap_or("100%");
@@ -209,7 +205,7 @@ pub fn ControlledVirtualScrollView<'a, T>(
             direction: "horizontal",
             width: "{user_container_width}",
             height: "{user_container_height}",
-            onclick: onclick, // TODO(marc2332): mouseup would be better
+            onclick: onclick,
             onmouseover: onmouseover,
             rect {
                 direction: "vertical",
@@ -226,35 +222,25 @@ pub fn ControlledVirtualScrollView<'a, T>(
                     onwheel: onwheel,
                     children
                 }
-                rect {
-                    overflow: "clip",
+                ScrollBar {
                     width: "100%",
                     height: "{horizontal_scrollbar_size}",
                     offset_x: "{scrollbar_x}",
-                    onmouseleave: |_| {},
-                    background: "{scrollbar_theme.background}",
-                    rect {
+                    ScrollThumb {
                         onmousedown: onmousedown_x,
                         width: "{scrollbar_width}",
                         height: "100%",
-                        corner_radius: "10",
-                        background: "{scrollbar_theme.thumb_background}",
-                    }
+                    },
                 }
             }
-            rect {
-                overflow: "clip",
+            ScrollBar {
                 width: "{vertical_scrollbar_size}",
                 height: "100%",
                 offset_y: "{scrollbar_y}",
-                onmouseleave: |_| {},
-                background: "{scrollbar_theme.background}",
-                rect {
+                ScrollThumb {
                     onmousedown: onmousedown_y,
                     width: "100%",
                     height: "{scrollbar_height}",
-                    corner_radius: "10",
-                    background: "{scrollbar_theme.thumb_background}",
                 }
             }
         }

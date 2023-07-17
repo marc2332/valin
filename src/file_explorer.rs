@@ -4,10 +4,15 @@ use dioxus::prelude::*;
 use dioxus_std::utils::channel::*;
 use freya::elements as dioxus_elements;
 use freya::prelude::*;
+use tokio::fs::read_to_string;
 use tokio::{
     fs::{self},
     io,
 };
+
+use crate::panels::PanelTab;
+use crate::panels::PanelsManager;
+use crate::use_editable::EditorData;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FolderState {
@@ -108,10 +113,12 @@ async fn read_folder_as_items(dir: &PathBuf) -> io::Result<Vec<TreeItem>> {
 enum TreeTask {
     OpenFolder(PathBuf),
     CloseFolder(PathBuf),
+    OpenFile(PathBuf),
 }
 
+#[inline_props]
 #[allow(non_snake_case)]
-pub fn FileExplorer(cx: Scope) -> Element {
+pub fn FileExplorer(cx: Scope, panels_manager: UseState<PanelsManager>) -> Element {
     let channel = use_channel::<TreeTask>(cx, 5);
     let tree = use_ref::<Option<TreeItem>>(cx, || None);
 
@@ -124,9 +131,9 @@ pub fn FileExplorer(cx: Scope) -> Element {
     });
 
     use_listen_channel(cx, &channel, {
-        to_owned![tree];
+        to_owned![tree, panels_manager];
         move |task| {
-            to_owned![tree];
+            to_owned![tree, panels_manager];
             async move {
                 if let Ok(task) = task {
                     match task {
@@ -145,6 +152,24 @@ pub fn FileExplorer(cx: Scope) -> Element {
                                 tree.set_folder_state(&folder_path, &FolderState::Closed);
                             }
                         }
+                        TreeTask::OpenFile(file_path) => {
+                            let content = read_to_string(&file_path).await;
+                            if let Ok(content) = content {
+                                panels_manager.with_mut(|panels_manager| {
+                                    panels_manager.push_tab(
+                                        PanelTab::TextEditor(EditorData::new(
+                                            file_path.to_path_buf(),
+                                            Rope::from(content),
+                                            (0, 0),
+                                        )),
+                                        panels_manager.focused_panel(),
+                                        true,
+                                    );
+                                });
+                            } else if let Err(err) = content {
+                                println!("Error reading file: {err:?}");
+                            }
+                        }
                     }
                 }
             }
@@ -161,9 +186,10 @@ pub fn FileExplorer(cx: Scope) -> Element {
 
                 if let Some(folder) = folder {
                     let path = folder.path().to_owned();
+                    let items = read_folder_as_items(&path).await.unwrap_or_default();
                     *tree.write() = Some(TreeItem::Folder {
                         path,
-                        state: FolderState::Closed,
+                        state: FolderState::Opened(items),
                     });
                 }
             }
@@ -186,13 +212,21 @@ pub fn FileExplorer(cx: Scope) -> Element {
                 .to_string();
 
             if item.is_file {
-                to_owned![item];
+                to_owned![channel, item];
+                let onclick = move |_| {
+                    channel
+                        .try_send(TreeTask::OpenFile(item.path.clone()))
+                        .unwrap();
+                };
                 rsx!(
                     FileExplorerItem {
                         key: "{path}",
                         depth: item.depth,
+                        onclick: onclick,
                         label {
                             font_size: "14",
+                            max_lines: "1",
+                            text_overflow: "ellipsis",
                             "📃 {name}"
                         }
                     }
@@ -211,6 +245,8 @@ pub fn FileExplorer(cx: Scope) -> Element {
                     }
                 };
 
+                let icon = if item.is_opened { "📂" } else { "📁" };
+
                 rsx!(
                     FileExplorerItem {
                         key: "{path}",
@@ -218,7 +254,9 @@ pub fn FileExplorer(cx: Scope) -> Element {
                         onclick: onclick,
                         label {
                             font_size: "14",
-                            "📂 {name}"
+                            max_lines: "1",
+                            text_overflow: "ellipsis",
+                            "{icon} {name}"
                         }
                     }
                 )
@@ -230,6 +268,8 @@ pub fn FileExplorer(cx: Scope) -> Element {
             rect {
                 width: "100%",
                 height: "100%",
+                display: "center",
+                direction: "both",
                 Button {
                     onclick: open_dialog,
                     label {
@@ -261,7 +301,7 @@ pub fn FileExplorer(cx: Scope) -> Element {
 fn FileExplorerItem<'a>(
     cx: Scope<'a>,
     children: Element<'a>,
-    onclick: Option<EventHandler<'a, ()>>,
+    onclick: EventHandler<'a, ()>,
     depth: usize,
 ) -> Element<'a> {
     let status = use_state(cx, || ButtonStatus::Idle);
@@ -274,25 +314,16 @@ fn FileExplorerItem<'a>(
         ButtonStatus::Hovering => "rgb(35, 35, 35)",
     };
 
-    render!(
-        rect {
-            direction: "horizontal",
-            height: "26",
-            rect {
-                onmouseenter: onmouseenter,
-                onmouseleave: onmouseleave,
-                onclick: move |_| {
-                    if let Some(onclick) = onclick {
-                        onclick.call(())
-                    }
-                },
-                background: "{background}",
-                corner_radius: "7",
-                margin: "0 0 0 {depth * 10}",
-                direction: "horizontal",
-                padding: "4 8",
-                children
-            }
-        }
-    )
+    render!(rect {
+        onmouseenter: onmouseenter,
+        onmouseleave: onmouseleave,
+        onclick: move |_| onclick.call(()),
+        background: "{background}",
+        corner_radius: "5",
+        margin: "0 0 0 {depth * 10}",
+        direction: "horizontal",
+        padding: "4 8",
+        height: "26",
+        children
+    })
 }
