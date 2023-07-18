@@ -20,10 +20,10 @@ pub fn Tab<'a>(
         status.set(ButtonStatus::default());
     };
 
-    let background = match *status.get() {
-        _ if *is_selected => "rgb(65, 65, 65)",
-        ButtonStatus::Hovering => "rgb(55, 55, 55)",
-        ButtonStatus::Idle => "rgb(35, 35, 35)",
+    let (background, shadow) = match *status.get() {
+        _ if *is_selected => ("rgb(35, 35, 35)", "0 2 17 2 rgb(0, 0, 0, 100)"),
+        ButtonStatus::Hovering => ("rgb(30, 30, 30)", "none"),
+        ButtonStatus::Idle => ("transparent", "transparent"),
     };
     let color = theme.button.font_theme.color;
 
@@ -39,7 +39,7 @@ pub fn Tab<'a>(
                 rect {
                     color: "{color}",
                     background: "{background}",
-                    shadow: "0 2 17 2 rgb(0, 0, 0, 100)",
+                    shadow: "{shadow}",
                     corner_radius: "5",
                     onclick: move |_| onclick.call(()),
                     onmouseenter: onmouseenter,
@@ -62,6 +62,7 @@ pub fn Tab<'a>(
                         direction: "both",
                         corner_radius: "100",
                         padding: "4",
+                        background: "{background}",
                         label {
                             font_size: "13",
                             "X"

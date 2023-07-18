@@ -44,8 +44,6 @@ fn app(cx: Scope) -> Element {
 
 #[allow(non_snake_case)]
 fn Body(cx: Scope) -> Element {
-    let theme = use_theme(cx);
-    let theme = &theme.read();
     let panels_manager = use_state::<PanelsManager>(cx, PanelsManager::new);
     let show_commander = use_state(cx, || false);
     let commands = cx.use_hook(|| {
@@ -96,7 +94,8 @@ fn Body(cx: Scope) -> Element {
         show_commander.set(false);
     };
 
-    let panes_width = 100.0 / panels_manager.get().panels().len() as f32;
+    let panels_len = panels_manager.get().panels().len();
+    let panes_width = 100.0 / panels_len as f32;
 
     render!(
         rect {
@@ -111,7 +110,10 @@ fn Body(cx: Scope) -> Element {
             Divider {}
             Sidepanel { FileExplorer { panels_manager: panels_manager.clone() } }
             Divider {}
-            rect { direction: "vertical", width: "calc(100% - 334)", height: "100%",
+            rect {
+                direction: "vertical",
+                width: "calc(100% - 334)",
+                height: "100%",
                 if *show_commander.current(){
                     rsx!(
                         Commander {
@@ -120,7 +122,10 @@ fn Body(cx: Scope) -> Element {
                         }
                     )
                 }
-                rect { height: "100%", width: "100%", direction: "horizontal",
+                rect {
+                    height: "100%",
+                    width: "100%",
+                    direction: "horizontal",
                     panels_manager.get().panels().iter().enumerate().map(move |(panel_index, panel)| {
                         let is_focused = panels_manager.get().focused_panel() == panel_index;
                         let active_tab_index = panel.active_tab();
@@ -196,7 +201,7 @@ fn Body(cx: Scope) -> Element {
                                             PanelTab::TextEditor(_) => {
                                                 rsx!(
                                                     CodeEditorTab {
-                                                        key: "{tab_id}",
+                                                        key: "{tab_id}-{active_tab_index}",
                                                         manager: panels_manager.clone(),
                                                         panel_index: panel_index,
                                                         editor: active_tab_index,
@@ -218,12 +223,22 @@ fn Body(cx: Scope) -> Element {
                                                 width: "100%",
                                                 height: "100%",
                                                 direction: "both",
-                                                background: "{theme.body.background}",
-                                                Button {
-                                                    onclick: close_panel,
-                                                    label {
-                                                        "Close panel"
-                                                    }
+                                                background: "rgb(20, 20, 20)",
+                                                if panels_len > 1 {
+                                                    rsx!(
+                                                        Button {
+                                                            onclick: close_panel,
+                                                            label {
+                                                                "Close panel"
+                                                            }
+                                                        }
+                                                    )
+                                                } else {
+                                                    rsx!(
+                                                        label {
+                                                            "Coding is fun"
+                                                        }
+                                                    )
                                                 }
                                             }
                                         )

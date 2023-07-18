@@ -94,7 +94,7 @@ impl PanelsManager {
             focused_panel: 0,
             panes: vec![Panel::new()],
             font_size: 17.0,
-            line_height: 1.3,
+            line_height: 1.2,
         }
     }
 
@@ -156,7 +156,7 @@ impl PanelsManager {
                 } else {
                     None
                 };
-            } else if next_editor {
+            } else if active_tab >= editor {
                 self.panes[panel].active_tab = Some(active_tab - 1);
             }
         }

@@ -5,6 +5,7 @@ use crate::use_syntax_highlighter::*;
 use freya::prelude::events::KeyboardEvent;
 use freya::prelude::*;
 use tokio::sync::mpsc::unbounded_channel;
+use winit::window::CursorIcon;
 
 #[derive(Props, PartialEq)]
 pub struct EditorProps {
@@ -112,7 +113,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
             onmousedown: onmousedown,
             cursor_reference: cursor_attr,
             direction: "horizontal",
-            background: "rgb(50, 48, 47)",
+            background: "rgb(20, 20, 20)",
             ControlledVirtualScrollView {
                 offset_x: *offset_x.get(),
                 offset_y: *offset_y.get(),
@@ -177,33 +178,35 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
                                     "{line_index + 1} "
                                 }
                             }
-                            paragraph {
-                                width: "100%",
-                                cursor_index: "{character_index}",
-                                cursor_color: "white",
-                                max_lines: "1",
-                                cursor_mode: "editable",
-                                cursor_id: "{line_index}",
-                                onmousedown: onmousedown,
-                                onmouseover: onmouseover,
-                                highlights: highlights_attr,
-                                highlight_color: "rgb(90, 90, 90)",
-                                height: "{manual_line_height}",
-                                direction: "horizontal",
-                                font_size: "{font_size}",
-                                font_family: "Jetbrains Mono",
-                                line.iter().enumerate().map(|(i, (syntax_type, word))| {
-                                    rsx!(
-                                        text {
-                                            font_family: "Jetbrains Mono",
-                                            key: "{i}",
-                                            width: "auto",
-                                            color: "{syntax_type.color()}",
-                                            font_size: "{font_size}",
-                                            "{word}"
-                                        }
-                                    )
-                                })
+                            CursorArea {
+                                icon: CursorIcon::Text,
+                                paragraph {
+                                    width: "100%",
+                                    cursor_index: "{character_index}",
+                                    cursor_color: "white",
+                                    max_lines: "1",
+                                    cursor_mode: "editable",
+                                    cursor_id: "{line_index}",
+                                    onmousedown: onmousedown,
+                                    onmouseover: onmouseover,
+                                    highlights: highlights_attr,
+                                    highlight_color: "rgb(65, 65, 65)",
+                                    direction: "horizontal",
+                                    font_size: "{font_size}",
+                                    font_family: "Jetbrains Mono",
+                                    line.iter().enumerate().map(|(i, (syntax_type, word))| {
+                                        rsx!(
+                                            text {
+                                                font_family: "Jetbrains Mono",
+                                                key: "{i}",
+                                                width: "auto",
+                                                color: "{syntax_type.color()}",
+                                                font_size: "{font_size}",
+                                                "{word}"
+                                            }
+                                        )
+                                    })
+                                }
                             }
                         }
                     )
