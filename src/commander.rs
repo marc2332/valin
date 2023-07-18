@@ -51,9 +51,9 @@ pub fn Commander<'a>(
                 direction: "both",
                 padding: "10",
                 rect {
-                    background: "rgb(80, 80, 80)",
+                    background: "rgb(45, 45, 45)",
                     shadow: "0 2 20 5 rgb(0, 0, 0, 100)",
-                    radius: "10",
+                    corner_radius: "10",
                     onmousedown: |_| {},
                     width: "300",
                     padding: "5",

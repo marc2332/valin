@@ -1,25 +1,33 @@
-mod code_editor;
 mod commander;
 mod controlled_virtual_scroll_view;
-mod file_tab;
+mod file_explorer;
+mod panels;
 mod parser;
+mod sidebar;
+mod sidepanel;
+mod tab;
+mod tabs;
 mod text_area;
 mod use_editable;
 mod use_syntax_highlighter;
+mod utils;
 
-use code_editor::*;
-use file_tab::*;
+use commander::*;
+use file_explorer::*;
 use freya::prelude::{keyboard::Code, *};
+use panels::*;
+use sidebar::*;
+use sidepanel::*;
+use tab::*;
+use tabs::code_editor::*;
+use tabs::config::*;
 use text_area::*;
-use tokio::fs::read_to_string;
-use use_editable::{EditorData, EditorManager, Panel};
-
-use crate::commander::*;
+use utils::*;
 
 fn main() {
     launch_cfg(
         app,
-        WindowConfig::<()>::builder()
+        LaunchConfig::<()>::builder()
             .with_width(900.0)
             .with_height(600.0)
             .with_title("Editor")
@@ -30,77 +38,52 @@ fn main() {
 fn app(cx: Scope) -> Element {
     use_init_focus(cx);
     render!(
-        ThemeProvider {
-            theme: DARK_THEME,
-            Body {}
-        }
+        ThemeProvider { theme: DARK_THEME, Body {} }
     )
 }
 
 #[allow(non_snake_case)]
 fn Body(cx: Scope) -> Element {
-    let theme = use_theme(cx);
-    let theme = &theme.read();
-    let editor_manager = use_state::<EditorManager>(cx, EditorManager::new);
+    let panels_manager = use_state::<PanelsManager>(cx, PanelsManager::new);
     let show_commander = use_state(cx, || false);
     let commands = cx.use_hook(|| {
         vec![Command::new("fs".to_string(), {
-            to_owned![editor_manager];
+            to_owned![panels_manager];
             Box::new(move |size: &str| {
                 if let Ok(size) = size.parse::<f32>() {
-                    editor_manager.with_mut(|editor_manager| {
-                        editor_manager.set_fontsize(size);
+                    panels_manager.with_mut(|panels_manager| {
+                        panels_manager.set_fontsize(size);
                     })
                 }
             })
         })]
     });
 
-    let open_file = move |_: MouseEvent| {
-        to_owned![editor_manager];
-        cx.spawn(async move {
-            let task = rfd::AsyncFileDialog::new().pick_file();
-            let file = task.await;
-
-            if let Some(file) = file {
-                let path = file.path();
-                let content = read_to_string(&path).await.unwrap();
-                editor_manager.with_mut(|editor_manager| {
-                    editor_manager.push_editor(
-                        EditorData::new(path.to_path_buf(), Rope::from(content), (0, 0)),
-                        editor_manager.focused_panel(),
-                        true,
-                    );
-                });
-            }
-        });
-    };
-
-    let create_panel = move |_| {
-        to_owned![editor_manager];
-        editor_manager.with_mut(|editor_manager| {
-            editor_manager.push_panel(Panel::new());
-            editor_manager.set_focused_panel(editor_manager.panels().len() - 1);
+    let split_panel = move |_| {
+        to_owned![panels_manager];
+        panels_manager.with_mut(|panels_manager| {
+            panels_manager.push_panel(Panel::new());
+            panels_manager.set_focused_panel(panels_manager.panels().len() - 1);
         });
     };
 
     let onsubmit = {
         move |_| {
-            editor_manager.with_mut(|editor_manager| {
-                editor_manager.set_focused(true);
+            panels_manager.with_mut(|panels_manager| {
+                panels_manager.set_focused(true);
                 show_commander.set(false);
             });
         }
     };
 
     let onkeydown = move |e: KeyboardEvent| {
-        editor_manager.with_mut(|editor_manager| {
+        panels_manager.with_mut(|panels_manager| {
             if e.code == Code::Escape {
                 if *show_commander.current() {
-                    editor_manager.set_focused(true);
+                    panels_manager.set_focused(true);
                     show_commander.set(false);
                 } else {
-                    editor_manager.set_focused(false);
+                    panels_manager.set_focused(false);
                     show_commander.set(true);
                 }
             }
@@ -111,7 +94,8 @@ fn Body(cx: Scope) -> Element {
         show_commander.set(false);
     };
 
-    let panes_width = 100.0 / editor_manager.get().panels().len() as f32;
+    let panels_len = panels_manager.get().panels().len();
+    let panes_width = 100.0 / panels_len as f32;
 
     render!(
         rect {
@@ -122,31 +106,13 @@ fn Body(cx: Scope) -> Element {
             height: "100%",
             onkeydown: onkeydown,
             onglobalclick: onglobalclick,
+            Sidebar { panels_manager: panels_manager.clone() }
+            Divider {}
+            Sidepanel { FileExplorer { panels_manager: panels_manager.clone() } }
+            Divider {}
             rect {
                 direction: "vertical",
-                width: "60",
-                height: "100%",
-                Button {
-                    onclick: open_file,
-                    label {
-                        "Open"
-                    }
-                }
-                Button {
-                    onclick: create_panel,
-                    label {
-                        "Split"
-                    }
-                }
-            }
-            rect {
-                background: "rgb(100, 100, 100)",
-                height: "100%",
-                width: "2",
-            }
-            rect {
-                direction: "vertical",
-                width: "calc(100% - 62)",
+                width: "calc(100% - 334)",
                 height: "100%",
                 if *show_commander.current(){
                     rsx!(
@@ -160,18 +126,18 @@ fn Body(cx: Scope) -> Element {
                     height: "100%",
                     width: "100%",
                     direction: "horizontal",
-                    editor_manager.get().panels().iter().enumerate().map(move |(panel_index, panel)| {
-                        let is_focused = editor_manager.get().focused_panel() == panel_index;
-                        let active_editor = panel.active_editor();
-                        let bg = if is_focused {
+                    panels_manager.get().panels().iter().enumerate().map(move |(panel_index, panel)| {
+                        let is_focused = panels_manager.get().focused_panel() == panel_index;
+                        let active_tab_index = panel.active_tab();
+                        let panel_background = if is_focused {
                             "rgb(247, 127, 0)"
                         } else {
                             "transparent"
                         };
 
                         let close_panel = move |_: MouseEvent| {
-                            editor_manager.with_mut(|editor_manager| {
-                                editor_manager.close_panel(panel_index);
+                            panels_manager.with_mut(|panels_manager| {
+                                panels_manager.close_panel(panel_index);
                             });
                         };
 
@@ -185,43 +151,71 @@ fn Body(cx: Scope) -> Element {
                                     height: "50",
                                     width: "100%",
                                     padding: "2.5",
-                                    editor_manager.get().panel(panel_index).editors().iter().enumerate().map(|(i, editor)| {
-                                        let is_selected = active_editor == Some(i);
-                                        let file_name = editor.path().file_name().unwrap().to_str().unwrap().to_owned();
-                                        rsx!(
-                                            FileTab {
-                                                key: "{i}",
-                                                onclick: move |_| {
-                                                    editor_manager.with_mut(|editor_manager| {
-                                                        editor_manager.set_focused_panel(panel_index);
-                                                        editor_manager.panel_mut(panel_index).set_active_editor(i);
-                                                    });
-                                                },
-                                                value: "{file_name}",
-                                                is_selected: is_selected
-                                            }
-                                        )
-                                    })
+                                    ScrollView {
+                                        direction: "horizontal",
+                                        width: "calc(100% - 55)",
+                                        panels_manager.get().panel(panel_index).tabs().iter().enumerate().map(|(i, tab)| {
+                                            let is_selected = active_tab_index == Some(i);
+                                            let (tab_id, tab_title) = tab.get_data();
+                                            rsx!(
+                                                Tab {
+                                                    key: "{tab_id}",
+                                                    onclick: move |_| {
+                                                        panels_manager.with_mut(|panels_manager| {
+                                                            panels_manager.set_focused_panel(panel_index);
+                                                            panels_manager.panel_mut(panel_index).set_active_tab(i);
+                                                        });
+                                                    },
+                                                    onclickclose: move |_| {
+                                                        panels_manager.with_mut(|panels_manager| {
+                                                            panels_manager.close_editor(panel_index, i);
+                                                        });
+                                                    },
+                                                    value: "{tab_title}",
+                                                    is_selected: is_selected
+                                                }
+                                            )
+                                        })
+                                    }
+                                    Button {
+                                        onclick: split_panel,
+                                        label {
+                                            "Split"
+                                        }
+                                    }
                                 }
                                 rect {
                                     height: "calc(100%-50)",
                                     width: "100%",
-                                    background: "{bg}",
+                                    background: "{panel_background}",
                                     padding: "1.5",
                                     onclick: move |_| {
-                                        editor_manager.with_mut(|editor_manager| {
-                                            editor_manager.set_focused_panel(panel_index);
+                                        panels_manager.with_mut(|panels_manager| {
+                                            panels_manager.set_focused_panel(panel_index);
                                         });
                                     },
-                                    if let Some(active_editor) = active_editor {
-                                        rsx!(
-                                            Editor {
-                                                key: "{active_editor}",
-                                                manager: editor_manager,
-                                                panel_index: panel_index,
-                                                editor: active_editor,
+                                    if let Some(active_tab_index) = active_tab_index {
+                                        let active_tab = panel.tab(active_tab_index);
+                                        let (tab_id, _) = active_tab.get_data();
+                                        match active_tab {
+                                            PanelTab::TextEditor(_) => {
+                                                rsx!(
+                                                    CodeEditorTab {
+                                                        key: "{tab_id}-{active_tab_index}",
+                                                        manager: panels_manager.clone(),
+                                                        panel_index: panel_index,
+                                                        editor: active_tab_index,
+                                                    }
+                                                )
                                             }
-                                        )
+                                            PanelTab::Config => {
+                                                rsx!(
+                                                    ConfigTab {
+                                                        key: "{tab_id}",
+                                                    }
+                                                )
+                                            }
+                                        }
                                     } else {
                                         rsx!(
                                             rect {
@@ -229,12 +223,22 @@ fn Body(cx: Scope) -> Element {
                                                 width: "100%",
                                                 height: "100%",
                                                 direction: "both",
-                                                background: "{theme.body.background}",
-                                                Button {
-                                                    onclick: close_panel,
-                                                    label {
-                                                        "Close panel"
-                                                    }
+                                                background: "rgb(20, 20, 20)",
+                                                if panels_len > 1 {
+                                                    rsx!(
+                                                        Button {
+                                                            onclick: close_panel,
+                                                            label {
+                                                                "Close panel"
+                                                            }
+                                                        }
+                                                    )
+                                                } else {
+                                                    rsx!(
+                                                        label {
+                                                            "Coding is fun"
+                                                        }
+                                                    )
                                                 }
                                             }
                                         )

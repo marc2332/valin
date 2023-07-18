@@ -15,122 +15,7 @@ use torin::geometry::CursorPoint;
 use uuid::Uuid;
 use winit::event_loop::EventLoopProxy;
 
-#[derive(Clone, Default)]
-pub struct Panel {
-    active_editor: Option<usize>,
-    editors: Vec<EditorData>,
-}
-
-impl Panel {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn active_editor(&self) -> Option<usize> {
-        self.active_editor
-    }
-
-    pub fn editor(&self, editor: usize) -> &EditorData {
-        &self.editors[editor]
-    }
-
-    pub fn editors(&self) -> &[EditorData] {
-        &self.editors
-    }
-
-    pub fn set_active_editor(&mut self, active_editor: usize) {
-        self.active_editor = Some(active_editor);
-    }
-}
-
-#[derive(Clone)]
-pub struct EditorManager {
-    is_focused: bool,
-    focused_panel: usize,
-    panes: Vec<Panel>,
-    font_size: f32,
-    line_height: f32,
-}
-
-impl Default for EditorManager {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl EditorManager {
-    pub fn new() -> Self {
-        Self {
-            is_focused: true,
-            focused_panel: 0,
-            panes: vec![Panel::new()],
-            font_size: 17.0,
-            line_height: 1.3,
-        }
-    }
-
-    pub fn set_fontsize(&mut self, fontsize: f32) {
-        self.font_size = fontsize;
-    }
-
-    pub fn set_focused(&mut self, focused: bool) {
-        self.is_focused = focused;
-    }
-
-    pub fn is_focused(&self) -> bool {
-        self.is_focused
-    }
-
-    pub fn font_size(&self) -> f32 {
-        self.font_size
-    }
-
-    pub fn line_height(&self) -> f32 {
-        self.line_height
-    }
-
-    pub fn focused_panel(&self) -> usize {
-        self.focused_panel
-    }
-
-    pub fn push_editor(&mut self, editor: EditorData, panel: usize, focus: bool) {
-        self.panes[panel].editors.push(editor);
-
-        if focus {
-            self.focused_panel = panel;
-            self.panes[panel].active_editor = Some(self.panes[panel].editors.len() - 1);
-        }
-    }
-
-    pub fn push_panel(&mut self, panel: Panel) {
-        self.panes.push(panel);
-    }
-
-    pub fn panels(&self) -> &[Panel] {
-        &self.panes
-    }
-
-    pub fn panel(&self, panel: usize) -> &Panel {
-        &self.panes[panel]
-    }
-
-    pub fn panel_mut(&mut self, panel: usize) -> &mut Panel {
-        &mut self.panes[panel]
-    }
-
-    pub fn set_focused_panel(&mut self, panel: usize) {
-        self.focused_panel = panel;
-    }
-
-    pub fn close_panel(&mut self, panel: usize) {
-        if self.panes.len() > 1 {
-            self.panes.remove(panel);
-            if self.focused_panel > 0 {
-                self.focused_panel -= 1;
-            }
-        }
-    }
-}
+use crate::panels::PanelsManager;
 
 /// Iterator over text lines.
 pub struct LinesIterator<'a> {
@@ -324,12 +209,10 @@ impl TextEditor for EditorData {
     }
 }
 
-pub type EditorState = UseState<EditorManager>;
-
 /// Manage an editable content.
 #[derive(Clone)]
 pub struct UseEditable {
-    pub(crate) editor: EditorState,
+    pub(crate) editor: UseState<PanelsManager>,
     pub(crate) cursor_reference: CursorReference,
     pub(crate) selecting_text_with_mouse: UseRef<Option<CursorPoint>>,
     pub(crate) event_loop_proxy: Option<EventLoopProxy<EventMessage>>,
@@ -348,7 +231,13 @@ impl UseEditable {
 
     /// Create a highlights attribute.
     pub fn highlights_attr<'a, T>(&self, cx: Scope<'a, T>, editor_id: usize) -> AttributeValue<'a> {
-        let editor = &self.editor.panes[self.pane_index].editors[self.editor_index];
+        let editor = self
+            .editor
+            .get()
+            .panel(self.pane_index)
+            .tab(self.editor_index)
+            .as_text_editor()
+            .unwrap();
         cx.any_value(CustomAttributeValues::TextHighlights(
             editor
                 .highlights(editor_id)
@@ -368,7 +257,11 @@ impl UseEditable {
                 self.cursor_reference.set_cursor_position(Some(coords));
 
                 self.editor.with_mut(|text_editor| {
-                    let editor = &mut text_editor.panes[self.pane_index].editors[self.editor_index];
+                    let editor = text_editor
+                        .panel_mut(self.pane_index)
+                        .tab_mut(self.editor_index)
+                        .as_text_editor_mut()
+                        .unwrap();
                     editor.unhighlight();
                 });
             }
@@ -391,7 +284,11 @@ impl UseEditable {
                     return;
                 }
                 self.editor.with_mut(|text_editor| {
-                    let editor = &mut text_editor.panes[self.pane_index].editors[self.editor_index];
+                    let editor = text_editor
+                        .panel_mut(self.pane_index)
+                        .tab_mut(self.editor_index)
+                        .as_text_editor_mut()
+                        .unwrap();
                     let event = editor.process_key(&e.key, &e.code, &e.modifiers);
                     if event == TextEvent::TextChanged {
                         self.highlight_trigger.send(()).ok();
@@ -415,7 +312,7 @@ impl UseEditable {
 
 pub fn use_edit(
     cx: &ScopeState,
-    text_editor: &UseState<EditorManager>,
+    text_editor: &UseState<PanelsManager>,
     pane_index: usize,
     editor_index: usize,
     highlight_trigger: UnboundedSender<()>,
@@ -461,7 +358,11 @@ pub fn use_edit(
                 match message {
                     // Update the cursor position calculated by the layout
                     CursorLayoutResponse::CursorPosition { position, id } => {
-                        let editor = &text_editor.current().panes[pane_index].editors[editor_index];
+                        let editor = text_editor
+                            .panel(pane_index)
+                            .tab(editor_index)
+                            .as_text_editor()
+                            .unwrap();
 
                         let new_current_line = editor.rope.line(id);
 
@@ -475,8 +376,11 @@ pub fn use_edit(
                         // Only update if it's actually different
                         if editor.cursor.as_tuple() != new_cursor {
                             text_editor.with_mut(|text_editor| {
-                                let editor =
-                                    &mut text_editor.panes[pane_index].editors[editor_index];
+                                let editor = text_editor
+                                    .panel_mut(pane_index)
+                                    .tab_mut(editor_index)
+                                    .as_text_editor_mut()
+                                    .unwrap();
                                 editor.cursor.set_col(new_cursor.0);
                                 editor.cursor.set_row(new_cursor.1);
                                 editor.unhighlight();
@@ -489,7 +393,11 @@ pub fn use_edit(
                     // Update the text selections calculated by the layout
                     CursorLayoutResponse::TextSelection { from, to, id } => {
                         text_editor.with_mut(|text_editor| {
-                            let editor = &mut text_editor.panes[pane_index].editors[editor_index];
+                            let editor = text_editor
+                                .panel_mut(pane_index)
+                                .tab_mut(editor_index)
+                                .as_text_editor_mut()
+                                .unwrap();
                             editor.highlight_text(from, to, id);
                         });
                         cursor_reference.set_cursor_selections(None);

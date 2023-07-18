@@ -13,3 +13,4 @@
 - [ ] Paste (ctr-v)
 - [ ] Undo (ctr-z)
 - [ ] Redo (ctr-y)
+- [x] Files explorer

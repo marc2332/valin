@@ -2,11 +2,11 @@ use freya::prelude::*;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::parser::*;
-use crate::EditorManager;
+use crate::PanelsManager;
 
 pub fn use_syntax_highlighter<'a>(
     cx: &'a ScopeState,
-    manager: &UseState<EditorManager>,
+    manager: &UseState<PanelsManager>,
     pane_index: usize,
     editor: usize,
     highlight_trigger: &UseRef<(UnboundedSender<()>, Option<UnboundedReceiver<()>>)>,
@@ -22,7 +22,11 @@ pub fn use_syntax_highlighter<'a>(
         async move {
             while highlight_receiver.recv().await.is_some() {
                 let manager = manager.current();
-                let editor = &manager.panel(pane_index).editor(editor);
+                let editor = &manager
+                    .panel(pane_index)
+                    .tab(editor)
+                    .as_text_editor()
+                    .unwrap();
 
                 syntax_blocks.with_mut(|syntax_blocks| parse(editor.rope(), syntax_blocks));
             }
