@@ -1,7 +1,7 @@
 use std::ops::Range;
 
-use freya::prelude::dioxus_elements;
 use freya::prelude::*;
+use freya::prelude::{dioxus_elements, keyboard::Key};
 
 use crate::{
     get_container_size, get_corrected_scroll_position, get_scroll_position_from_cursor,
@@ -85,6 +85,8 @@ fn get_render_range(
 pub fn ControlledVirtualScrollView<'a, T>(
     cx: Scope<'a, ControlledVirtualScrollViewProps<'a, T>>,
 ) -> Element {
+    let clicking_shift = use_ref(cx, || false);
+    let clicking_alt = use_ref(cx, || false);
     let clicking_scrollbar = use_state::<Option<(Axis, f64)>>(cx, || None);
     let scrolled_y = cx.props.offset_y;
     let scrolled_x = cx.props.offset_x;
@@ -120,23 +122,46 @@ pub fn ControlledVirtualScrollView<'a, T>(
 
     // Moves the Y axis when the user scrolls in the container
     let onwheel = move |e: WheelEvent| {
-        let wheel_y = e.get_delta_y();
+        let speed_multiplier = if *clicking_alt.read() {
+            SCROLL_SPEED_MULTIPLIER
+        } else {
+            1.0
+        };
 
-        let scroll_position = get_scroll_position_from_wheel(
-            wheel_y as f32,
-            inner_size,
-            size.area.height(),
-            scrolled_y as f32,
+        if !*clicking_shift.read() {
+            let wheel_y = e.get_delta_y() as f32 * speed_multiplier;
+
+            let scroll_position_y = get_scroll_position_from_wheel(
+                wheel_y as f32,
+                inner_size,
+                size.area.height(),
+                scrolled_y as f32,
+            );
+
+            onscroll.call((Axis::Y, scroll_position_y));
+        }
+
+        let wheel_x = if *clicking_shift.read() {
+            e.get_delta_y() as f32
+        } else {
+            e.get_delta_x() as f32
+        } * speed_multiplier;
+
+        let scroll_position_x = get_scroll_position_from_wheel(
+            wheel_x,
+            size.inner.width,
+            size.area.width(),
+            corrected_scrolled_x,
         );
 
-        onscroll.call((Axis::Y, scroll_position))
+        onscroll.call((Axis::X, scroll_position_x));
     };
 
     // Drag the scrollbars
     let onmouseover = move |e: MouseEvent| {
         if let Some((Axis::Y, y)) = clicking_scrollbar.get() {
             let coordinates = e.get_element_coordinates();
-            let cursor_y = coordinates.y - y;
+            let cursor_y = coordinates.y - y - size.area.min_y() as f64;
 
             let scroll_position =
                 get_scroll_position_from_cursor(cursor_y as f32, inner_size, size.area.height());
@@ -144,7 +169,7 @@ pub fn ControlledVirtualScrollView<'a, T>(
             onscroll.call((Axis::Y, scroll_position))
         } else if let Some((Axis::X, x)) = clicking_scrollbar.get() {
             let coordinates = e.get_element_coordinates();
-            let cursor_x = coordinates.x - x;
+            let cursor_x = coordinates.x - x - size.area.min_x() as f64;
 
             let scroll_position = get_scroll_position_from_cursor(
                 cursor_x as f32,
@@ -153,6 +178,28 @@ pub fn ControlledVirtualScrollView<'a, T>(
             );
 
             onscroll.call((Axis::X, scroll_position))
+        }
+    };
+
+    let onkeydown = move |e: KeyboardEvent| {
+        match &e.key {
+            Key::Shift => {
+                clicking_shift.set(true);
+            }
+            Key::Alt => {
+                clicking_alt.set(true);
+            }
+            _ => {
+                // TODO: Support other keys with `manage_key_event`
+            }
+        };
+    };
+
+    let onkeyup = |e: KeyboardEvent| {
+        if e.key == Key::Shift {
+            clicking_shift.set(false);
+        } else if e.key == Key::Alt {
+            clicking_alt.set(false);
         }
     };
 
@@ -206,7 +253,9 @@ pub fn ControlledVirtualScrollView<'a, T>(
             width: "{user_container_width}",
             height: "{user_container_height}",
             onclick: onclick,
-            onmouseover: onmouseover,
+            onglobalmouseover: onmouseover,
+            onkeydown: onkeydown,
+            onkeyup: onkeyup,
             rect {
                 direction: "vertical",
                 width: "{container_width}",

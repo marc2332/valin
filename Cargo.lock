@@ -1476,6 +1476,7 @@ dependencies = [
  "glutin",
  "rfd",
  "ropey",
+ "skia-safe",
  "smallvec",
  "tokio",
  "tokio-stream",

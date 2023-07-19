@@ -1,7 +1,7 @@
 use crate::controlled_virtual_scroll_view::*;
 use crate::panels::PanelsManager;
 use crate::use_editable::*;
-use crate::use_syntax_highlighter::*;
+use crate::use_metrics::*;
 use freya::prelude::events::KeyboardEvent;
 use freya::prelude::*;
 use tokio::sync::mpsc::unbounded_channel;
@@ -16,14 +16,14 @@ pub struct EditorProps {
 
 #[allow(non_snake_case)]
 pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
-    let cursor = cx
+    let editor = cx
         .props
         .manager
         .panel(cx.props.panel_index)
         .tab(cx.props.editor)
         .as_text_editor()
-        .unwrap()
-        .cursor();
+        .unwrap();
+    let cursor = editor.cursor();
     let highlight_trigger = use_ref(cx, || {
         let (tx, rx) = unbounded_channel::<()>();
         (tx, Some(rx))
@@ -42,7 +42,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
         async move {}
     });
 
-    let syntax_blocks = use_syntax_highlighter(
+    let metrics = use_metrics(
         cx,
         &cx.props.manager,
         cx.props.panel_index,
@@ -51,7 +51,6 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
     );
     let offset_x = use_state(cx, || 0);
     let offset_y = use_state(cx, || 0);
-    let anim = use_animation(cx, 0.0);
 
     let cursor_attr = editable.cursor_attr(cx);
     let font_size = cx.props.manager.font_size();
@@ -107,7 +106,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
     render!(
         rect {
             width: "100%",
-            height: "calc(100% - {anim.value() + 30.0})",
+            height: "calc(100% - 30.0)",
             onkeydown: onkeydown,
             onglobalclick: onclick,
             onmousedown: onmousedown,
@@ -121,12 +120,13 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
                 width: "100%",
                 height: "100%",
                 show_scrollbar: true,
-                builder_values: (cursor.clone(), syntax_blocks, editable),
-                length: syntax_blocks.len(),
+                builder_values: (cursor.clone(), metrics, editable),
+                length: metrics.0.len(),
                 item_size: manual_line_height,
                 builder: Box::new(move |(k, line_index, cx, args)| {
-                    let (cursor, syntax_blocks, editable) = args.as_ref().unwrap();
-                    let line = syntax_blocks.get().get(line_index).unwrap();
+                    let (cursor, metrics, editable) = args.as_ref().unwrap();
+                    let (syntax_blocks, width) = metrics.get();
+                    let line = syntax_blocks.get(line_index).unwrap();
                     let highlights_attr = editable.highlights_attr(cx, line_index);
 
                     let is_line_selected = cursor.row() == line_index;
@@ -162,7 +162,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
                     rsx!(
                         rect {
                             key: "{k}",
-                            width: "100%",
+                            width: "{width}",
                             height: "{manual_line_height}",
                             direction: "horizontal",
                             background: "{line_background}",
@@ -181,7 +181,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
                             CursorArea {
                                 icon: CursorIcon::Text,
                                 paragraph {
-                                    width: "100%",
+                                    width: "calc(100% - {font_size * 3.0})",
                                     cursor_index: "{character_index}",
                                     cursor_color: "white",
                                     max_lines: "1",
@@ -197,11 +197,8 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
                                     line.iter().enumerate().map(|(i, (syntax_type, word))| {
                                         rsx!(
                                             text {
-                                                font_family: "Jetbrains Mono",
                                                 key: "{i}",
-                                                width: "auto",
                                                 color: "{syntax_type.color()}",
-                                                font_size: "{font_size}",
                                                 "{word}"
                                             }
                                         )
