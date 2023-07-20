@@ -24,7 +24,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
         .as_text_editor()
         .unwrap();
     let cursor = editor.cursor();
-    let highlight_trigger = use_ref(cx, || {
+    let edit_trigger = use_ref(cx, || {
         let (tx, rx) = unbounded_channel::<()>();
         (tx, Some(rx))
     });
@@ -33,12 +33,12 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
         &cx.props.manager,
         cx.props.panel_index,
         cx.props.editor,
-        highlight_trigger.read().0.clone(),
+        edit_trigger.read().0.clone(),
     );
 
     // Trigger initial highlighting
     use_effect(cx, (), move |_| {
-        highlight_trigger.read().0.send(()).ok();
+        edit_trigger.read().0.send(()).ok();
         async move {}
     });
 
@@ -47,7 +47,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
         &cx.props.manager,
         cx.props.panel_index,
         cx.props.editor,
-        highlight_trigger,
+        edit_trigger,
     );
     let offset_x = use_state(cx, || 0);
     let offset_y = use_state(cx, || 0);
@@ -162,7 +162,6 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
                     rsx!(
                         rect {
                             key: "{k}",
-                            width: "{width}",
                             height: "{manual_line_height}",
                             direction: "horizontal",
                             background: "{line_background}",
@@ -181,7 +180,8 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
                             CursorArea {
                                 icon: CursorIcon::Text,
                                 paragraph {
-                                    width: "calc(100% - {font_size * 3.0})",
+                                    min_width: "calc(100% - {font_size * 3.0})",
+                                    width: "{width}",
                                     cursor_index: "{character_index}",
                                     cursor_color: "white",
                                     max_lines: "1",

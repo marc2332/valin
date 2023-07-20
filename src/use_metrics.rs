@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::cmp::Ordering;
 
 use freya::prelude::*;
 use skia_safe::scalar;
@@ -23,11 +24,11 @@ pub fn use_metrics<'a>(
 
     use_effect(cx, (), move |_| {
         to_owned![metrics, manager];
-        let highlight_receiver = &mut edit_trigger.write().1;
-        let mut highlight_receiver = highlight_receiver.take().unwrap();
+        let edit_trigger = &mut edit_trigger.write().1;
+        let mut edit_trigger = edit_trigger.take().unwrap();
 
         async move {
-            while highlight_receiver.recv().await.is_some() {
+            while edit_trigger.recv().await.is_some() {
                 let manager = manager.current();
                 let editor = &manager
                     .panel(pane_index)
@@ -53,11 +54,13 @@ pub fn use_metrics<'a>(
 
                     let line_len = line.len_chars();
 
-                    if line_len > current_longest_width {
-                        longest_line.clear();
-                        longest_line.push(line.text)
-                    } else if line_len == current_longest_width {
-                        longest_line.push(line.text)
+                    match line_len.cmp(&current_longest_width) {
+                        Ordering::Greater => {
+                            longest_line.clear();
+                            longest_line.push(line.text)
+                        }
+                        Ordering::Equal => longest_line.push(line.text),
+                        _ => {}
                     }
                 }
 
@@ -71,7 +74,7 @@ pub fn use_metrics<'a>(
 
                 metrics.with_mut(|(syntax_blocks, width)| {
                     parse(editor.rope(), syntax_blocks);
-                    *width = p.max_intrinsic_width();
+                    *width = p.longest_line();
                 });
             }
         }
