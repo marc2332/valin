@@ -218,7 +218,7 @@ pub struct UseEditable {
     pub(crate) event_loop_proxy: Option<EventLoopProxy<EventMessage>>,
     pub(crate) pane_index: usize,
     pub(crate) editor_index: usize,
-    pub(crate) highlight_trigger: UnboundedSender<()>,
+    pub(crate) edit_trigger: UnboundedSender<()>,
 }
 
 impl UseEditable {
@@ -291,7 +291,7 @@ impl UseEditable {
                         .unwrap();
                     let event = editor.process_key(&e.key, &e.code, &e.modifiers);
                     if event == TextEvent::TextChanged {
-                        self.highlight_trigger.send(()).ok();
+                        self.edit_trigger.send(()).ok();
                         *self.selecting_text_with_mouse.write_silent() = None;
                     }
                 });
@@ -315,7 +315,7 @@ pub fn use_edit(
     text_editor: &UseState<PanelsManager>,
     pane_index: usize,
     editor_index: usize,
-    highlight_trigger: UnboundedSender<()>,
+    edit_trigger: UnboundedSender<()>,
 ) -> UseEditable {
     let id = cx.use_hook(Uuid::new_v4);
     let event_loop_proxy = cx.consume_context::<EventLoopProxy<EventMessage>>();
@@ -342,7 +342,7 @@ pub fn use_edit(
         event_loop_proxy,
         pane_index,
         editor_index,
-        highlight_trigger,
+        edit_trigger,
     };
 
     // Listen for new calculations from the layout engine

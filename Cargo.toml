@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-freya-node-state = { git = "https://github.com/marc2332/freya", rev = "8633f2ac990a27d68ed223045b1caa9244af5bf8" }
-freya = { git = "https://github.com/marc2332/freya", rev = "8633f2ac990a27d68ed223045b1caa9244af5bf8" }
-freya-common = { git = "https://github.com/marc2332/freya", rev = "8633f2ac990a27d68ed223045b1caa9244af5bf8" }
-torin = { git = "https://github.com/marc2332/freya", rev = "8633f2ac990a27d68ed223045b1caa9244af5bf8" }
+freya-node-state = { git = "https://github.com/marc2332/freya", rev = "79c6e72d018d86356bae675829a6f2cd231be22c" }
+freya = { git = "https://github.com/marc2332/freya", rev = "79c6e72d018d86356bae675829a6f2cd231be22c" }
+freya-common = { git = "https://github.com/marc2332/freya", rev = "79c6e72d018d86356bae675829a6f2cd231be22c" }
+torin = { git = "https://github.com/marc2332/freya", rev = "79c6e72d018d86356bae675829a6f2cd231be22c" }
 
 dioxus = { git = "https://github.com/DioxusLabs/dioxus", rev="11c9abcf7ce731ccb4a44c52de383c090ab319af", features = ["macro", "hooks"]}
 dioxus-std = { git = "https://github.com/marc2332/dioxus-std", rev = "4974f9e4e421b9036d9438ef33d4496559a76855", features = ["utils"] }
@@ -15,6 +15,7 @@ dioxus-std = { git = "https://github.com/marc2332/dioxus-std", rev = "4974f9e4e4
 tokio = { version = "1.23.0", features = ["fs"]}
 glutin = { version = "0.30.6"}
 winit = "0.28.2"
+skia-safe = { version = "0.63.0", features = ["gl", "textlayout", "svg"] }
 
 ropey = "1.6.0"
 smallvec = "1.10.0"

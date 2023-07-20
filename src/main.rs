@@ -9,7 +9,7 @@ mod tab;
 mod tabs;
 mod text_area;
 mod use_editable;
-mod use_syntax_highlighter;
+mod use_metrics;
 mod utils;
 
 use commander::*;
