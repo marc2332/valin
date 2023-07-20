@@ -112,7 +112,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
             onmousedown: onmousedown,
             cursor_reference: cursor_attr,
             direction: "horizontal",
-            background: "rgb(20, 20, 20)",
+            background: "rgb(40, 40, 40)",
             ControlledVirtualScrollView {
                 offset_x: *offset_x.get(),
                 offset_y: *offset_y.get(),

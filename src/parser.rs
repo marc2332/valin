@@ -9,6 +9,7 @@ pub enum SyntaxType {
     Keyword,
     SpecialKeyword,
     Punctuation,
+    Punctuation2,
     Unknown,
     Property,
     Comment,
@@ -17,11 +18,12 @@ pub enum SyntaxType {
 impl SyntaxType {
     pub fn color(&self) -> &str {
         match self {
-            SyntaxType::Keyword => "rgb(215, 85, 67)",
-            SyntaxType::String => "rgb(184, 187, 38)",
+            SyntaxType::Keyword => "rgb(205, 65, 65)",
+            SyntaxType::String => "rgb(151, 151, 26)",
             SyntaxType::Punctuation => "rgb(104, 157, 96)",
-            SyntaxType::Unknown => "rgb(189, 174, 147)",
-            SyntaxType::Property => "rgb(168, 168, 37)",
+            SyntaxType::Punctuation2 => "rgb(252, 188, 61)",
+            SyntaxType::Unknown => "rgb(223, 191, 142)",
+            SyntaxType::Property => "rgb(152, 192, 124)",
             SyntaxType::SpecialKeyword => "rgb(211, 134, 155)",
             SyntaxType::Comment => "gray",
         }
@@ -70,7 +72,11 @@ const GENERIC_KEYWORDS: &[&str] = &[
 const SPECIAL_KEYWORDS: &[&str] = &["self", "Self", "false", "true"];
 
 const SPECIAL_CHARACTER: &[char] = &[
-    '.', '{', '}', '(', ')', '=', ';', '\'', ',', '>', '<', ']', '[', '#', '&', '-', '+', '^', '\\',
+    '.', '=', ';', '\'', ',', '#', '&', '-', '+', '^', '\\',
+];
+
+const SPECIAL_CHARACTER_2: &[char] = &[
+    '{', '}', '(', ')','>', '<', '[', ']',
 ];
 
 #[derive(PartialEq, Clone, Debug)]
@@ -200,6 +206,16 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
             }
             // Punctuation
             line.push((SyntaxType::Punctuation, TextType::Char(ch)));
+        }
+        // If is a special character 2
+        else if SPECIAL_CHARACTER_2.contains(&ch) {
+            flush_generic_stack(&mut generic_stack, &mut line, &mut last_semantic);
+
+            if ch == '.' && last_semantic != SyntaxSemantic::PropertyAccess {
+                last_semantic = SyntaxSemantic::PropertyAccess;
+            }
+            // Punctuation
+            line.push((SyntaxType::Punctuation2, TextType::Char(ch)));
         }
         // Unknown (for now at least) characters
         else {
