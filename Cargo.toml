@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-freya-node-state = { git = "https://github.com/marc2332/freya", rev = "79c6e72d018d86356bae675829a6f2cd231be22c" }
-freya = { git = "https://github.com/marc2332/freya", rev = "79c6e72d018d86356bae675829a6f2cd231be22c" }
-freya-common = { git = "https://github.com/marc2332/freya", rev = "79c6e72d018d86356bae675829a6f2cd231be22c" }
-torin = { git = "https://github.com/marc2332/freya", rev = "79c6e72d018d86356bae675829a6f2cd231be22c" }
+freya-node-state = { git = "https://github.com/marc2332/freya", rev = "bf09b7cdf17f24e118521aa42868e3efed15df3f" }
+freya = { git = "https://github.com/marc2332/freya", rev = "bf09b7cdf17f24e118521aa42868e3efed15df3f" }
+freya-common = { git = "https://github.com/marc2332/freya", rev = "bf09b7cdf17f24e118521aa42868e3efed15df3f" }
+torin = { git = "https://github.com/marc2332/freya", rev = "bf09b7cdf17f24e118521aa42868e3efed15df3f" }
 
 dioxus = { git = "https://github.com/DioxusLabs/dioxus", rev="11c9abcf7ce731ccb4a44c52de383c090ab319af", features = ["macro", "hooks"]}
 dioxus-std = { git = "https://github.com/marc2332/dioxus-std", rev = "4974f9e4e421b9036d9438ef33d4496559a76855", features = ["utils"] }
