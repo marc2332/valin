@@ -11,11 +11,11 @@ use skia_safe::FontMgr;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use crate::parser::*;
-use crate::PanelsManager;
+use crate::EditorManager;
 
 pub fn use_metrics<'a>(
     cx: &'a ScopeState,
-    manager: &UseState<PanelsManager>,
+    manager: &UseState<EditorManager>,
     pane_index: usize,
     editor: usize,
     edit_trigger: &UseRef<(UnboundedSender<()>, Option<UnboundedReceiver<()>>)>,

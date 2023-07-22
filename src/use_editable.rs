@@ -15,7 +15,7 @@ use torin::geometry::CursorPoint;
 use uuid::Uuid;
 use winit::event_loop::EventLoopProxy;
 
-use crate::panels::PanelsManager;
+use crate::manager::EditorManager;
 
 /// Iterator over text lines.
 pub struct LinesIterator<'a> {
@@ -222,7 +222,7 @@ impl TextEditor for EditorData {
 /// Manage an editable content.
 #[derive(Clone)]
 pub struct UseEditable {
-    pub(crate) editor: UseState<PanelsManager>,
+    pub(crate) editor: UseState<EditorManager>,
     pub(crate) cursor_reference: CursorReference,
     pub(crate) selecting_text_with_mouse: UseRef<Option<CursorPoint>>,
     pub(crate) event_loop_proxy: Option<EventLoopProxy<EventMessage>>,
@@ -322,7 +322,7 @@ impl UseEditable {
 
 pub fn use_edit(
     cx: &ScopeState,
-    text_editor: &UseState<PanelsManager>,
+    text_editor: &UseState<EditorManager>,
     pane_index: usize,
     editor_index: usize,
     edit_trigger: UnboundedSender<()>,

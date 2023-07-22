@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use dioxus::prelude::UseState;
+use dioxus_std::utils::channel::UseChannel;
 
 use crate::{
     lsp::{create_lsp, LSPBridge, LspConfig},
@@ -80,23 +81,18 @@ impl Panel {
 }
 
 #[derive(Clone)]
-pub struct PanelsManager {
+pub struct EditorManager {
     pub is_focused: bool,
     pub focused_panel: usize,
     pub panes: Vec<Panel>,
     pub font_size: f32,
     pub line_height: f32,
     pub language_servers: HashMap<String, LSPBridge>,
+    pub language_servers_status: UseChannel<(String, String)>,
 }
 
-impl Default for PanelsManager {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl PanelsManager {
-    pub fn new() -> Self {
+impl EditorManager {
+    pub fn new(language_servers_status: UseChannel<(String, String)>) -> Self {
         Self {
             is_focused: true,
             focused_panel: 0,
@@ -104,6 +100,7 @@ impl PanelsManager {
             font_size: 17.0,
             line_height: 1.2,
             language_servers: HashMap::default(),
+            language_servers_status,
         }
     }
 
@@ -203,23 +200,20 @@ impl PanelsManager {
     }
 
     pub fn lsp(&self, lsp_config: &LspConfig) -> Option<&LSPBridge> {
-        println!("searching for {}", lsp_config.language_server);
         self.language_servers.get(&lsp_config.language_server)
     }
 
     pub fn insert_lsp(&mut self, language_server: String, server: LSPBridge) {
-        self.language_servers
-            .insert(language_server, server.clone());
+        self.language_servers.insert(language_server, server);
     }
 
     pub async fn get_or_insert_lsp(manager: UseState<Self>, lsp_config: &LspConfig) -> LSPBridge {
-        match manager.current().lsp(&lsp_config) {
+        match manager.current().lsp(lsp_config) {
             Some(server) => server.clone(),
             None => {
-                let server = create_lsp(lsp_config.clone()).await;
+                let server = create_lsp(lsp_config.clone(), manager.get()).await;
                 manager.with_mut(|manager| {
                     manager.insert_lsp(lsp_config.language_server.clone(), server.clone());
-                    println!("saved {}", lsp_config.language_server);
                 });
                 server
             }

@@ -1,14 +1,14 @@
 use freya::prelude::*;
 
-use crate::panels::{PanelTab, PanelsManager};
+use crate::manager::{EditorManager, PanelTab};
 
 #[inline_props]
 #[allow(non_snake_case)]
-pub fn Sidebar(cx: Scope, panels_manager: UseState<PanelsManager>) -> Element {
+pub fn Sidebar(cx: Scope, editor_manager: UseState<EditorManager>) -> Element {
     let open_settings = move |_| {
-        to_owned![panels_manager];
-        panels_manager.with_mut(|panels_manager| {
-            panels_manager.push_tab(PanelTab::Config, panels_manager.focused_panel(), true);
+        to_owned![editor_manager];
+        editor_manager.with_mut(|editor_manager| {
+            editor_manager.push_tab(PanelTab::Config, editor_manager.focused_panel(), true);
         });
     };
 

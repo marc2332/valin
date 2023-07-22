@@ -10,8 +10,8 @@ use tokio::{
     io,
 };
 
-use crate::panels::PanelTab;
-use crate::panels::PanelsManager;
+use crate::manager::EditorManager;
+use crate::manager::PanelTab;
 use crate::use_editable::EditorData;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -123,7 +123,7 @@ enum TreeTask {
 
 #[inline_props]
 #[allow(non_snake_case)]
-pub fn FileExplorer(cx: Scope, panels_manager: UseState<PanelsManager>) -> Element {
+pub fn FileExplorer(cx: Scope, editor_manager: UseState<EditorManager>) -> Element {
     let channel = use_channel::<TreeTask>(cx, 5);
     let tree = use_ref::<Option<TreeItem>>(cx, || None);
 
@@ -136,9 +136,9 @@ pub fn FileExplorer(cx: Scope, panels_manager: UseState<PanelsManager>) -> Eleme
     });
 
     use_listen_channel(cx, &channel, {
-        to_owned![tree, panels_manager];
+        to_owned![tree, editor_manager];
         move |task| {
-            to_owned![tree, panels_manager];
+            to_owned![tree, editor_manager];
             async move {
                 if let Ok(task) = task {
                     match task {
@@ -161,8 +161,8 @@ pub fn FileExplorer(cx: Scope, panels_manager: UseState<PanelsManager>) -> Eleme
                             let content = read_to_string(&file_path).await;
                             if let Ok(content) = content {
                                 let root_path = tree.read().as_ref().unwrap().path().clone();
-                                panels_manager.with_mut(|panels_manager| {
-                                    panels_manager.push_tab(
+                                editor_manager.with_mut(|editor_manager| {
+                                    editor_manager.push_tab(
                                         PanelTab::TextEditor(EditorData::new(
                                             file_path.to_path_buf(),
                                             Rope::from(content),
@@ -170,7 +170,7 @@ pub fn FileExplorer(cx: Scope, panels_manager: UseState<PanelsManager>) -> Eleme
                                             "Rust".to_string(),
                                             root_path,
                                         )),
-                                        panels_manager.focused_panel(),
+                                        editor_manager.focused_panel(),
                                         true,
                                     );
                                 });

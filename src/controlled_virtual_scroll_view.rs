@@ -36,7 +36,7 @@ type BuilderFunction<'a, T> = dyn Fn(
         usize,
         usize,
         Scope<'a, ControlledVirtualScrollViewProps<T>>,
-        &'a Option<T>,
+        &'a T,
     ),
 ) -> LazyNodes<'a, 'a>;
 
@@ -46,8 +46,7 @@ pub struct ControlledVirtualScrollViewProps<'a, T: 'a> {
     length: usize,
     item_size: f32,
     builder: Box<BuilderFunction<'a, T>>,
-    #[props(optional)]
-    pub builder_values: Option<T>,
+    pub builder_values: T,
     #[props(optional)]
     pub height: Option<&'a str>,
     #[props(optional)]

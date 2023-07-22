@@ -2,9 +2,12 @@ use std::path::PathBuf;
 
 use crate::controlled_virtual_scroll_view::*;
 use crate::lsp::LspConfig;
-use crate::panels::PanelsManager;
+use crate::manager::EditorManager;
+use crate::parser::SyntaxBlocks;
+use crate::use_editable;
 use crate::use_editable::*;
 use crate::use_metrics::*;
+use crate::utils::create_paragraph;
 use async_lsp::LanguageServer;
 use freya::prelude::events::KeyboardEvent;
 use freya::prelude::*;
@@ -15,19 +18,13 @@ use lsp_types::{
     DidOpenTextDocumentParams, HoverContents, HoverParams, Position, TextDocumentIdentifier,
     TextDocumentItem, TextDocumentPositionParams, Url, WorkDoneProgressParams,
 };
-use skia_safe::scalar;
-use skia_safe::textlayout::FontCollection;
-use skia_safe::textlayout::ParagraphBuilder;
-use skia_safe::textlayout::ParagraphStyle;
-use skia_safe::textlayout::TextStyle;
-use skia_safe::FontMgr;
 use tokio::sync::mpsc::unbounded_channel;
 use tokio_stream::StreamExt;
 use winit::window::CursorIcon;
 
 #[derive(Props, PartialEq)]
 pub struct EditorProps {
-    pub manager: UseState<PanelsManager>,
+    pub manager: UseState<EditorManager>,
     pub panel_index: usize,
     pub editor: usize,
     pub language_id: String,
@@ -36,6 +33,7 @@ pub struct EditorProps {
 
 pub enum LspAction {
     Hover(HoverParams),
+    Clear,
 }
 
 #[allow(non_snake_case)]
@@ -70,7 +68,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
         cx.props.editor,
         edit_trigger,
     );
-    let cursor_coords = use_ref(cx, || None);
+    let cursor_coords = use_ref::<Option<CursorPoint>>(cx, || None);
     let offset_x = use_state(cx, || 0);
     let offset_y = use_state(cx, || 0);
 
@@ -104,8 +102,9 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
                                 let response = lsp.server_socket.hover(params).await;
 
                                 if let Ok(Some(res)) = response {
-                                    println!("{res:?}");
                                     *hover.write() = Some((line, res));
+                                } else {
+                                    *hover.write() = None;
                                 }
                             } else {
                                 println!("still indexing...");
@@ -113,6 +112,9 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
                         } else {
                             println!("Lsp not running...");
                         }
+                    }
+                    LspAction::Clear => {
+                        *hover.write() = None;
                     }
                 }
             }
@@ -133,7 +135,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
             // Connect to LSP
             let text = editor.rope().to_string();
             async move {
-                let mut lsp = PanelsManager::get_or_insert_lsp(manager, &lsp_config).await;
+                let mut lsp = EditorManager::get_or_insert_lsp(manager, &lsp_config).await;
 
                 lsp.server_socket
                     .did_open(DidOpenTextDocumentParams {
@@ -141,7 +143,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
                             uri: file_uri.clone(),
                             language_id: "rust".into(),
                             version: 0,
-                            text: text.into(),
+                            text,
                         },
                     })
                     .unwrap();
@@ -189,7 +191,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
     render!(
         rect {
             width: "100%",
-            height: "calc(100% - 30.0)",
+            height: "100%",
             onkeydown: onkeydown,
             onglobalclick: onclick,
             onmousedown: onmousedown,
@@ -203,166 +205,178 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
                 width: "100%",
                 height: "100%",
                 show_scrollbar: true,
-                builder_values: (cursor.clone(), metrics, editable, lsp_actions.clone(), file_uri.clone(), editor.rope(), hover.clone(), cursor_coords.clone()),
+                builder_values: (cursor, metrics.clone(), editable, lsp_actions.clone(), file_uri, editor.rope(), hover.clone(), cursor_coords.clone()),
                 length: metrics.0.len(),
                 item_size: manual_line_height,
-                builder: Box::new(move |(k, line_index, cx, args)| {
-                    let (cursor, metrics, editable, lsp_actions, file_uri, rope, hover, cursor_coords) = args.as_ref().unwrap();
-                    let (syntax_blocks, width) = metrics.get();
-                    let line = syntax_blocks.get(line_index).unwrap();
-                    let line_str = rope.line(line_index).to_string();
-                    let highlights_attr = editable.highlights_attr(cx, line_index);
-
-                    let is_line_selected = cursor.row() == line_index;
-
-                    // Only show the cursor in the active line
-                    let character_index = if is_line_selected {
-                        cursor.col().to_string()
-                    } else {
-                        "none".to_string()
-                    };
-
-                    // Only highlight the active line
-                    let line_background = if is_line_selected {
-                        "rgb(37, 37, 37)"
-                    } else {
-                        ""
-                    };
-
-                    let onmousedown = {
-                        to_owned![editable];
-                        move |e: MouseEvent| {
-                            editable.process_event(&EditableEvent::MouseDown(e.data, line_index));
-                        }
-                    };
-
-                    let onmouseover = {
-                        to_owned![editable, file_uri, lsp_actions, cursor_coords, hover];
-                        move |e: MouseEvent| {
-                            let coords = e.get_element_coordinates();
-                            editable.process_event(&EditableEvent::MouseOver(e.data, line_index));
-
-                            if hover.read().is_some() {
-                                *cursor_coords.write() = Some(coords);
-                            }
-
-                            let mut font_collection = FontCollection::new();
-                            font_collection.set_default_font_manager(FontMgr::default(), "Jetbrains Mono");
-
-                            let mut style = ParagraphStyle::default();
-                            let mut text_style = TextStyle::default();
-                            text_style.set_font_size(font_size);
-                            style.set_text_style(&text_style);
-
-                            let mut paragraph = ParagraphBuilder::new(&style, font_collection);
-
-                            paragraph.add_text(line_str.clone());
-
-                            let mut p = paragraph.build();
-
-                            p.layout(scalar::MAX);
-
-                            let glyph = p.get_glyph_position_at_coordinate((coords.x as i32, coords.y  as i32));
-
-                            let pos = glyph.position;
-
-                            lsp_actions.send(LspAction::Hover(HoverParams {
-                                text_document_position_params: TextDocumentPositionParams {
-                                    text_document: TextDocumentIdentifier { uri: file_uri.clone() },
-                                    position: Position::new(line_index as u32, pos as u32),
-                                },
-                                work_done_progress_params: WorkDoneProgressParams::default(),
-                            }));
-
-                        }
-                    };
-
+                builder: Box::new(move |(k, line_index, _cx, options)| {
                     rsx!(
-                        rect {
+                        EditorLine {
                             key: "{k}",
-                            height: "{manual_line_height}",
-                            direction: "horizontal",
-                            background: "{line_background}",
-                            rect {
-                                width: "{font_size * 3.0}",
-                                height: "100%",
-                                direction: "horizontal",
-                                label {
-                                    width: "100%",
-                                    align: "center",
-                                    font_size: "{font_size}",
-                                    color: "rgb(200, 200, 200)",
-                                    "{line_index + 1} "
-                                }
-                            }
-                            if let Some((line, hover)) = hover.read().as_ref() {
-                                if *line == line_index as u32 {
-                                    if let Some(content) = hover.hover_to_text() {
-                                        let cursor_coords = cursor_coords.read();
-                                        if let Some(cursor_coords) = cursor_coords.as_ref().cloned() {
-                                            Some(rsx!(
-                                                rect {
-                                                    width: "0",
-                                                    height: "0",
-                                                    offset_y: "{manual_line_height}",
-                                                    offset_x: "{cursor_coords.x}",
-                                                    HoverBox {
-                                                        content: content
-                                                    }
-                                                }
-                                            ))
-                                        } else {
-                                            None
-                                        }
-                                    }  else {
-                                        None
-                                    }
-                                } else {
-                                    None
-                                }
-                            }
-                            CursorArea {
-                                icon: CursorIcon::Text,
-                                paragraph {
-                                    min_width: "calc(100% - {font_size * 3.0})",
-                                    width: "{width}",
-                                    cursor_index: "{character_index}",
-                                    cursor_color: "white",
-                                    max_lines: "1",
-                                    cursor_mode: "editable",
-                                    cursor_id: "{line_index}",
-                                    onmousedown: onmousedown,
-                                    onmouseover: onmouseover,
-                                    highlights: highlights_attr,
-                                    highlight_color: "rgb(65, 65, 65)",
-                                    direction: "horizontal",
-                                    font_size: "{font_size}",
-                                    font_family: "Jetbrains Mono",
-                                    line.iter().enumerate().map(|(i, (syntax_type, word))| {
-                                        rsx!(
-                                            text {
-                                                key: "{i}",
-                                                color: "{syntax_type.color()}",
-                                                "{word}"
-                                            }
-                                        )
-                                    })
-                                }
-                            }
+                            line_index: line_index,
+                            options: options,
+                            font_size: font_size,
+                            line_height: manual_line_height
                         }
                     )
                 })
             }
         }
+    )
+}
+
+type BuilderProps<'a> = (
+    TextCursor,
+    UseState<(SyntaxBlocks, f32)>,
+    use_editable::UseEditable,
+    Coroutine<LspAction>,
+    Url,
+    &'a Rope,
+    UseRef<Option<(u32, Hover)>>,
+    UseRef<Option<CursorPoint>>,
+);
+
+#[allow(non_snake_case)]
+#[inline_props]
+fn EditorLine<'a>(
+    cx: Scope,
+    options: &'a BuilderProps<'a>,
+    line_index: usize,
+    font_size: f32,
+    line_height: f32,
+) -> Element {
+    let (cursor, metrics, editable, lsp_actions, file_uri, rope, hover, cursor_coords) = options;
+    let (syntax_blocks, width) = metrics.get();
+    let line = syntax_blocks.get(*line_index).unwrap();
+    let line_str = rope.line(*line_index).to_string();
+    let highlights_attr = editable.highlights_attr(cx, *line_index);
+
+    let is_line_selected = cursor.row() == *line_index;
+
+    // Only show the cursor in the active line
+    let character_index = if is_line_selected {
+        cursor.col().to_string()
+    } else {
+        "none".to_string()
+    };
+
+    // Only highlight the active line
+    let line_background = if is_line_selected {
+        "rgb(37, 37, 37)"
+    } else {
+        ""
+    };
+
+    let onmousedown = {
+        to_owned![editable];
+        move |e: MouseEvent| {
+            editable.process_event(&EditableEvent::MouseDown(e.data, *line_index));
+        }
+    };
+
+    let onmouseover = {
+        to_owned![editable, file_uri, lsp_actions, cursor_coords, hover];
+        move |e: MouseEvent| {
+            let coords = e.get_element_coordinates();
+            editable.process_event(&EditableEvent::MouseOver(e.data, *line_index));
+
+            if hover.read().is_some() {
+                *cursor_coords.write() = Some(coords);
+            }
+
+            let paragraph = create_paragraph(&line_str, *font_size);
+
+            if (coords.x as f32) < paragraph.max_intrinsic_width() {
+                let glyph =
+                    paragraph.get_glyph_position_at_coordinate((coords.x as i32, coords.y as i32));
+
+                lsp_actions.send(LspAction::Hover(HoverParams {
+                    text_document_position_params: TextDocumentPositionParams {
+                        text_document: TextDocumentIdentifier {
+                            uri: file_uri.clone(),
+                        },
+                        position: Position::new(*line_index as u32, glyph.position as u32),
+                    },
+                    work_done_progress_params: WorkDoneProgressParams::default(),
+                }));
+            } else {
+                lsp_actions.send(LspAction::Clear);
+            }
+        }
+    };
+
+    let gutter_width = font_size * 3.0;
+
+    render!(
+        if let Some((line, hover)) = hover.read().as_ref() {
+            if *line == *line_index as u32 {
+                if let Some(content) = hover.hover_to_text() {
+                    let cursor_coords = cursor_coords.read();
+                    if let Some(cursor_coords) = cursor_coords.as_ref().cloned() {
+                        let offset_x = cursor_coords.x  as f32 + gutter_width;
+                        Some(rsx!(
+                            rect {
+                                width: "0",
+                                height: "0",
+                                offset_y: "{line_height}",
+                                offset_x: "{offset_x}",
+                                HoverBox {
+                                    content: content
+                                }
+                            }
+                        ))
+                    } else {
+                        None
+                    }
+                }  else {
+                    None
+                }
+            } else {
+                None
+            }
+        }
         rect {
-            width: "100%",
-            height: "30",
-            background: "rgb(20, 20, 20)",
+            height: "{line_height}",
             direction: "horizontal",
-            padding: "5",
-            label {
-                color: "rgb(200, 200, 200)",
-                "Ln {cursor.row() + 1}, Col {cursor.col() + 1}"
+            background: "{line_background}",
+            rect {
+                width: "{gutter_width}",
+                height: "100%",
+                direction: "horizontal",
+                label {
+                    width: "100%",
+                    align: "center",
+                    font_size: "{font_size}",
+                    color: "rgb(200, 200, 200)",
+                    "{line_index + 1} "
+                }
+            }
+            CursorArea {
+                icon: CursorIcon::Text,
+                paragraph {
+                    min_width: "calc(100% - {gutter_width)",
+                    width: "{width}",
+                    cursor_index: "{character_index}",
+                    cursor_color: "white",
+                    max_lines: "1",
+                    cursor_mode: "editable",
+                    cursor_id: "{line_index}",
+                    onmousedown: onmousedown,
+                    onmouseover: onmouseover,
+                    highlights: highlights_attr,
+                    highlight_color: "rgb(65, 65, 65)",
+                    direction: "horizontal",
+                    font_size: "{font_size}",
+                    font_family: "Jetbrains Mono",
+                    line.iter().enumerate().map(|(i, (syntax_type, word))| {
+                        rsx!(
+                            text {
+                                key: "{i}",
+                                color: "{syntax_type.color()}",
+                                "{word}"
+                            }
+                        )
+                    })
+                }
             }
         }
     )
@@ -408,6 +422,8 @@ fn HoverBox(cx: Scope, content: String) -> Element {
         corner_radius: "8",
         layer: "-50",
         padding: "10",
+        shadow: "0 5 10 0 rgb(0, 0, 0, 50)",
+        border: "1 solid rgb(50, 50, 50)",
         ScrollView {
             label {
                 width: "100%",

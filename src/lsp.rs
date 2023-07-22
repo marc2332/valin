@@ -9,6 +9,7 @@ use async_lsp::router::Router;
 use async_lsp::tracing::TracingLayer;
 use async_lsp::{LanguageServer, ServerSocket};
 use async_process::Command;
+use dioxus_std::utils::channel::UseChannel;
 use lsp_types::notification::{Progress, PublishDiagnostics, ShowMessage};
 use lsp_types::{
     ClientCapabilities, InitializeParams, InitializedParams, NumberOrString, ProgressParamsValue,
@@ -16,8 +17,11 @@ use lsp_types::{
 };
 use tower::ServiceBuilder;
 
+use crate::manager::EditorManager;
+
 struct ClientState {
     indexed: Arc<Mutex<bool>>,
+    language_servers_status: UseChannel<(String, String)>,
 }
 
 struct Stop;
@@ -36,6 +40,7 @@ pub struct LSPBridge {
 
 impl LspConfig {
     pub fn new(root_dir: PathBuf, language: &str) -> Self {
+        #[allow(clippy::match_single_binding)]
         let language_server = match language {
             _ => "rust-analyzer",
         }
@@ -48,31 +53,50 @@ impl LspConfig {
     }
 }
 
-pub async fn create_lsp(config: LspConfig) -> LSPBridge {
+pub async fn create_lsp(config: LspConfig, editor_manager: &EditorManager) -> LSPBridge {
     let indexed = Arc::new(Mutex::new(false));
+    let language_servers_status = editor_manager.language_servers_status.clone();
 
     let (mainloop, mut server) = async_lsp::MainLoop::new_client(|_server| {
         let mut router = Router::new(ClientState {
             indexed: indexed.clone(),
+            language_servers_status: language_servers_status.clone(),
         });
         router
             .notification::<Progress>(|this, prog| {
-                println!("{:?} {:?}", prog.token, prog.value);
-                if matches!(prog.token, NumberOrString::String(s) if s == "rustAnalyzer/Indexing")
-                    && matches!(
+                if matches!(prog.token, NumberOrString::String(s) if s == "rustAnalyzer/Indexing") {
+                    if let ProgressParamsValue::WorkDone(WorkDoneProgress::Report(report)) =
+                        &prog.value
+                    {
+                        let percentage = report.percentage.map(|v| {
+                            if v < 100 {
+                                format!("{v}%")
+                            } else {
+                                String::default()
+                            }
+                        });
+                        this.language_servers_status
+                            .try_send((
+                                "rust-analyzer".to_string(),
+                                format!(
+                                    "{} {}",
+                                    percentage.unwrap_or_default(),
+                                    report.message.clone().unwrap_or_default()
+                                ),
+                            ))
+                            .ok();
+                    }
+                    if matches!(
                         prog.value,
                         ProgressParamsValue::WorkDone(WorkDoneProgress::End(_))
-                    )
-                {
-                    *this.indexed.lock().unwrap() = true;
+                    ) {
+                        *this.indexed.lock().unwrap() = true;
+                    }
                 }
                 ControlFlow::Continue(())
             })
             .notification::<PublishDiagnostics>(|_, _| ControlFlow::Continue(()))
-            .notification::<ShowMessage>(|_, params| {
-                println!("Message {:?}: {}", params.typ, params.message);
-                ControlFlow::Continue(())
-            })
+            .notification::<ShowMessage>(|_, _params| ControlFlow::Continue(()))
             .event(|_, _: Stop| ControlFlow::Break(Ok(())));
 
         ServiceBuilder::new()
@@ -98,7 +122,7 @@ pub async fn create_lsp(config: LspConfig) -> LSPBridge {
 
     // Initialize.
     let root_uri = Url::from_file_path(&config.root_dir).unwrap();
-    let init_ret = server
+    let _init_ret = server
         .initialize(InitializeParams {
             root_uri: Some(root_uri),
             capabilities: ClientCapabilities {
@@ -112,7 +136,6 @@ pub async fn create_lsp(config: LspConfig) -> LSPBridge {
         })
         .await
         .unwrap();
-    println!("Initialized: {init_ret:?}");
     server.initialized(InitializedParams {}).unwrap();
 
     LSPBridge {
