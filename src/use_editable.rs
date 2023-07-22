@@ -37,6 +37,8 @@ pub struct EditorData {
     cursor: TextCursor,
     rope: Rope,
     path: PathBuf,
+    pub root_path: PathBuf,
+    pub language_id: String,
 
     /// Selected text range
     selected: Option<(usize, usize)>,
@@ -57,12 +59,20 @@ impl EditorData {
 }
 
 impl EditorData {
-    pub fn new(path: PathBuf, rope: Rope, (row, col): (usize, usize)) -> Self {
+    pub fn new(
+        path: PathBuf,
+        rope: Rope,
+        (row, col): (usize, usize),
+        language_id: String,
+        root_path: PathBuf,
+    ) -> Self {
         Self {
             path,
             rope,
             cursor: TextCursor::new(row, col),
             selected: None,
+            language_id,
+            root_path,
         }
     }
 }

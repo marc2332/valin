@@ -27,6 +27,13 @@ pub enum TreeItem {
 }
 
 impl TreeItem {
+    pub fn path(&self) -> &PathBuf {
+        match self {
+            Self::Folder { path, .. } => path,
+            Self::File { path } => path,
+        }
+    }
+
     pub fn set_folder_state(&mut self, folder_path: &PathBuf, folder_state: &FolderState) {
         if let TreeItem::Folder { path, state } = self {
             if path == folder_path {
@@ -40,9 +47,7 @@ impl TreeItem {
             }
         }
     }
-}
 
-impl TreeItem {
     pub fn flat(&self, depth: usize) -> Vec<FlatItem> {
         let mut flat_items = vec![self.clone().into_flat(depth)];
         if let TreeItem::Folder {
@@ -155,12 +160,15 @@ pub fn FileExplorer(cx: Scope, panels_manager: UseState<PanelsManager>) -> Eleme
                         TreeTask::OpenFile(file_path) => {
                             let content = read_to_string(&file_path).await;
                             if let Ok(content) = content {
+                                let root_path = tree.read().as_ref().unwrap().path().clone();
                                 panels_manager.with_mut(|panels_manager| {
                                     panels_manager.push_tab(
                                         PanelTab::TextEditor(EditorData::new(
                                             file_path.to_path_buf(),
                                             Rope::from(content),
                                             (0, 0),
+                                            "Rust".to_string(),
+                                            root_path,
                                         )),
                                         panels_manager.focused_panel(),
                                         true,

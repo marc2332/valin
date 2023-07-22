@@ -1,4 +1,11 @@
-use crate::use_editable::EditorData;
+use std::collections::HashMap;
+
+use dioxus::prelude::UseState;
+
+use crate::{
+    lsp::{create_lsp, LSPBridge, LspConfig},
+    use_editable::EditorData,
+};
 
 #[derive(Clone)]
 pub enum PanelTab {
@@ -79,6 +86,7 @@ pub struct PanelsManager {
     pub panes: Vec<Panel>,
     pub font_size: f32,
     pub line_height: f32,
+    pub language_servers: HashMap<String, LSPBridge>,
 }
 
 impl Default for PanelsManager {
@@ -95,6 +103,7 @@ impl PanelsManager {
             panes: vec![Panel::new()],
             font_size: 17.0,
             line_height: 1.2,
+            language_servers: HashMap::default(),
         }
     }
 
@@ -189,6 +198,30 @@ impl PanelsManager {
             self.panes.remove(panel);
             if self.focused_panel > 0 {
                 self.focused_panel -= 1;
+            }
+        }
+    }
+
+    pub fn lsp(&self, lsp_config: &LspConfig) -> Option<&LSPBridge> {
+        println!("searching for {}", lsp_config.language_server);
+        self.language_servers.get(&lsp_config.language_server)
+    }
+
+    pub fn insert_lsp(&mut self, language_server: String, server: LSPBridge) {
+        self.language_servers
+            .insert(language_server, server.clone());
+    }
+
+    pub async fn get_or_insert_lsp(manager: UseState<Self>, lsp_config: &LspConfig) -> LSPBridge {
+        match manager.current().lsp(&lsp_config) {
+            Some(server) => server.clone(),
+            None => {
+                let server = create_lsp(lsp_config.clone()).await;
+                manager.with_mut(|manager| {
+                    manager.insert_lsp(lsp_config.language_server.clone(), server.clone());
+                    println!("saved {}", lsp_config.language_server);
+                });
+                server
             }
         }
     }

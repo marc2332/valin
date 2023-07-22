@@ -12,7 +12,7 @@ torin = { git = "https://github.com/marc2332/freya", rev = "bf09b7cdf17f24e11852
 dioxus = { git = "https://github.com/DioxusLabs/dioxus", rev="11c9abcf7ce731ccb4a44c52de383c090ab319af", features = ["macro", "hooks"]}
 dioxus-std = { git = "https://github.com/marc2332/dioxus-std", rev = "4974f9e4e421b9036d9438ef33d4496559a76855", features = ["utils"] }
 
-tokio = { version = "1.23.0", features = ["fs"]}
+tokio = { version = "1.23.0", features = ["fs", "process"]}
 glutin = { version = "0.30.6"}
 winit = "0.28.2"
 skia-safe = { version = "0.63.0", features = ["gl", "textlayout", "svg"] }
@@ -22,3 +22,9 @@ smallvec = "1.10.0"
 uuid = { version =  "1.2.2", features = ["v4"]}
 rfd = "0.11.0"
 tokio-stream = { version = "0.1.14", features = ["fs"] }
+tower = "0.4.13"
+lsp-types = "0.94.0"
+async-lsp = { git = "https://github.com/marc2332/async-lsp", rev="f885653777e61b97202949120c2b60c318492252" }
+futures = "0.3.28"
+async-process = "1.7.0"
+

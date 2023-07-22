@@ -1,6 +1,7 @@
 mod commander;
 mod controlled_virtual_scroll_view;
 mod file_explorer;
+mod lsp;
 mod panels;
 mod parser;
 mod sidebar;
@@ -198,13 +199,15 @@ fn Body(cx: Scope) -> Element {
                                         let active_tab = panel.tab(active_tab_index);
                                         let (tab_id, _) = active_tab.get_data();
                                         match active_tab {
-                                            PanelTab::TextEditor(_) => {
+                                            PanelTab::TextEditor(editor) => {
                                                 rsx!(
                                                     CodeEditorTab {
                                                         key: "{tab_id}-{active_tab_index}",
                                                         manager: panels_manager.clone(),
                                                         panel_index: panel_index,
                                                         editor: active_tab_index,
+                                                        language_id: editor.language_id.clone(),
+                                                        root_path: editor.root_path.clone()
                                                     }
                                                 )
                                             }

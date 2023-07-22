@@ -71,13 +71,9 @@ const GENERIC_KEYWORDS: &[&str] = &[
 
 const SPECIAL_KEYWORDS: &[&str] = &["self", "Self", "false", "true"];
 
-const SPECIAL_CHARACTER: &[char] = &[
-    '.', '=', ';', '\'', ',', '#', '&', '-', '+', '^', '\\',
-];
+const SPECIAL_CHARACTER: &[char] = &['.', '=', ';', '\'', ',', '#', '&', '-', '+', '^', '\\'];
 
-const SPECIAL_CHARACTER_2: &[char] = &[
-    '{', '}', '(', ')','>', '<', '[', ']',
-];
+const SPECIAL_CHARACTER_2: &[char] = &['{', '}', '(', ')', '>', '<', '[', ']'];
 
 #[derive(PartialEq, Clone, Debug)]
 enum CommentTracking {
