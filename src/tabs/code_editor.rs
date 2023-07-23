@@ -415,9 +415,16 @@ impl HoverToText for Hover {
 #[allow(non_snake_case)]
 #[inline_props]
 fn HoverBox(cx: Scope, content: String) -> Element {
+    let height = match content.trim().lines().count() {
+        x if x < 2 => 65,
+        x if x < 5 => 100,
+        x if x < 7 => 135,
+        _ => 170,
+    };
+
     render!( rect {
         width: "300",
-        height: "180",
+        height: "{height}",
         background: "rgb(60, 60, 60)",
         corner_radius: "8",
         layer: "-50",
