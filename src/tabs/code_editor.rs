@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use crate::controlled_virtual_scroll_view::*;
 use crate::lsp::LspConfig;
 use crate::manager::EditorManager;
+use crate::manager::EditorManagerWrapper;
 use crate::parser::SyntaxBlocks;
 use crate::use_editable;
 use crate::use_editable::*;
@@ -24,7 +25,7 @@ use winit::window::CursorIcon;
 
 #[derive(Props, PartialEq)]
 pub struct EditorProps {
-    pub manager: UseState<EditorManager>,
+    pub manager: EditorManagerWrapper,
     pub panel_index: usize,
     pub editor: usize,
     pub language_id: String,
@@ -38,17 +39,56 @@ pub enum LspAction {
 
 #[allow(non_snake_case)]
 pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
+    let lsp_config = LspConfig::new(cx.props.root_path.clone(), &cx.props.language_id);
+    let scope_id = cx.scope_id();
     let manager = cx.props.manager.clone();
-    let editor = cx
-        .props
-        .manager
-        .panel(cx.props.panel_index)
-        .tab(cx.props.editor)
-        .as_text_editor()
-        .unwrap();
-    let path = editor.path();
-    let file_uri = Url::from_file_path(path).unwrap();
-    let cursor = editor.cursor();
+    use_effect(cx, (), {
+        to_owned![lsp_config, manager];
+        move |_| {
+            {
+                // Focus editor
+                let mut manager = manager.write(Some(scope_id));
+                manager.set_focused_panel(cx.props.panel_index);
+                manager
+                    .panel_mut(cx.props.panel_index)
+                    .set_active_tab(cx.props.editor);
+            }
+
+            let (file_uri, file_text) = {
+                let manager = manager.current();
+
+                let editor = manager
+                    .panel(cx.props.panel_index)
+                    .tab(cx.props.editor)
+                    .as_text_editor()
+                    .unwrap();
+
+                let path = editor.path();
+                (
+                    Url::from_file_path(path).unwrap(),
+                    editor.rope().to_string(),
+                )
+            };
+
+            // Let the LSP server the file has been opened
+            async move {
+                let mut lsp =
+                    EditorManager::get_or_insert_lsp(manager, &lsp_config, scope_id).await;
+
+                lsp.server_socket
+                    .did_open(DidOpenTextDocumentParams {
+                        text_document: TextDocumentItem {
+                            uri: file_uri,
+                            language_id: "rust".into(),
+                            version: 0,
+                            text: file_text,
+                        },
+                    })
+                    .unwrap();
+            }
+        }
+    });
+
     let edit_trigger = use_ref(cx, || {
         let (tx, rx) = unbounded_channel::<()>();
         (tx, Some(rx))
@@ -72,14 +112,6 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
     let offset_x = use_state(cx, || 0);
     let offset_y = use_state(cx, || 0);
 
-    let cursor_attr = editable.cursor_attr(cx);
-    let font_size = manager.font_size();
-    let manual_line_height = manager.font_size() * manager.line_height();
-    let is_panel_focused = manager.focused_panel() == cx.props.panel_index;
-    let is_editor_focused = manager.is_focused()
-        && manager.panel(cx.props.panel_index).active_tab() == Some(cx.props.editor);
-    let lsp_config = LspConfig::new(cx.props.root_path.clone(), &cx.props.language_id);
-
     // Trigger initial highlighting
     use_effect(cx, (), move |_| {
         edit_trigger.read().0.send(()).ok();
@@ -92,10 +124,9 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
             while let Some(action) = rx.next().await {
                 match action {
                     LspAction::Hover(params) => {
-                        let manager = manager.current();
-                        let lsp = manager.lsp(&lsp_config);
+                        let lsp = manager.current().lsp(&lsp_config).cloned();
 
-                        if let Some(mut lsp) = lsp.cloned() {
+                        if let Some(mut lsp) = lsp {
                             let is_indexed = *lsp.indexed.lock().unwrap();
                             if is_indexed {
                                 let line = params.text_document_position_params.position.line;
@@ -121,46 +152,28 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
         }
     });
 
-    use_effect(cx, (), {
-        to_owned![lsp_config, file_uri, manager];
-        move |_| {
-            // Focus editor
-            manager.with_mut(|manager| {
-                manager.set_focused_panel(cx.props.panel_index);
-                manager
-                    .panel_mut(cx.props.panel_index)
-                    .set_active_tab(cx.props.editor);
-            });
-
-            // Connect to LSP
-            let text = editor.rope().to_string();
-            async move {
-                let mut lsp = EditorManager::get_or_insert_lsp(manager, &lsp_config).await;
-
-                lsp.server_socket
-                    .did_open(DidOpenTextDocumentParams {
-                        text_document: TextDocumentItem {
-                            uri: file_uri.clone(),
-                            language_id: "rust".into(),
-                            version: 0,
-                            text,
-                        },
-                    })
-                    .unwrap();
-            }
-        }
-    });
+    let editor_manager = manager.current();
+    let cursor_attr = editable.cursor_attr(cx);
+    let font_size = editor_manager.font_size();
+    let manual_line_height = editor_manager.font_size() * editor_manager.line_height();
+    let is_panel_focused = editor_manager.focused_panel() == cx.props.panel_index;
+    let panel = editor_manager.panel(cx.props.panel_index);
+    let is_editor_focused =
+        editor_manager.is_focused() && panel.active_tab() == Some(cx.props.editor);
+    let editor = panel.tab(cx.props.editor).as_text_editor().unwrap();
+    let path = editor.path();
+    let cursor = editor.cursor();
+    let file_uri = Url::from_file_path(path).unwrap();
 
     let onmousedown = {
         to_owned![manager];
         move |_: MouseEvent| {
             if !is_editor_focused {
-                manager.with_mut(|manager| {
-                    manager.set_focused_panel(cx.props.panel_index);
-                    manager
-                        .panel_mut(cx.props.panel_index)
-                        .set_active_tab(cx.props.editor);
-                });
+                let mut manager = manager.write(None);
+                manager.set_focused_panel(cx.props.panel_index);
+                manager
+                    .panel_mut(cx.props.panel_index)
+                    .set_active_tab(cx.props.editor);
             }
         }
     };

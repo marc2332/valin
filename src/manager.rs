@@ -1,7 +1,11 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    ops::{Deref, DerefMut},
+    rc::Rc,
+    sync::Arc,
+};
 
-use dioxus::prelude::UseState;
-use dioxus_std::utils::channel::UseChannel;
+use dioxus::prelude::{Coroutine, Ref, RefCell, RefMut, ScopeId, ScopeState};
 
 use crate::{
     lsp::{create_lsp, LSPBridge, LspConfig},
@@ -80,6 +84,83 @@ impl Panel {
     }
 }
 
+pub fn use_init_manager<'a>(
+    cx: &'a ScopeState,
+    lsp_status_coroutine: &'a Coroutine<(String, String)>,
+) -> &'a EditorManagerWrapper {
+    let manager = cx.use_hook(|| {
+        EditorManagerWrapper::new(cx, EditorManager::new(lsp_status_coroutine.clone()))
+    });
+    manager
+}
+
+#[derive(Clone)]
+pub struct EditorManagerWrapper {
+    value: Rc<RefCell<EditorManager>>,
+    scheduler: Arc<dyn Fn(ScopeId) + Send + Sync>,
+    global_scheduler: Arc<dyn Fn() + Send + Sync>,
+}
+
+impl PartialEq for EditorManagerWrapper {
+    fn eq(&self, _other: &Self) -> bool {
+        true
+    }
+}
+
+pub struct EditorManagerWrapperGuard<'a> {
+    value: RefMut<'a, EditorManager>,
+    scheduler: Arc<dyn Fn(ScopeId) + Send + Sync>,
+    global_scheduler: Arc<dyn Fn() + Send + Sync>,
+    scope: Option<ScopeId>,
+}
+
+impl EditorManagerWrapper {
+    pub fn new(cx: &ScopeState, value: EditorManager) -> Self {
+        Self {
+            value: Rc::new(RefCell::new(value.clone())),
+            scheduler: cx.schedule_update_any(),
+            global_scheduler: cx.schedule_update(),
+        }
+    }
+
+    pub fn write(&self, scope: Option<ScopeId>) -> EditorManagerWrapperGuard {
+        EditorManagerWrapperGuard {
+            value: self.value.borrow_mut(),
+            scheduler: self.scheduler.clone(),
+            global_scheduler: self.global_scheduler.clone(),
+            scope,
+        }
+    }
+
+    pub fn current(&self) -> Ref<EditorManager> {
+        self.value.borrow()
+    }
+}
+
+impl Drop for EditorManagerWrapperGuard<'_> {
+    fn drop(&mut self) {
+        if let Some(id) = self.scope {
+            (self.scheduler)(id)
+        } else {
+            (self.global_scheduler)()
+        }
+    }
+}
+
+impl<'a> Deref for EditorManagerWrapperGuard<'a> {
+    type Target = RefMut<'a, EditorManager>;
+
+    fn deref(&self) -> &RefMut<'a, EditorManager> {
+        &self.value
+    }
+}
+
+impl<'a> DerefMut for EditorManagerWrapperGuard<'a> {
+    fn deref_mut(&mut self) -> &mut RefMut<'a, EditorManager> {
+        &mut self.value
+    }
+}
+
 #[derive(Clone)]
 pub struct EditorManager {
     pub is_focused: bool,
@@ -88,11 +169,11 @@ pub struct EditorManager {
     pub font_size: f32,
     pub line_height: f32,
     pub language_servers: HashMap<String, LSPBridge>,
-    pub language_servers_status: UseChannel<(String, String)>,
+    pub lsp_status_coroutine: Coroutine<(String, String)>,
 }
 
 impl EditorManager {
-    pub fn new(language_servers_status: UseChannel<(String, String)>) -> Self {
+    pub fn new(lsp_status_coroutine: Coroutine<(String, String)>) -> Self {
         Self {
             is_focused: true,
             focused_panel: 0,
@@ -100,7 +181,7 @@ impl EditorManager {
             font_size: 17.0,
             line_height: 1.2,
             language_servers: HashMap::default(),
-            language_servers_status,
+            lsp_status_coroutine,
         }
     }
 
@@ -207,14 +288,19 @@ impl EditorManager {
         self.language_servers.insert(language_server, server);
     }
 
-    pub async fn get_or_insert_lsp(manager: UseState<Self>, lsp_config: &LspConfig) -> LSPBridge {
-        match manager.current().lsp(lsp_config) {
-            Some(server) => server.clone(),
+    pub async fn get_or_insert_lsp(
+        manager: EditorManagerWrapper,
+        lsp_config: &LspConfig,
+        scope_id: ScopeId,
+    ) -> LSPBridge {
+        let server = manager.current().lsp(lsp_config).cloned();
+        match server {
+            Some(server) => server,
             None => {
-                let server = create_lsp(lsp_config.clone(), manager.get()).await;
-                manager.with_mut(|manager| {
-                    manager.insert_lsp(lsp_config.language_server.clone(), server.clone());
-                });
+                let server = create_lsp(lsp_config.clone(), &manager.current()).await;
+                manager
+                    .write(Some(scope_id))
+                    .insert_lsp(lsp_config.language_server.clone(), server.clone());
                 server
             }
         }

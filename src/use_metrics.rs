@@ -10,12 +10,12 @@ use skia_safe::textlayout::TextStyle;
 use skia_safe::FontMgr;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
+use crate::manager::EditorManagerWrapper;
 use crate::parser::*;
-use crate::EditorManager;
 
 pub fn use_metrics<'a>(
     cx: &'a ScopeState,
-    manager: &UseState<EditorManager>,
+    manager: &EditorManagerWrapper,
     pane_index: usize,
     editor: usize,
     edit_trigger: &UseRef<(UnboundedSender<()>, Option<UnboundedReceiver<()>>)>,
@@ -29,24 +29,25 @@ pub fn use_metrics<'a>(
 
         async move {
             while edit_trigger.recv().await.is_some() {
-                let manager = manager.current();
-                let editor = &manager
-                    .panel(pane_index)
-                    .tab(editor)
-                    .as_text_editor()
-                    .unwrap();
-
                 let mut font_collection = FontCollection::new();
                 font_collection.set_default_font_manager(FontMgr::default(), "Jetbrains Mono");
 
                 let mut style = ParagraphStyle::default();
                 let mut text_style = TextStyle::default();
-                text_style.set_font_size(manager.font_size());
+                text_style.set_font_size(manager.current().font_size());
                 style.set_text_style(&text_style);
 
                 let mut paragraph = ParagraphBuilder::new(&style, font_collection);
 
                 let mut longest_line: Vec<Cow<str>> = vec![];
+
+                let manager = manager.current();
+
+                let editor = manager
+                    .panel(pane_index)
+                    .tab(editor)
+                    .as_text_editor()
+                    .unwrap();
 
                 for line in editor.lines() {
                     let current_longest_width =

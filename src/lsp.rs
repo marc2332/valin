@@ -9,7 +9,7 @@ use async_lsp::router::Router;
 use async_lsp::tracing::TracingLayer;
 use async_lsp::{LanguageServer, ServerSocket};
 use async_process::Command;
-use dioxus_std::utils::channel::UseChannel;
+use dioxus::prelude::Coroutine;
 use lsp_types::notification::{Progress, PublishDiagnostics, ShowMessage};
 use lsp_types::{
     ClientCapabilities, InitializeParams, InitializedParams, NumberOrString, ProgressParamsValue,
@@ -21,7 +21,7 @@ use crate::manager::EditorManager;
 
 struct ClientState {
     indexed: Arc<Mutex<bool>>,
-    language_servers_status: UseChannel<(String, String)>,
+    lsp_status_coroutine: Coroutine<(String, String)>,
 }
 
 struct Stop;
@@ -55,12 +55,12 @@ impl LspConfig {
 
 pub async fn create_lsp(config: LspConfig, editor_manager: &EditorManager) -> LSPBridge {
     let indexed = Arc::new(Mutex::new(false));
-    let language_servers_status = editor_manager.language_servers_status.clone();
+    let lsp_status_coroutine = editor_manager.lsp_status_coroutine.clone();
 
     let (mainloop, mut server) = async_lsp::MainLoop::new_client(|_server| {
         let mut router = Router::new(ClientState {
             indexed: indexed.clone(),
-            language_servers_status: language_servers_status.clone(),
+            lsp_status_coroutine: lsp_status_coroutine.clone(),
         });
         router
             .notification::<Progress>(|this, prog| {
@@ -75,16 +75,14 @@ pub async fn create_lsp(config: LspConfig, editor_manager: &EditorManager) -> LS
                                 String::default()
                             }
                         });
-                        this.language_servers_status
-                            .try_send((
-                                "rust-analyzer".to_string(),
-                                format!(
-                                    "{} {}",
-                                    percentage.unwrap_or_default(),
-                                    report.message.clone().unwrap_or_default()
-                                ),
-                            ))
-                            .ok();
+                        this.lsp_status_coroutine.send((
+                            "rust-analyzer".to_string(),
+                            format!(
+                                "{} {}",
+                                percentage.unwrap_or_default(),
+                                report.message.clone().unwrap_or_default()
+                            ),
+                        ));
                     }
                     if matches!(
                         prog.value,

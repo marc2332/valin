@@ -16,10 +16,9 @@ mod utils;
 use std::collections::HashMap;
 
 use commander::*;
-use dioxus_std::utils::channel::use_channel;
-use dioxus_std::utils::channel::use_listen_channel;
 use file_explorer::*;
 use freya::prelude::{keyboard::Code, *};
+use futures::StreamExt;
 use manager::*;
 use sidebar::*;
 use sidepanel::*;
@@ -49,59 +48,45 @@ fn app(cx: Scope) -> Element {
 
 #[allow(non_snake_case)]
 fn Body(cx: Scope) -> Element {
-    let lsp_status = use_channel::<(String, String)>(cx, 5);
-    let editor_manager = use_state::<EditorManager>(cx, || EditorManager::new(lsp_status.clone()));
+    let lsp_messages = use_state::<HashMap<String, String>>(cx, HashMap::default);
+    let lsp_status_coroutine = use_coroutine(cx, |mut rx: UnboundedReceiver<(String, String)>| {
+        to_owned![lsp_messages];
+        async move {
+            while let Some((name, val)) = rx.next().await {
+                lsp_messages.with_mut(|msgs| {
+                    msgs.insert(name, val);
+                })
+            }
+        }
+    });
+    let editor_manager = use_init_manager(cx, lsp_status_coroutine);
     let show_commander = use_state(cx, || false);
+
+    // Commands
     let commands = cx.use_hook(|| {
         vec![Command::new("fs".to_string(), {
             to_owned![editor_manager];
             Box::new(move |size: &str| {
                 if let Ok(size) = size.parse::<f32>() {
-                    editor_manager.with_mut(|editor_manager| {
-                        editor_manager.set_fontsize(size);
-                    })
+                    editor_manager.write(None).set_fontsize(size);
                 }
             })
         })]
     });
-    let lsp_messages = use_state::<HashMap<String, String>>(cx, HashMap::default);
-
-    use_listen_channel(cx, &lsp_status, {
-        to_owned![lsp_messages];
-        move |message| {
-            to_owned![lsp_messages];
-            async move {
-                match message {
-                    Ok((name, val)) => lsp_messages.with_mut(|msgs| {
-                        msgs.insert(name, val);
-                    }),
-                    Err(err) => {
-                        println!("{err:?}")
-                    }
-                }
-            }
-        }
-    });
-
-    let split_panel = move |_| {
-        to_owned![editor_manager];
-        editor_manager.with_mut(|editor_manager| {
-            editor_manager.push_panel(Panel::new());
-            editor_manager.set_focused_panel(editor_manager.panels().len() - 1);
-        });
-    };
 
     let onsubmit = {
+        to_owned![editor_manager];
         move |_| {
-            editor_manager.with_mut(|editor_manager| {
-                editor_manager.set_focused(true);
-                show_commander.set(false);
-            });
+            let mut editor_manager = editor_manager.write(None);
+            editor_manager.set_focused(true);
+            show_commander.set(false);
         }
     };
 
-    let onkeydown = move |e: KeyboardEvent| {
-        editor_manager.with_mut(|editor_manager| {
+    let onkeydown = {
+        to_owned![editor_manager];
+        move |e: KeyboardEvent| {
+            let mut editor_manager = editor_manager.write(None);
             if e.code == Code::Escape {
                 if *show_commander.current() {
                     editor_manager.set_focused(true);
@@ -111,23 +96,27 @@ fn Body(cx: Scope) -> Element {
                     show_commander.set(true);
                 }
             }
-        })
+        }
     };
 
     let onglobalclick = |_| {
         show_commander.set(false);
     };
 
-    let panels_len = editor_manager.get().panels().len();
+    let panels_len = editor_manager.current().panels().len();
     let panes_width = 100.0 / panels_len as f32;
-    let panel = editor_manager.panel(editor_manager.focused_panel);
-    let cursor = if let Some(active_tab) = panel.active_tab() {
-        panel
-            .tab(active_tab)
-            .as_text_editor()
-            .map(|editor| editor.cursor())
-    } else {
-        None
+
+    let cursor = {
+        let editor_manager = editor_manager.current();
+        let panel = editor_manager.panel(editor_manager.focused_panel);
+        if let Some(active_tab) = panel.active_tab() {
+            panel
+                .tab(active_tab)
+                .as_text_editor()
+                .map(|editor| editor.cursor())
+        } else {
+            None
+        }
     };
 
     render!(
@@ -163,8 +152,8 @@ fn Body(cx: Scope) -> Element {
                         height: "100%",
                         width: "100%",
                         direction: "horizontal",
-                        editor_manager.get().panels().iter().enumerate().map(move |(panel_index, panel)| {
-                            let is_focused = editor_manager.get().focused_panel() == panel_index;
+                        editor_manager.current().panels().iter().enumerate().map(|(panel_index, panel)| {
+                            let is_focused = editor_manager.current().focused_panel() == panel_index;
                             let active_tab_index = panel.active_tab();
                             let panel_background = if is_focused {
                                 "rgb(247, 127, 0)"
@@ -172,10 +161,28 @@ fn Body(cx: Scope) -> Element {
                                 "transparent"
                             };
 
-                            let close_panel = move |_: MouseEvent| {
-                                editor_manager.with_mut(|editor_manager| {
-                                    editor_manager.close_panel(panel_index);
-                                });
+                            let close_panel = {
+                                to_owned![editor_manager];
+                                move |_: MouseEvent| {
+                                    editor_manager.write(None).close_panel(panel_index);
+                                }
+                            };
+
+                            let split_panel = {
+                                to_owned![editor_manager];
+                                move |_| {
+                                    let len_panels = editor_manager.current().panels().len();
+                                    let mut editor_manager = editor_manager.write(None);
+                                    editor_manager.push_panel(Panel::new());
+                                    editor_manager.set_focused_panel(len_panels - 1);
+                                }
+                            };
+
+                            let onclickpanel = {
+                                to_owned![editor_manager];
+                                move |_| {
+                                    editor_manager.write(None).set_focused_panel(panel_index);
+                                }
                             };
 
                             rsx!(
@@ -191,23 +198,31 @@ fn Body(cx: Scope) -> Element {
                                         ScrollView {
                                             direction: "horizontal",
                                             width: "calc(100% - 55)",
-                                            editor_manager.get().panel(panel_index).tabs().iter().enumerate().map(|(i, tab)| {
+                                            panel.tabs().iter().enumerate().map(|(i, tab)| {
                                                 let is_selected = active_tab_index == Some(i);
                                                 let (tab_id, tab_title) = tab.get_data();
+
+                                                let onclick = {
+                                                    to_owned![editor_manager];
+                                                    move |_| {
+                                                        let mut editor_manager = editor_manager.write(None);
+                                                        editor_manager.set_focused_panel(panel_index);
+                                                        editor_manager.panel_mut(panel_index).set_active_tab(i);
+                                                    }
+                                                };
+
+                                                let onclickclose = {
+                                                    to_owned![editor_manager];
+                                                    move |_| {
+                                                        editor_manager.write(None).close_editor(panel_index, i);
+                                                    }
+                                                };
+
                                                 rsx!(
                                                     Tab {
                                                         key: "{tab_id}",
-                                                        onclick: move |_| {
-                                                            editor_manager.with_mut(|editor_manager| {
-                                                                editor_manager.set_focused_panel(panel_index);
-                                                                editor_manager.panel_mut(panel_index).set_active_tab(i);
-                                                            });
-                                                        },
-                                                        onclickclose: move |_| {
-                                                            editor_manager.with_mut(|editor_manager| {
-                                                                editor_manager.close_editor(panel_index, i);
-                                                            });
-                                                        },
+                                                        onclick: onclick,
+                                                        onclickclose: onclickclose,
                                                         value: "{tab_title}",
                                                         is_selected: is_selected
                                                     }
@@ -226,11 +241,7 @@ fn Body(cx: Scope) -> Element {
                                         width: "100%",
                                         background: "{panel_background}",
                                         padding: "1.5",
-                                        onclick: move |_| {
-                                            editor_manager.with_mut(|editor_manager| {
-                                                editor_manager.set_focused_panel(panel_index);
-                                            });
-                                        },
+                                        onclick: onclickpanel,
                                         if let Some(active_tab_index) = active_tab_index {
                                             let active_tab = panel.tab(active_tab_index);
                                             let (tab_id, _) = active_tab.get_data();

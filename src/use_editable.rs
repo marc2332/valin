@@ -15,7 +15,7 @@ use torin::geometry::CursorPoint;
 use uuid::Uuid;
 use winit::event_loop::EventLoopProxy;
 
-use crate::manager::EditorManager;
+use crate::manager::EditorManagerWrapper;
 
 /// Iterator over text lines.
 pub struct LinesIterator<'a> {
@@ -222,13 +222,14 @@ impl TextEditor for EditorData {
 /// Manage an editable content.
 #[derive(Clone)]
 pub struct UseEditable {
-    pub(crate) editor: UseState<EditorManager>,
+    pub(crate) manager: EditorManagerWrapper,
     pub(crate) cursor_reference: CursorReference,
     pub(crate) selecting_text_with_mouse: UseRef<Option<CursorPoint>>,
     pub(crate) event_loop_proxy: Option<EventLoopProxy<EventMessage>>,
     pub(crate) pane_index: usize,
     pub(crate) editor_index: usize,
     pub(crate) edit_trigger: UnboundedSender<()>,
+    scope_id: ScopeId,
 }
 
 impl UseEditable {
@@ -241,9 +242,8 @@ impl UseEditable {
 
     /// Create a highlights attribute.
     pub fn highlights_attr<'a, T>(&self, cx: Scope<'a, T>, editor_id: usize) -> AttributeValue<'a> {
-        let editor = self
-            .editor
-            .get()
+        let manager = self.manager.current();
+        let editor = manager
             .panel(self.pane_index)
             .tab(self.editor_index)
             .as_text_editor()
@@ -265,15 +265,13 @@ impl UseEditable {
 
                 self.cursor_reference.set_id(Some(*id));
                 self.cursor_reference.set_cursor_position(Some(coords));
-
-                self.editor.with_mut(|text_editor| {
-                    let editor = text_editor
-                        .panel_mut(self.pane_index)
-                        .tab_mut(self.editor_index)
-                        .as_text_editor_mut()
-                        .unwrap();
-                    editor.unhighlight();
-                });
+                let mut manager = self.manager.write(Some(self.scope_id));
+                let editor = manager
+                    .panel_mut(self.pane_index)
+                    .tab_mut(self.editor_index)
+                    .as_text_editor_mut()
+                    .unwrap();
+                editor.unhighlight();
             }
             EditableEvent::MouseOver(e, id) => {
                 self.selecting_text_with_mouse.with(|selecting_text| {
@@ -293,18 +291,17 @@ impl UseEditable {
                 if e.key == Key::Escape {
                     return;
                 }
-                self.editor.with_mut(|text_editor| {
-                    let editor = text_editor
-                        .panel_mut(self.pane_index)
-                        .tab_mut(self.editor_index)
-                        .as_text_editor_mut()
-                        .unwrap();
-                    let event = editor.process_key(&e.key, &e.code, &e.modifiers);
-                    if event == TextEvent::TextChanged {
-                        self.edit_trigger.send(()).ok();
-                        *self.selecting_text_with_mouse.write_silent() = None;
-                    }
-                });
+                let mut manager = self.manager.write(Some(self.scope_id));
+                let editor = manager
+                    .panel_mut(self.pane_index)
+                    .tab_mut(self.editor_index)
+                    .as_text_editor_mut()
+                    .unwrap();
+                let event = editor.process_key(&e.key, &e.code, &e.modifiers);
+                if event == TextEvent::TextChanged {
+                    self.edit_trigger.send(()).ok();
+                    *self.selecting_text_with_mouse.write_silent() = None;
+                }
             }
         }
 
@@ -322,7 +319,7 @@ impl UseEditable {
 
 pub fn use_edit(
     cx: &ScopeState,
-    text_editor: &UseState<EditorManager>,
+    manager: &EditorManagerWrapper,
     pane_index: usize,
     editor_index: usize,
     edit_trigger: UnboundedSender<()>,
@@ -344,22 +341,24 @@ pub fn use_edit(
     });
 
     let selecting_text_with_mouse = use_ref(cx, || None);
+    let scope_id = cx.scope_id();
 
     let use_editable = UseEditable {
-        editor: text_editor.clone(),
+        manager: manager.clone(),
         cursor_reference: cursor_reference.clone(),
         selecting_text_with_mouse: selecting_text_with_mouse.clone(),
         event_loop_proxy,
         pane_index,
         editor_index,
         edit_trigger,
+        scope_id,
     };
 
     // Listen for new calculations from the layout engine
     use_effect(cx, (), move |_| {
         let cursor_reference = cursor_reference.clone();
         let cursor_receiver = cursor_channels.1.take();
-        let text_editor = text_editor.clone();
+        let manager = manager.clone();
 
         async move {
             let mut cursor_receiver = cursor_receiver.unwrap();
@@ -368,7 +367,8 @@ pub fn use_edit(
                 match message {
                     // Update the cursor position calculated by the layout
                     CursorLayoutResponse::CursorPosition { position, id } => {
-                        let editor = text_editor
+                        let mut manager = manager.write(Some(scope_id));
+                        let editor = manager
                             .panel(pane_index)
                             .tab(editor_index)
                             .as_text_editor()
@@ -385,16 +385,14 @@ pub fn use_edit(
 
                         // Only update if it's actually different
                         if editor.cursor.as_tuple() != new_cursor {
-                            text_editor.with_mut(|text_editor| {
-                                let editor = text_editor
-                                    .panel_mut(pane_index)
-                                    .tab_mut(editor_index)
-                                    .as_text_editor_mut()
-                                    .unwrap();
-                                editor.cursor.set_col(new_cursor.0);
-                                editor.cursor.set_row(new_cursor.1);
-                                editor.unhighlight();
-                            });
+                            let editor = manager
+                                .panel_mut(pane_index)
+                                .tab_mut(editor_index)
+                                .as_text_editor_mut()
+                                .unwrap();
+                            editor.cursor.set_col(new_cursor.0);
+                            editor.cursor.set_row(new_cursor.1);
+                            editor.unhighlight();
                         }
 
                         // Remove the current calcutions so the layout engine doesn't try to calculate again
@@ -402,14 +400,13 @@ pub fn use_edit(
                     }
                     // Update the text selections calculated by the layout
                     CursorLayoutResponse::TextSelection { from, to, id } => {
-                        text_editor.with_mut(|text_editor| {
-                            let editor = text_editor
-                                .panel_mut(pane_index)
-                                .tab_mut(editor_index)
-                                .as_text_editor_mut()
-                                .unwrap();
-                            editor.highlight_text(from, to, id);
-                        });
+                        let mut manager = manager.write(Some(scope_id));
+                        let editor = manager
+                            .panel_mut(pane_index)
+                            .tab_mut(editor_index)
+                            .as_text_editor_mut()
+                            .unwrap();
+                        editor.highlight_text(from, to, id);
                         cursor_reference.set_cursor_selections(None);
                     }
                 }
