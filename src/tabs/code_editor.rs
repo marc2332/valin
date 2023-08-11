@@ -1,10 +1,13 @@
 use std::path::PathBuf;
+use std::time::Duration;
 
 use crate::controlled_virtual_scroll_view::*;
 use crate::lsp::LspConfig;
 use crate::manager::EditorManager;
 use crate::manager::EditorManagerWrapper;
 use crate::parser::SyntaxBlocks;
+use crate::use_debouncer::use_debouncer;
+use crate::use_debouncer::UseDebouncer;
 use crate::use_editable;
 use crate::use_editable::*;
 use crate::use_metrics::*;
@@ -21,7 +24,6 @@ use lsp_types::{
 };
 use tokio::sync::mpsc::unbounded_channel;
 use tokio_stream::StreamExt;
-use winit::window::CursorIcon;
 
 #[derive(Props, PartialEq)]
 pub struct EditorProps {
@@ -42,6 +44,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
     let lsp_config = LspConfig::new(cx.props.root_path.clone(), &cx.props.language_id);
     let scope_id = cx.scope_id();
     let manager = cx.props.manager.clone();
+    let debouncer = use_debouncer(cx, Duration::from_millis(300));
     use_effect(cx, (), {
         to_owned![lsp_config, manager];
         move |_| {
@@ -108,7 +111,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
         cx.props.editor,
         edit_trigger,
     );
-    let cursor_coords = use_ref::<Option<CursorPoint>>(cx, || None);
+    let cursor_coords = use_ref::<CursorPoint>(cx, CursorPoint::default);
     let offset_x = use_state(cx, || 0);
     let offset_y = use_state(cx, || 0);
 
@@ -118,7 +121,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
         async move {}
     });
 
-    let lsp_actions = use_coroutine(cx, |mut rx: UnboundedReceiver<LspAction>| {
+    let lsp_coroutine = use_coroutine(cx, |mut rx: UnboundedReceiver<LspAction>| {
         to_owned![lsp_config, hover, manager];
         async move {
             while let Some(action) = rx.next().await {
@@ -218,7 +221,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
                 width: "100%",
                 height: "100%",
                 show_scrollbar: true,
-                builder_values: (cursor, metrics.clone(), editable, lsp_actions.clone(), file_uri, editor.rope(), hover.clone(), cursor_coords.clone()),
+                builder_values: (cursor, metrics.clone(), editable, lsp_coroutine.clone(), file_uri, editor.rope(), hover.clone(), cursor_coords.clone(), debouncer.clone()),
                 length: metrics.0.len(),
                 item_size: manual_line_height,
                 builder: Box::new(move |(k, line_index, _cx, options)| {
@@ -245,7 +248,8 @@ type BuilderProps<'a> = (
     Url,
     &'a Rope,
     UseRef<Option<(u32, Hover)>>,
-    UseRef<Option<CursorPoint>>,
+    UseRef<CursorPoint>,
+    UseDebouncer,
 );
 
 #[allow(non_snake_case)]
@@ -257,7 +261,8 @@ fn EditorLine<'a>(
     font_size: f32,
     line_height: f32,
 ) -> Element {
-    let (cursor, metrics, editable, lsp_actions, file_uri, rope, hover, cursor_coords) = options;
+    let (cursor, metrics, editable, lsp_coroutine, file_uri, rope, hover, cursor_coords, debouncer) =
+        options;
     let (syntax_blocks, width) = metrics.get();
     let line = syntax_blocks.get(*line_index).unwrap();
     let line_str = rope.line(*line_index).to_string();
@@ -286,33 +291,48 @@ fn EditorLine<'a>(
         }
     };
 
+    let onmouseleave = |_| {
+        debouncer.cancel(cx);
+        lsp_coroutine.send(LspAction::Clear);
+    };
+
     let onmouseover = {
-        to_owned![editable, file_uri, lsp_actions, cursor_coords, hover];
+        to_owned![editable, file_uri, lsp_coroutine, cursor_coords, hover];
         move |e: MouseEvent| {
             let coords = e.get_element_coordinates();
-            editable.process_event(&EditableEvent::MouseOver(e.data, *line_index));
+            let data = e.data;
 
+            editable.process_event(&EditableEvent::MouseOver(data, *line_index));
+
+            // Optimization: Re run the component only when the hover box is shown
+            // otherwise just update the coordinates silently
             if hover.read().is_some() {
-                *cursor_coords.write() = Some(coords);
+                *cursor_coords.write() = coords;
+            } else {
+                *cursor_coords.write_silent() = coords;
             }
 
             let paragraph = create_paragraph(&line_str, *font_size);
 
             if (coords.x as f32) < paragraph.max_intrinsic_width() {
-                let glyph =
-                    paragraph.get_glyph_position_at_coordinate((coords.x as i32, coords.y as i32));
+                to_owned![cursor_coords, file_uri, lsp_coroutine, line_index];
+                debouncer.action(cx, move || {
+                    let coords = cursor_coords.read();
+                    let glyph = paragraph
+                        .get_glyph_position_at_coordinate((coords.x as i32, coords.y as i32));
 
-                lsp_actions.send(LspAction::Hover(HoverParams {
-                    text_document_position_params: TextDocumentPositionParams {
-                        text_document: TextDocumentIdentifier {
-                            uri: file_uri.clone(),
+                    lsp_coroutine.send(LspAction::Hover(HoverParams {
+                        text_document_position_params: TextDocumentPositionParams {
+                            text_document: TextDocumentIdentifier {
+                                uri: file_uri.clone(),
+                            },
+                            position: Position::new(line_index as u32, glyph.position as u32),
                         },
-                        position: Position::new(*line_index as u32, glyph.position as u32),
-                    },
-                    work_done_progress_params: WorkDoneProgressParams::default(),
-                }));
+                        work_done_progress_params: WorkDoneProgressParams::default(),
+                    }));
+                });
             } else {
-                lsp_actions.send(LspAction::Clear);
+                lsp_coroutine.send(LspAction::Clear);
             }
         }
     };
@@ -324,8 +344,7 @@ fn EditorLine<'a>(
             if *line == *line_index as u32 {
                 if let Some(content) = hover.hover_to_text() {
                     let cursor_coords = cursor_coords.read();
-                    if let Some(cursor_coords) = cursor_coords.as_ref().cloned() {
-                        let offset_x = cursor_coords.x  as f32 + gutter_width;
+                    let offset_x = cursor_coords.x  as f32 + gutter_width;
                         Some(rsx!(
                             rect {
                                 width: "0",
@@ -337,9 +356,6 @@ fn EditorLine<'a>(
                                 }
                             }
                         ))
-                    } else {
-                        None
-                    }
                 }  else {
                     None
                 }
@@ -363,33 +379,31 @@ fn EditorLine<'a>(
                     "{line_index + 1} "
                 }
             }
-            CursorArea {
-                icon: CursorIcon::Text,
-                paragraph {
-                    min_width: "calc(100% - {gutter_width)",
-                    width: "{width}",
-                    cursor_index: "{character_index}",
-                    cursor_color: "white",
-                    max_lines: "1",
-                    cursor_mode: "editable",
-                    cursor_id: "{line_index}",
-                    onmousedown: onmousedown,
-                    onmouseover: onmouseover,
-                    highlights: highlights_attr,
-                    highlight_color: "rgb(65, 65, 65)",
-                    direction: "horizontal",
-                    font_size: "{font_size}",
-                    font_family: "Jetbrains Mono",
-                    line.iter().enumerate().map(|(i, (syntax_type, word))| {
-                        rsx!(
-                            text {
-                                key: "{i}",
-                                color: "{syntax_type.color()}",
-                                "{word}"
-                            }
-                        )
-                    })
-                }
+            paragraph {
+                min_width: "calc(100% - {gutter_width})",
+                width: "{width}",
+                cursor_index: "{character_index}",
+                cursor_color: "white",
+                max_lines: "1",
+                cursor_mode: "editable",
+                cursor_id: "{line_index}",
+                onmousedown: onmousedown,
+                onmouseover: onmouseover,
+                onmouseleave: onmouseleave,
+                highlights: highlights_attr,
+                highlight_color: "rgb(65, 65, 65)",
+                direction: "horizontal",
+                font_size: "{font_size}",
+                font_family: "Jetbrains Mono",
+                line.iter().enumerate().map(|(i, (syntax_type, word))| {
+                    rsx!(
+                        text {
+                            key: "{i}",
+                            color: "{syntax_type.color()}",
+                            "{word}"
+                        }
+                    )
+                })
             }
         }
     )

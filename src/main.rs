@@ -9,6 +9,7 @@ mod sidepanel;
 mod tab;
 mod tabs;
 mod text_area;
+mod use_debouncer;
 mod use_editable;
 mod use_metrics;
 mod utils;
