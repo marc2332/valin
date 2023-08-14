@@ -250,7 +250,7 @@ fn Body(cx: Scope) -> Element {
                                                 PanelTab::TextEditor(editor) => {
                                                     rsx!(
                                                         CodeEditorTab {
-                                                            key: "{tab_id}-{active_tab_index}",
+                                                            key: "{tab_id}",
                                                             manager: editor_manager.clone(),
                                                             panel_index: panel_index,
                                                             editor: active_tab_index,

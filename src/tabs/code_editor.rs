@@ -141,10 +141,10 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
                                     *hover.write() = None;
                                 }
                             } else {
-                                println!("still indexing...");
+                                println!("LSP: Still indexing...");
                             }
                         } else {
-                            println!("Lsp not running...");
+                            println!("LSP: Not running.");
                         }
                     }
                     LspAction::Clear => {
@@ -292,7 +292,6 @@ fn EditorLine<'a>(
     };
 
     let onmouseleave = |_| {
-        debouncer.cancel(cx);
         lsp_coroutine.send(LspAction::Clear);
     };
 
@@ -316,7 +315,7 @@ fn EditorLine<'a>(
 
             if (coords.x as f32) < paragraph.max_intrinsic_width() {
                 to_owned![cursor_coords, file_uri, lsp_coroutine, line_index];
-                debouncer.action(cx, move || {
+                debouncer.action(move || {
                     let coords = cursor_coords.read();
                     let glyph = paragraph
                         .get_glyph_position_at_coordinate((coords.x as i32, coords.y as i32));
