@@ -3,8 +3,8 @@ use std::time::Duration;
 
 use crate::controlled_virtual_scroll_view::*;
 use crate::lsp::LspConfig;
+use crate::manager::use_manager;
 use crate::manager::EditorManager;
-use crate::manager::EditorManagerWrapper;
 use crate::parser::SyntaxBlocks;
 use crate::use_debouncer::use_debouncer;
 use crate::use_debouncer::UseDebouncer;
@@ -27,7 +27,6 @@ use tokio_stream::StreamExt;
 
 #[derive(Props, PartialEq)]
 pub struct EditorProps {
-    pub manager: EditorManagerWrapper,
     pub panel_index: usize,
     pub editor: usize,
     pub language_id: String,
@@ -42,15 +41,15 @@ pub enum LspAction {
 #[allow(non_snake_case)]
 pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
     let lsp_config = LspConfig::new(cx.props.root_path.clone(), &cx.props.language_id);
-    let scope_id = cx.scope_id();
-    let manager = cx.props.manager.clone();
+    let manager = use_manager(cx);
     let debouncer = use_debouncer(cx, Duration::from_millis(300));
+
     use_effect(cx, (), {
         to_owned![lsp_config, manager];
         move |_| {
             {
                 // Focus editor
-                let mut manager = manager.write(Some(scope_id));
+                let mut manager = manager.write();
                 manager.set_focused_panel(cx.props.panel_index);
                 manager
                     .panel_mut(cx.props.panel_index)
@@ -75,8 +74,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
 
             // Let the LSP server the file has been opened
             async move {
-                let mut lsp =
-                    EditorManager::get_or_insert_lsp(manager, &lsp_config, scope_id).await;
+                let mut lsp = EditorManager::get_or_insert_lsp(manager, &lsp_config).await;
 
                 lsp.server_socket
                     .did_open(DidOpenTextDocumentParams {
@@ -155,14 +153,13 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
         }
     });
 
-    let editor_manager = manager.current();
+    let manager_ref = manager.current();
     let cursor_attr = editable.cursor_attr(cx);
-    let font_size = editor_manager.font_size();
-    let manual_line_height = editor_manager.font_size() * editor_manager.line_height();
-    let is_panel_focused = editor_manager.focused_panel() == cx.props.panel_index;
-    let panel = editor_manager.panel(cx.props.panel_index);
-    let is_editor_focused =
-        editor_manager.is_focused() && panel.active_tab() == Some(cx.props.editor);
+    let font_size = manager_ref.font_size();
+    let manual_line_height = manager_ref.font_size() * manager_ref.line_height();
+    let is_panel_focused = manager_ref.focused_panel() == cx.props.panel_index;
+    let panel = manager_ref.panel(cx.props.panel_index);
+    let is_editor_focused = manager_ref.is_focused() && panel.active_tab() == Some(cx.props.editor);
     let editor = panel.tab(cx.props.editor).as_text_editor().unwrap();
     let path = editor.path();
     let cursor = editor.cursor();
@@ -172,7 +169,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
         to_owned![manager];
         move |_: MouseEvent| {
             if !is_editor_focused {
-                let mut manager = manager.write(None);
+                let mut manager = manager.global_write();
                 manager.set_focused_panel(cx.props.panel_index);
                 manager
                     .panel_mut(cx.props.panel_index)
@@ -243,7 +240,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
 type BuilderProps<'a> = (
     TextCursor,
     UseState<(SyntaxBlocks, f32)>,
-    use_editable::UseEditable,
+    use_editable::UseEdit,
     Coroutine<LspAction>,
     Url,
     &'a Rope,

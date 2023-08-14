@@ -4,9 +4,11 @@ use dioxus::prelude::ScopeState;
 use futures::channel::mpsc::UnboundedSender as Sender;
 use futures::StreamExt;
 
+pub type DebouncedCallback = Box<dyn FnOnce()>;
+
 #[derive(Clone)]
 pub struct UseDebouncer {
-    sender: Rc<RefCell<Sender<Box<dyn FnOnce() -> ()>>>>,
+    sender: Rc<RefCell<Sender<DebouncedCallback>>>,
 }
 
 impl UseDebouncer {

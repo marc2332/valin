@@ -53,9 +53,9 @@ impl LspConfig {
     }
 }
 
-pub async fn create_lsp(config: LspConfig, editor_manager: &EditorManager) -> LSPBridge {
+pub async fn create_lsp(config: LspConfig, manager: &EditorManager) -> LSPBridge {
     let indexed = Arc::new(Mutex::new(false));
-    let lsp_status_coroutine = editor_manager.lsp_status_coroutine.clone();
+    let lsp_status_coroutine = manager.lsp_status_coroutine.clone();
 
     let (mainloop, mut server) = async_lsp::MainLoop::new_client(|_server| {
         let mut router = Router::new(ClientState {

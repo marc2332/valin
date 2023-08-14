@@ -1,11 +1,13 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     ops::{Deref, DerefMut},
     rc::Rc,
     sync::Arc,
 };
 
-use dioxus::prelude::{Coroutine, Ref, RefCell, RefMut, ScopeId, ScopeState};
+use dioxus::prelude::{
+    use_context, use_context_provider, Coroutine, Ref, RefCell, RefMut, ScopeId, ScopeState,
+};
 
 use crate::{
     lsp::{create_lsp, LSPBridge, LspConfig},
@@ -87,48 +89,101 @@ impl Panel {
 pub fn use_init_manager<'a>(
     cx: &'a ScopeState,
     lsp_status_coroutine: &'a Coroutine<(String, String)>,
-) -> &'a EditorManagerWrapper {
-    let manager = cx.use_hook(|| {
-        EditorManagerWrapper::new(cx, EditorManager::new(lsp_status_coroutine.clone()))
-    });
-    manager
+) -> &'a EditorManagerInnerWrapper {
+    use_context_provider(cx, || {
+        EditorManagerInnerWrapper::new(cx, EditorManager::new(lsp_status_coroutine.clone()))
+    })
+}
+
+pub fn use_manager(cx: &ScopeState) -> EditorManagerWrapper {
+    let mut manager = use_context::<EditorManagerInnerWrapper>(cx)
+        .unwrap()
+        .clone();
+
+    manager.scope = cx.scope_id();
+
+    EditorManagerWrapper::new(cx, manager)
 }
 
 #[derive(Clone)]
-pub struct EditorManagerWrapper {
+pub struct EditorManagerInnerWrapper {
+    pub subscribers: Rc<RefCell<HashSet<ScopeId>>>,
     value: Rc<RefCell<EditorManager>>,
     scheduler: Arc<dyn Fn(ScopeId) + Send + Sync>,
-    global_scheduler: Arc<dyn Fn() + Send + Sync>,
+    scope: ScopeId,
 }
 
-impl PartialEq for EditorManagerWrapper {
+impl PartialEq for EditorManagerInnerWrapper {
     fn eq(&self, _other: &Self) -> bool {
         true
     }
 }
 
-pub struct EditorManagerWrapperGuard<'a> {
-    value: RefMut<'a, EditorManager>,
-    scheduler: Arc<dyn Fn(ScopeId) + Send + Sync>,
-    global_scheduler: Arc<dyn Fn() + Send + Sync>,
-    scope: Option<ScopeId>,
+#[derive(Clone)]
+pub struct EditorManagerWrapper {
+    inner: EditorManagerInnerWrapper,
+}
+
+impl Drop for EditorManagerWrapper {
+    fn drop(&mut self) {
+        self.inner
+            .subscribers
+            .borrow_mut()
+            .remove(&self.inner.scope);
+    }
 }
 
 impl EditorManagerWrapper {
+    pub fn new(cx: &ScopeState, inner: EditorManagerInnerWrapper) -> Self {
+        inner.subscribers.borrow_mut().insert(cx.scope_id());
+        Self { inner }
+    }
+
+    pub fn global_write(&self) -> EditorManagerWrapperGuard {
+        self.inner.global_write()
+    }
+
+    pub fn write(&self) -> EditorManagerWrapperGuard {
+        self.inner.write()
+    }
+
+    pub fn current(&self) -> Ref<EditorManager> {
+        self.inner.current()
+    }
+}
+
+pub struct EditorManagerWrapperGuard<'a> {
+    pub subscribers: Rc<RefCell<HashSet<ScopeId>>>,
+    value: RefMut<'a, EditorManager>,
+    scheduler: Arc<dyn Fn(ScopeId) + Send + Sync>,
+    scope: Option<ScopeId>,
+}
+
+impl EditorManagerInnerWrapper {
     pub fn new(cx: &ScopeState, value: EditorManager) -> Self {
         Self {
+            subscribers: Rc::new(RefCell::new(HashSet::from([cx.scope_id()]))),
             value: Rc::new(RefCell::new(value.clone())),
             scheduler: cx.schedule_update_any(),
-            global_scheduler: cx.schedule_update(),
+            scope: cx.scope_id(),
         }
     }
 
-    pub fn write(&self, scope: Option<ScopeId>) -> EditorManagerWrapperGuard {
+    pub fn global_write(&self) -> EditorManagerWrapperGuard {
         EditorManagerWrapperGuard {
+            subscribers: self.subscribers.clone(),
             value: self.value.borrow_mut(),
             scheduler: self.scheduler.clone(),
-            global_scheduler: self.global_scheduler.clone(),
-            scope,
+            scope: None,
+        }
+    }
+
+    pub fn write(&self) -> EditorManagerWrapperGuard {
+        EditorManagerWrapperGuard {
+            subscribers: self.subscribers.clone(),
+            value: self.value.borrow_mut(),
+            scheduler: self.scheduler.clone(),
+            scope: Some(self.scope),
         }
     }
 
@@ -142,7 +197,9 @@ impl Drop for EditorManagerWrapperGuard<'_> {
         if let Some(id) = self.scope {
             (self.scheduler)(id)
         } else {
-            (self.global_scheduler)()
+            for scope_id in self.subscribers.borrow().iter() {
+                (self.scheduler)(*scope_id)
+            }
         }
     }
 }
@@ -291,7 +348,6 @@ impl EditorManager {
     pub async fn get_or_insert_lsp(
         manager: EditorManagerWrapper,
         lsp_config: &LspConfig,
-        scope_id: ScopeId,
     ) -> LSPBridge {
         let server = manager.current().lsp(lsp_config).cloned();
         match server {
@@ -299,7 +355,7 @@ impl EditorManager {
             None => {
                 let server = create_lsp(lsp_config.clone(), &manager.current()).await;
                 manager
-                    .write(Some(scope_id))
+                    .write()
                     .insert_lsp(lsp_config.language_server.clone(), server.clone());
                 server
             }

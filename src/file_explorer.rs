@@ -10,7 +10,7 @@ use tokio::{
     io,
 };
 
-use crate::manager::EditorManagerWrapper;
+use crate::manager::use_manager;
 use crate::manager::PanelTab;
 use crate::use_editable::EditorData;
 
@@ -121,9 +121,9 @@ enum TreeTask {
     OpenFile(PathBuf),
 }
 
-#[inline_props]
 #[allow(non_snake_case)]
-pub fn FileExplorer(cx: Scope, editor_manager: EditorManagerWrapper) -> Element {
+pub fn FileExplorer(cx: Scope) -> Element {
+    let manager = use_manager(cx);
     let tree = use_ref::<Option<TreeItem>>(cx, || None);
 
     let items = use_memo(cx, tree, move |tree| {
@@ -135,7 +135,7 @@ pub fn FileExplorer(cx: Scope, editor_manager: EditorManagerWrapper) -> Element 
     });
 
     let channel = use_coroutine(cx, |mut rx| {
-        to_owned![tree, editor_manager];
+        to_owned![tree, manager];
         async move {
             while let Some(task) = rx.next().await {
                 match task {
@@ -155,8 +155,8 @@ pub fn FileExplorer(cx: Scope, editor_manager: EditorManagerWrapper) -> Element 
                         let content = read_to_string(&file_path).await;
                         if let Ok(content) = content {
                             let root_path = tree.read().as_ref().unwrap().path().clone();
-                            let focused_panel = editor_manager.current().focused_panel();
-                            editor_manager.write(None).push_tab(
+                            let focused_panel = manager.current().focused_panel();
+                            manager.global_write().push_tab(
                                 PanelTab::TextEditor(EditorData::new(
                                     file_path.to_path_buf(),
                                     Rope::from(content),
