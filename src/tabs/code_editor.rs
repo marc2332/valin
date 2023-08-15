@@ -152,29 +152,24 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
     let cursor = editor.cursor();
     let file_uri = Url::from_file_path(path).unwrap();
 
-    let onmousedown = {
-        to_owned![manager];
-        move |_: MouseEvent| {
-            if !is_editor_focused {
-                let mut manager = manager.global_write();
-                manager.set_focused_panel(cx.props.panel_index);
-                manager
-                    .panel_mut(cx.props.panel_index)
-                    .set_active_tab(cx.props.editor);
-            }
-        }
-    };
-
     let onscroll = move |(axis, scroll): (Axis, i32)| match axis {
         Axis::X => scroll_offsets.write().0 = scroll,
         Axis::Y => scroll_offsets.write().1 = scroll,
     };
 
     let onclick = {
-        to_owned![editable];
+        to_owned![editable, manager];
         move |_: MouseEvent| {
             if is_panel_focused {
                 editable.process_event(&EditableEvent::Click);
+            }
+            if !is_editor_focused {
+                let mut manager = manager.global_write();
+                manager.set_focused(true);
+                manager.set_focused_panel(cx.props.panel_index);
+                manager
+                    .panel_mut(cx.props.panel_index)
+                    .set_active_tab(cx.props.editor);
             }
         }
     };
@@ -194,7 +189,6 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
             height: "100%",
             onkeydown: onkeydown,
             onglobalclick: onclick,
-            onmousedown: onmousedown,
             cursor_reference: cursor_attr,
             direction: "horizontal",
             background: "rgb(40, 40, 40)",
@@ -335,33 +329,33 @@ fn EditorLine<'a>(
     let gutter_width = font_size * 3.0;
 
     render!(
-        if let Some((line, hover)) = hover_location.read().as_ref() {
-            if *line == *line_index as u32 {
-                if let Some(content) = hover.hover_to_text() {
-                    let cursor_coords = cursor_coords.read();
-                    let offset_x = cursor_coords.x  as f32 + gutter_width;
-                        Some(rsx!(
-                            rect {
-                                width: "0",
-                                height: "0",
-                                offset_y: "{line_height}",
-                                offset_x: "{offset_x}",
-                                HoverBox {
-                                    content: content
-                                }
-                            }
-                        ))
-                }  else {
-                    None
-                }
-            } else {
-                None
-            }
-        }
         rect {
             height: "{line_height}",
             direction: "horizontal",
             background: "{line_background}",
+            if let Some((line, hover)) = hover_location.read().as_ref() {
+                if *line == *line_index as u32 {
+                    if let Some(content) = hover.hover_to_text() {
+                        let cursor_coords = cursor_coords.read();
+                        let offset_x = cursor_coords.x  as f32 + gutter_width;
+                            Some(rsx!(
+                                rect {
+                                    width: "0",
+                                    height: "0",
+                                    offset_y: "{line_height}",
+                                    offset_x: "{offset_x}",
+                                    HoverBox {
+                                        content: content
+                                    }
+                                }
+                            ))
+                    }  else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            }
             rect {
                 width: "{gutter_width}",
                 height: "100%",

@@ -10,12 +10,12 @@ use skia_safe::textlayout::TextStyle;
 use skia_safe::FontMgr;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 
-use crate::manager::EditorManagerWrapper;
+use crate::manager::UseManager;
 use crate::parser::*;
 
 pub fn use_metrics<'a>(
     cx: &'a ScopeState,
-    manager: &EditorManagerWrapper,
+    manager: &UseManager,
     pane_index: usize,
     editor_index: usize,
 ) -> (&'a UseRef<(SyntaxBlocks, f32)>, &'a UnboundedSender<()>) {
