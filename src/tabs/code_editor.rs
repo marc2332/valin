@@ -22,7 +22,6 @@ use lsp_types::{
     DidOpenTextDocumentParams, HoverContents, HoverParams, Position, TextDocumentIdentifier,
     TextDocumentItem, TextDocumentPositionParams, Url, WorkDoneProgressParams,
 };
-use tokio::sync::mpsc::unbounded_channel;
 use tokio_stream::StreamExt;
 
 #[derive(Props, PartialEq)]
@@ -44,80 +43,64 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
     let manager = use_manager(cx);
     let debouncer = use_debouncer(cx, Duration::from_millis(300));
 
-    use_effect(cx, (), {
+    cx.use_hook(|| {
         to_owned![lsp_config, manager];
-        move |_| {
-            {
-                // Focus editor
-                let mut manager = manager.write();
-                manager.set_focused_panel(cx.props.panel_index);
-                manager
-                    .panel_mut(cx.props.panel_index)
-                    .set_active_tab(cx.props.editor);
-            }
 
-            let (file_uri, file_text) = {
-                let manager = manager.current();
-
-                let editor = manager
-                    .panel(cx.props.panel_index)
-                    .tab(cx.props.editor)
-                    .as_text_editor()
-                    .unwrap();
-
-                let path = editor.path();
-                (
-                    Url::from_file_path(path).unwrap(),
-                    editor.rope().to_string(),
-                )
-            };
-
-            // Let the LSP server the file has been opened
-            async move {
-                let mut lsp = EditorManager::get_or_insert_lsp(manager, &lsp_config).await;
-
-                lsp.server_socket
-                    .did_open(DidOpenTextDocumentParams {
-                        text_document: TextDocumentItem {
-                            uri: file_uri,
-                            language_id: "rust".into(),
-                            version: 0,
-                            text: file_text,
-                        },
-                    })
-                    .unwrap();
-            }
+        // Focus editor
+        {
+            let mut manager = manager.write();
+            manager.set_focused_panel(cx.props.panel_index);
+            manager
+                .panel_mut(cx.props.panel_index)
+                .set_active_tab(cx.props.editor);
         }
+
+        let (file_uri, file_text) = {
+            let manager = manager.current();
+
+            let editor = manager
+                .panel(cx.props.panel_index)
+                .tab(cx.props.editor)
+                .as_text_editor()
+                .unwrap();
+
+            let path = editor.path();
+            (
+                Url::from_file_path(path).unwrap(),
+                editor.rope().to_string(),
+            )
+        };
+
+        // Notify language server the file has been opened
+        cx.spawn(async move {
+            let mut lsp = EditorManager::get_or_insert_lsp(manager, &lsp_config).await;
+
+            lsp.server_socket
+                .did_open(DidOpenTextDocumentParams {
+                    text_document: TextDocumentItem {
+                        uri: file_uri,
+                        language_id: "rust".into(),
+                        version: 0,
+                        text: file_text,
+                    },
+                })
+                .unwrap();
+        });
     });
 
-    let edit_trigger = use_ref(cx, || {
-        let (tx, rx) = unbounded_channel::<()>();
-        (tx, Some(rx))
-    });
+    let hover = use_ref(cx, || None);
+    let (metrics, coroutine_coroutine) =
+        use_metrics(cx, &manager, cx.props.panel_index, cx.props.editor);
     let editable = use_edit(
         cx,
         &manager,
         cx.props.panel_index,
         cx.props.editor,
-        edit_trigger.read().0.clone(),
-    );
-    let hover = use_ref(cx, || None);
-    let metrics = use_metrics(
-        cx,
-        &manager,
-        cx.props.panel_index,
-        cx.props.editor,
-        edit_trigger,
+        coroutine_coroutine,
     );
     let cursor_coords = use_ref::<CursorPoint>(cx, CursorPoint::default);
     let offset_x = use_state(cx, || 0);
     let offset_y = use_state(cx, || 0);
-
-    // Trigger initial highlighting
-    use_effect(cx, (), move |_| {
-        edit_trigger.read().0.send(()).ok();
-        async move {}
-    });
 
     let lsp_coroutine = use_coroutine(cx, |mut rx: UnboundedReceiver<LspAction>| {
         to_owned![lsp_config, hover, manager];
@@ -215,9 +198,6 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
                 offset_x: *offset_x.get(),
                 offset_y: *offset_y.get(),
                 onscroll: onscroll,
-                width: "100%",
-                height: "100%",
-                show_scrollbar: true,
                 builder_values: (cursor, metrics.clone(), editable, lsp_coroutine.clone(), file_uri, editor.rope(), hover.clone(), cursor_coords.clone(), debouncer.clone()),
                 length: metrics.0.len(),
                 item_size: manual_line_height,

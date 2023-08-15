@@ -8,7 +8,7 @@ use skia_safe::textlayout::ParagraphBuilder;
 use skia_safe::textlayout::ParagraphStyle;
 use skia_safe::textlayout::TextStyle;
 use skia_safe::FontMgr;
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 
 use crate::manager::EditorManagerWrapper;
 use crate::parser::*;
@@ -17,18 +17,18 @@ pub fn use_metrics<'a>(
     cx: &'a ScopeState,
     manager: &EditorManagerWrapper,
     pane_index: usize,
-    editor: usize,
-    edit_trigger: &UseRef<(UnboundedSender<()>, Option<UnboundedReceiver<()>>)>,
-) -> &'a UseState<(SyntaxBlocks, f32)> {
+    editor_index: usize,
+) -> (&'a UseState<(SyntaxBlocks, f32)>, &'a UnboundedSender<()>) {
     let metrics = use_state::<(SyntaxBlocks, f32)>(cx, || (Vec::new(), 0.0));
 
-    use_effect(cx, (), move |_| {
-        to_owned![metrics, manager];
-        let edit_trigger = &mut edit_trigger.write().1;
-        let mut edit_trigger = edit_trigger.take().unwrap();
+    let metrics_sender = use_memo(cx, &(pane_index, editor_index), |_| {
+        let (metrics_sender, mut metrics_receiver) = unbounded_channel::<()>();
 
-        async move {
-            while edit_trigger.recv().await.is_some() {
+        metrics_sender.send(()).unwrap();
+
+        to_owned![metrics, manager];
+        cx.spawn(async move {
+            while metrics_receiver.recv().await.is_some() {
                 let mut font_collection = FontCollection::new();
                 font_collection.set_default_font_manager(FontMgr::default(), "Jetbrains Mono");
 
@@ -45,7 +45,7 @@ pub fn use_metrics<'a>(
 
                 let editor = manager
                     .panel(pane_index)
-                    .tab(editor)
+                    .tab(editor_index)
                     .as_text_editor()
                     .unwrap();
 
@@ -78,8 +78,9 @@ pub fn use_metrics<'a>(
                     *width = p.longest_line();
                 });
             }
-        }
+        });
+        metrics_sender
     });
 
-    metrics
+    (metrics, metrics_sender)
 }

@@ -47,14 +47,14 @@ pub struct ControlledVirtualScrollViewProps<'a, T: 'a> {
     item_size: f32,
     builder: Box<BuilderFunction<'a, T>>,
     pub builder_values: T,
-    #[props(optional)]
-    pub height: Option<&'a str>,
-    #[props(optional)]
-    pub width: Option<&'a str>,
-    #[props(optional)]
-    pub padding: Option<&'a str>,
-    #[props(optional)]
-    pub show_scrollbar: Option<bool>,
+    #[props(default = "100%".to_string(), into)]
+    pub height: String,
+    #[props(default = "100%".to_string(), into)]
+    pub width: String,
+    #[props(default = "0".to_string(), into)]
+    pub padding: String,
+    #[props(default = true, into)]
+    pub show_scrollbar: bool,
     pub offset_y: i32,
     pub offset_x: i32,
     pub onscroll: Option<EventHandler<'a, (Axis, i32)>>,
@@ -93,10 +93,10 @@ pub fn ControlledVirtualScrollView<'a, T>(
     let focus = use_focus(cx);
     let (node_ref, size) = use_node(cx);
 
-    let padding = cx.props.padding.unwrap_or("0");
-    let user_container_width = cx.props.width.unwrap_or("100%");
-    let user_container_height = cx.props.height.unwrap_or("100%");
-    let show_scrollbar = cx.props.show_scrollbar.unwrap_or_default();
+    let padding = &cx.props.padding;
+    let user_container_width = &cx.props.width;
+    let user_container_height = &cx.props.height;
+    let show_scrollbar = cx.props.show_scrollbar;
     let items_length = cx.props.length;
     let items_size = cx.props.item_size;
 

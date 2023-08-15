@@ -10,7 +10,7 @@ use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
 };
-use tokio::sync::{mpsc::unbounded_channel, mpsc::UnboundedSender};
+use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 use torin::geometry::CursorPoint;
 use uuid::Uuid;
 use winit::event_loop::EventLoopProxy;
@@ -228,7 +228,7 @@ pub struct UseEdit {
     pub(crate) event_loop_proxy: Option<EventLoopProxy<EventMessage>>,
     pub(crate) pane_index: usize,
     pub(crate) editor_index: usize,
-    pub(crate) edit_trigger: UnboundedSender<()>,
+    pub(crate) coroutine_coroutine: UnboundedSender<()>,
 }
 
 impl UseEdit {
@@ -298,7 +298,7 @@ impl UseEdit {
                     .unwrap();
                 let event = editor.process_key(&e.key, &e.code, &e.modifiers);
                 if event == TextEvent::TextChanged {
-                    self.edit_trigger.send(()).ok();
+                    self.coroutine_coroutine.send(()).unwrap();
                     *self.selecting_text_with_mouse.write_silent() = None;
                 }
             }
@@ -321,7 +321,7 @@ pub fn use_edit(
     manager: &EditorManagerWrapper,
     pane_index: usize,
     editor_index: usize,
-    edit_trigger: UnboundedSender<()>,
+    coroutine_coroutine: &UnboundedSender<()>,
 ) -> UseEdit {
     let event_loop_proxy = cx.consume_context::<EventLoopProxy<EventMessage>>();
     let selecting_text_with_mouse = use_ref(cx, || None);
@@ -402,6 +402,6 @@ pub fn use_edit(
         event_loop_proxy,
         pane_index,
         editor_index,
-        edit_trigger,
+        coroutine_coroutine: coroutine_coroutine.clone(),
     }
 }
