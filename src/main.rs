@@ -234,12 +234,6 @@ fn Body(cx: Scope) -> Element {
                                                 )
                                             })
                                         }
-                                        Button {
-                                            onclick: split_panel,
-                                            label {
-                                                "Split"
-                                            }
-                                        }
                                         if show_close_panel {
                                             rsx!(
                                                 Button {
@@ -249,6 +243,12 @@ fn Body(cx: Scope) -> Element {
                                                     }
                                                 }
                                             )
+                                        }
+                                        Button {
+                                            onclick: split_panel,
+                                            label {
+                                                "Split"
+                                            }
                                         }
                                     }
                                     rect {
