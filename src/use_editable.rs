@@ -10,12 +10,12 @@ use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
 };
-use tokio::sync::{mpsc::unbounded_channel, mpsc::UnboundedSender};
+use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 use torin::geometry::CursorPoint;
 use uuid::Uuid;
 use winit::event_loop::EventLoopProxy;
 
-use crate::panels::PanelsManager;
+use crate::{lsp::LanguageId, manager::UseManager};
 
 /// Iterator over text lines.
 pub struct LinesIterator<'a> {
@@ -37,6 +37,8 @@ pub struct EditorData {
     cursor: TextCursor,
     rope: Rope,
     path: PathBuf,
+    pub root_path: PathBuf,
+    pub language_id: LanguageId,
 
     /// Selected text range
     selected: Option<(usize, usize)>,
@@ -57,12 +59,19 @@ impl EditorData {
 }
 
 impl EditorData {
-    pub fn new(path: PathBuf, rope: Rope, (row, col): (usize, usize)) -> Self {
+    pub fn new(path: PathBuf, rope: Rope, (row, col): (usize, usize), root_path: PathBuf) -> Self {
+        let language_id = if let Some(ext) = path.extension() {
+            LanguageId::parse(ext.to_str().unwrap())
+        } else {
+            LanguageId::default()
+        };
         Self {
             path,
             rope,
             cursor: TextCursor::new(row, col),
             selected: None,
+            language_id,
+            root_path,
         }
     }
 }
@@ -211,17 +220,17 @@ impl TextEditor for EditorData {
 
 /// Manage an editable content.
 #[derive(Clone)]
-pub struct UseEditable {
-    pub(crate) editor: UseState<PanelsManager>,
+pub struct UseEdit {
+    pub(crate) manager: UseManager,
     pub(crate) cursor_reference: CursorReference,
     pub(crate) selecting_text_with_mouse: UseRef<Option<CursorPoint>>,
     pub(crate) event_loop_proxy: Option<EventLoopProxy<EventMessage>>,
     pub(crate) pane_index: usize,
     pub(crate) editor_index: usize,
-    pub(crate) edit_trigger: UnboundedSender<()>,
+    pub(crate) coroutine_coroutine: UnboundedSender<()>,
 }
 
-impl UseEditable {
+impl UseEdit {
     /// Create a cursor attribute.
     pub fn cursor_attr<'a, T>(&self, cx: Scope<'a, T>) -> AttributeValue<'a> {
         cx.any_value(CustomAttributeValues::CursorReference(
@@ -231,9 +240,8 @@ impl UseEditable {
 
     /// Create a highlights attribute.
     pub fn highlights_attr<'a, T>(&self, cx: Scope<'a, T>, editor_id: usize) -> AttributeValue<'a> {
-        let editor = self
-            .editor
-            .get()
+        let manager = self.manager.current();
+        let editor = manager
             .panel(self.pane_index)
             .tab(self.editor_index)
             .as_text_editor()
@@ -255,15 +263,13 @@ impl UseEditable {
 
                 self.cursor_reference.set_id(Some(*id));
                 self.cursor_reference.set_cursor_position(Some(coords));
-
-                self.editor.with_mut(|text_editor| {
-                    let editor = text_editor
-                        .panel_mut(self.pane_index)
-                        .tab_mut(self.editor_index)
-                        .as_text_editor_mut()
-                        .unwrap();
-                    editor.unhighlight();
-                });
+                let mut manager = self.manager.write();
+                let editor = manager
+                    .panel_mut(self.pane_index)
+                    .tab_mut(self.editor_index)
+                    .as_text_editor_mut()
+                    .unwrap();
+                editor.unhighlight();
             }
             EditableEvent::MouseOver(e, id) => {
                 self.selecting_text_with_mouse.with(|selecting_text| {
@@ -283,18 +289,17 @@ impl UseEditable {
                 if e.key == Key::Escape {
                     return;
                 }
-                self.editor.with_mut(|text_editor| {
-                    let editor = text_editor
-                        .panel_mut(self.pane_index)
-                        .tab_mut(self.editor_index)
-                        .as_text_editor_mut()
-                        .unwrap();
-                    let event = editor.process_key(&e.key, &e.code, &e.modifiers);
-                    if event == TextEvent::TextChanged {
-                        self.edit_trigger.send(()).ok();
-                        *self.selecting_text_with_mouse.write_silent() = None;
-                    }
-                });
+                let mut manager = self.manager.write();
+                let editor = manager
+                    .panel_mut(self.pane_index)
+                    .tab_mut(self.editor_index)
+                    .as_text_editor_mut()
+                    .unwrap();
+                let event = editor.process_key(&e.key, &e.code, &e.modifiers);
+                if event == TextEvent::TextChanged {
+                    self.coroutine_coroutine.send(()).unwrap();
+                    *self.selecting_text_with_mouse.write_silent() = None;
+                }
             }
         }
 
@@ -312,71 +317,52 @@ impl UseEditable {
 
 pub fn use_edit(
     cx: &ScopeState,
-    text_editor: &UseState<PanelsManager>,
+    manager: &UseManager,
     pane_index: usize,
     editor_index: usize,
-    edit_trigger: UnboundedSender<()>,
-) -> UseEditable {
-    let id = cx.use_hook(Uuid::new_v4);
+    coroutine_coroutine: &UnboundedSender<()>,
+) -> UseEdit {
     let event_loop_proxy = cx.consume_context::<EventLoopProxy<EventMessage>>();
-
-    let cursor_channels = cx.use_hook(|| {
-        let (tx, rx) = unbounded_channel::<CursorLayoutResponse>();
-        (tx, Some(rx))
-    });
-
-    let cursor_reference = cx.use_hook(|| CursorReference {
-        text_id: *id,
-        agent: cursor_channels.0.clone(),
-        cursor_position: Arc::new(Mutex::new(None)),
-        cursor_id: Arc::new(Mutex::new(None)),
-        cursor_selections: Arc::new(Mutex::new(None)),
-    });
-
     let selecting_text_with_mouse = use_ref(cx, || None);
 
-    let use_editable = UseEditable {
-        editor: text_editor.clone(),
-        cursor_reference: cursor_reference.clone(),
-        selecting_text_with_mouse: selecting_text_with_mouse.clone(),
-        event_loop_proxy,
-        pane_index,
-        editor_index,
-        edit_trigger,
-    };
+    let cursor_reference = use_memo(cx, &(pane_index, editor_index), |_| {
+        let text_id = Uuid::new_v4();
+        let (cursor_sender, mut cursor_receiver) = unbounded_channel::<CursorLayoutResponse>();
 
-    // Listen for new calculations from the layout engine
-    use_effect(cx, (), move |_| {
-        let cursor_reference = cursor_reference.clone();
-        let cursor_receiver = cursor_channels.1.take();
-        let text_editor = text_editor.clone();
+        let cursor_reference = CursorReference {
+            text_id,
+            agent: cursor_sender.clone(),
+            cursor_position: Arc::new(Mutex::new(None)),
+            cursor_id: Arc::new(Mutex::new(None)),
+            cursor_selections: Arc::new(Mutex::new(None)),
+        };
 
-        async move {
-            let mut cursor_receiver = cursor_receiver.unwrap();
+        cx.spawn({
+            to_owned![manager, cursor_reference];
+            async move {
+                while let Some(message) = cursor_receiver.recv().await {
+                    match message {
+                        // Update the cursor position calculated by the layout
+                        CursorLayoutResponse::CursorPosition { position, id } => {
+                            let mut manager = manager.write();
+                            let editor = manager
+                                .panel(pane_index)
+                                .tab(editor_index)
+                                .as_text_editor()
+                                .unwrap();
 
-            while let Some(message) = cursor_receiver.recv().await {
-                match message {
-                    // Update the cursor position calculated by the layout
-                    CursorLayoutResponse::CursorPosition { position, id } => {
-                        let editor = text_editor
-                            .panel(pane_index)
-                            .tab(editor_index)
-                            .as_text_editor()
-                            .unwrap();
+                            let new_current_line = editor.rope.line(id);
 
-                        let new_current_line = editor.rope.line(id);
+                            // Use the line lenght as new column if the clicked column surpases the length
+                            let new_cursor = if position >= new_current_line.chars().len() {
+                                (new_current_line.chars().len(), id)
+                            } else {
+                                (position, id)
+                            };
 
-                        // Use the line lenght as new column if the clicked column surpases the length
-                        let new_cursor = if position >= new_current_line.chars().len() {
-                            (new_current_line.chars().len(), id)
-                        } else {
-                            (position, id)
-                        };
-
-                        // Only update if it's actually different
-                        if editor.cursor.as_tuple() != new_cursor {
-                            text_editor.with_mut(|text_editor| {
-                                let editor = text_editor
+                            // Only update if it's actually different
+                            if editor.cursor.as_tuple() != new_cursor {
+                                let editor = manager
                                     .panel_mut(pane_index)
                                     .tab_mut(editor_index)
                                     .as_text_editor_mut()
@@ -384,28 +370,37 @@ pub fn use_edit(
                                 editor.cursor.set_col(new_cursor.0);
                                 editor.cursor.set_row(new_cursor.1);
                                 editor.unhighlight();
-                            });
-                        }
+                            }
 
-                        // Remove the current calcutions so the layout engine doesn't try to calculate again
-                        cursor_reference.set_cursor_position(None);
-                    }
-                    // Update the text selections calculated by the layout
-                    CursorLayoutResponse::TextSelection { from, to, id } => {
-                        text_editor.with_mut(|text_editor| {
-                            let editor = text_editor
+                            // Remove the current calcutions so the layout engine doesn't try to calculate again
+                            cursor_reference.set_cursor_position(None);
+                        }
+                        // Update the text selections calculated by the layout
+                        CursorLayoutResponse::TextSelection { from, to, id } => {
+                            let mut manager = manager.write();
+                            let editor = manager
                                 .panel_mut(pane_index)
                                 .tab_mut(editor_index)
                                 .as_text_editor_mut()
                                 .unwrap();
                             editor.highlight_text(from, to, id);
-                        });
-                        cursor_reference.set_cursor_selections(None);
+                            cursor_reference.set_cursor_selections(None);
+                        }
                     }
                 }
             }
-        }
+        });
+
+        cursor_reference
     });
 
-    use_editable
+    UseEdit {
+        manager: manager.clone(),
+        cursor_reference: cursor_reference.clone(),
+        selecting_text_with_mouse: selecting_text_with_mouse.clone(),
+        event_loop_proxy,
+        pane_index,
+        editor_index,
+        coroutine_coroutine: coroutine_coroutine.clone(),
+    }
 }

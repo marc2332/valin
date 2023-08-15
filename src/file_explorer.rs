@@ -1,17 +1,17 @@
 use std::path::PathBuf;
 
 use dioxus::prelude::*;
-use dioxus_std::utils::channel::*;
 use freya::elements as dioxus_elements;
 use freya::prelude::*;
+use futures::StreamExt;
 use tokio::fs::read_to_string;
 use tokio::{
     fs::{self},
     io,
 };
 
-use crate::panels::PanelTab;
-use crate::panels::PanelsManager;
+use crate::manager::use_manager;
+use crate::manager::PanelTab;
 use crate::use_editable::EditorData;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -27,6 +27,13 @@ pub enum TreeItem {
 }
 
 impl TreeItem {
+    pub fn path(&self) -> &PathBuf {
+        match self {
+            Self::Folder { path, .. } => path,
+            Self::File { path } => path,
+        }
+    }
+
     pub fn set_folder_state(&mut self, folder_path: &PathBuf, folder_state: &FolderState) {
         if let TreeItem::Folder { path, state } = self {
             if path == folder_path {
@@ -40,9 +47,7 @@ impl TreeItem {
             }
         }
     }
-}
 
-impl TreeItem {
     pub fn flat(&self, depth: usize) -> Vec<FlatItem> {
         let mut flat_items = vec![self.clone().into_flat(depth)];
         if let TreeItem::Folder {
@@ -116,10 +121,9 @@ enum TreeTask {
     OpenFile(PathBuf),
 }
 
-#[inline_props]
 #[allow(non_snake_case)]
-pub fn FileExplorer(cx: Scope, panels_manager: UseState<PanelsManager>) -> Element {
-    let channel = use_channel::<TreeTask>(cx, 5);
+pub fn FileExplorer(cx: Scope) -> Element {
+    let manager = use_manager(cx);
     let tree = use_ref::<Option<TreeItem>>(cx, || None);
 
     let items = use_memo(cx, tree, move |tree| {
@@ -130,45 +134,40 @@ pub fn FileExplorer(cx: Scope, panels_manager: UseState<PanelsManager>) -> Eleme
         }
     });
 
-    use_listen_channel(cx, &channel, {
-        to_owned![tree, panels_manager];
-        move |task| {
-            to_owned![tree, panels_manager];
-            async move {
-                if let Ok(task) = task {
-                    match task {
-                        TreeTask::OpenFolder(folder_path) => {
-                            if let Ok(items) = read_folder_as_items(&folder_path).await {
-                                if let Some(tree) = tree.write().as_mut() {
-                                    tree.set_folder_state(
-                                        &folder_path,
-                                        &FolderState::Opened(items),
-                                    );
-                                }
-                            }
-                        }
-                        TreeTask::CloseFolder(folder_path) => {
+    let channel = use_coroutine(cx, |mut rx| {
+        to_owned![tree, manager];
+        async move {
+            while let Some(task) = rx.next().await {
+                match task {
+                    TreeTask::OpenFolder(folder_path) => {
+                        if let Ok(items) = read_folder_as_items(&folder_path).await {
                             if let Some(tree) = tree.write().as_mut() {
-                                tree.set_folder_state(&folder_path, &FolderState::Closed);
+                                tree.set_folder_state(&folder_path, &FolderState::Opened(items));
                             }
                         }
-                        TreeTask::OpenFile(file_path) => {
-                            let content = read_to_string(&file_path).await;
-                            if let Ok(content) = content {
-                                panels_manager.with_mut(|panels_manager| {
-                                    panels_manager.push_tab(
-                                        PanelTab::TextEditor(EditorData::new(
-                                            file_path.to_path_buf(),
-                                            Rope::from(content),
-                                            (0, 0),
-                                        )),
-                                        panels_manager.focused_panel(),
-                                        true,
-                                    );
-                                });
-                            } else if let Err(err) = content {
-                                println!("Error reading file: {err:?}");
-                            }
+                    }
+                    TreeTask::CloseFolder(folder_path) => {
+                        if let Some(tree) = tree.write().as_mut() {
+                            tree.set_folder_state(&folder_path, &FolderState::Closed);
+                        }
+                    }
+                    TreeTask::OpenFile(file_path) => {
+                        let content = read_to_string(&file_path).await;
+                        if let Ok(content) = content {
+                            let root_path = tree.read().as_ref().unwrap().path().clone();
+                            let focused_panel = manager.current().focused_panel();
+                            manager.global_write().push_tab(
+                                PanelTab::TextEditor(EditorData::new(
+                                    file_path.to_path_buf(),
+                                    Rope::from(content),
+                                    (0, 0),
+                                    root_path,
+                                )),
+                                focused_panel,
+                                true,
+                            );
+                        } else if let Err(err) = content {
+                            println!("Error reading file: {err:?}");
                         }
                     }
                 }
@@ -197,7 +196,7 @@ pub fn FileExplorer(cx: Scope, panels_manager: UseState<PanelsManager>) -> Eleme
     };
 
     let tree_builder =
-        |(_key, index, _cx, values): (_, _, _, &Option<(&Vec<FlatItem>, UseChannel<TreeTask>)>)| {
+        |(_key, index, _cx, values): (_, _, _, &Option<(&Vec<FlatItem>, Coroutine<TreeTask>)>)| {
             let (items, channel) = values.as_ref().unwrap();
             let item: &FlatItem = &items[index];
 
@@ -214,9 +213,7 @@ pub fn FileExplorer(cx: Scope, panels_manager: UseState<PanelsManager>) -> Eleme
             if item.is_file {
                 to_owned![channel, item];
                 let onclick = move |_| {
-                    channel
-                        .try_send(TreeTask::OpenFile(item.path.clone()))
-                        .unwrap();
+                    channel.send(TreeTask::OpenFile(item.path.clone()));
                 };
                 rsx!(
                     FileExplorerItem {
@@ -235,13 +232,9 @@ pub fn FileExplorer(cx: Scope, panels_manager: UseState<PanelsManager>) -> Eleme
                 to_owned![channel, item];
                 let onclick = move |_| {
                     if item.is_opened {
-                        channel
-                            .try_send(TreeTask::CloseFolder(item.path.clone()))
-                            .unwrap();
+                        channel.send(TreeTask::CloseFolder(item.path.clone()));
                     } else {
-                        channel
-                            .try_send(TreeTask::OpenFolder(item.path.clone()))
-                            .unwrap();
+                        channel.send(TreeTask::OpenFolder(item.path.clone()));
                     }
                 };
 
@@ -288,7 +281,7 @@ pub fn FileExplorer(cx: Scope, panels_manager: UseState<PanelsManager>) -> Eleme
                 height: "100%",
                 length: items.len(),
                 item_size: 26.0,
-                builder_values: (items, channel),
+                builder_values: (items, channel.clone()),
                 direction: "vertical",
                 builder: Box::new(tree_builder)
             }

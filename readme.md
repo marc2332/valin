@@ -14,3 +14,4 @@
 - [ ] Undo (ctr-z)
 - [ ] Redo (ctr-y)
 - [x] Files explorer
+- [ ] Intellisense
