@@ -42,6 +42,18 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
     let lsp_config = LspConfig::new(cx.props.root_path.clone(), &cx.props.language_id);
     let manager = use_manager(cx);
     let debouncer = use_debouncer(cx, Duration::from_millis(300));
+    let hover_location = use_ref(cx, || None);
+    let (metrics, coroutine_coroutine) =
+        use_metrics(cx, &manager, cx.props.panel_index, cx.props.editor);
+    let editable = use_edit(
+        cx,
+        &manager,
+        cx.props.panel_index,
+        cx.props.editor,
+        coroutine_coroutine,
+    );
+    let cursor_coords = use_ref(cx, CursorPoint::default);
+    let scroll_offsets = use_ref(cx, || (0, 0));
 
     cx.use_hook(|| {
         to_owned![lsp_config, manager];
@@ -88,22 +100,8 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
         });
     });
 
-    let hover = use_ref(cx, || None);
-    let (metrics, coroutine_coroutine) =
-        use_metrics(cx, &manager, cx.props.panel_index, cx.props.editor);
-    let editable = use_edit(
-        cx,
-        &manager,
-        cx.props.panel_index,
-        cx.props.editor,
-        coroutine_coroutine,
-    );
-    let cursor_coords = use_ref::<CursorPoint>(cx, CursorPoint::default);
-    let offset_x = use_state(cx, || 0);
-    let offset_y = use_state(cx, || 0);
-
     let lsp_coroutine = use_coroutine(cx, |mut rx: UnboundedReceiver<LspAction>| {
-        to_owned![lsp_config, hover, manager];
+        to_owned![lsp_config, hover_location, manager];
         async move {
             while let Some(action) = rx.next().await {
                 match action {
@@ -117,9 +115,9 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
                                 let response = lsp.server_socket.hover(params).await;
 
                                 if let Ok(Some(res)) = response {
-                                    *hover.write() = Some((line, res));
+                                    *hover_location.write() = Some((line, res));
                                 } else {
-                                    *hover.write() = None;
+                                    *hover_location.write() = None;
                                 }
                             } else {
                                 println!("LSP: Still indexing...");
@@ -129,7 +127,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
                         }
                     }
                     LspAction::Clear => {
-                        *hover.write() = None;
+                        *hover_location.write() = None;
                     }
                 }
             }
@@ -162,8 +160,8 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
     };
 
     let onscroll = move |(axis, scroll): (Axis, i32)| match axis {
-        Axis::Y => offset_y.set(scroll),
-        Axis::X => offset_x.set(scroll),
+        Axis::X => scroll_offsets.write().0 = scroll,
+        Axis::Y => scroll_offsets.write().1 = scroll,
     };
 
     let onclick = {
@@ -195,10 +193,10 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
             direction: "horizontal",
             background: "rgb(40, 40, 40)",
             ControlledVirtualScrollView {
-                offset_x: *offset_x.get(),
-                offset_y: *offset_y.get(),
+                offset_x: scroll_offsets.read().0,
+                offset_y: scroll_offsets.read().1,
                 onscroll: onscroll,
-                builder_values: (cursor, metrics.clone(), editable, lsp_coroutine.clone(), file_uri, editor.rope(), hover.clone(), cursor_coords.clone(), debouncer.clone()),
+                builder_values: (cursor, metrics.clone(), editable, lsp_coroutine.clone(), file_uri, editor.rope(), hover_location.clone(), cursor_coords.clone(), debouncer.clone()),
                 length: metrics.read().0.len(),
                 item_size: manual_line_height,
                 builder: Box::new(move |(k, line_index, _cx, options)| {
@@ -238,8 +236,17 @@ fn EditorLine<'a>(
     font_size: f32,
     line_height: f32,
 ) -> Element {
-    let (cursor, metrics, editable, lsp_coroutine, file_uri, rope, hover, cursor_coords, debouncer) =
-        options;
+    let (
+        cursor,
+        metrics,
+        editable,
+        lsp_coroutine,
+        file_uri,
+        rope,
+        hover_location,
+        cursor_coords,
+        debouncer,
+    ) = options;
     let (syntax_blocks, width) = &*metrics.read();
     let line = syntax_blocks.get(*line_index).unwrap();
     let line_str = rope.line(*line_index).to_string();
@@ -273,7 +280,13 @@ fn EditorLine<'a>(
     };
 
     let onmouseover = {
-        to_owned![editable, file_uri, lsp_coroutine, cursor_coords, hover];
+        to_owned![
+            editable,
+            file_uri,
+            lsp_coroutine,
+            cursor_coords,
+            hover_location
+        ];
         move |e: MouseEvent| {
             let coords = e.get_element_coordinates();
             let data = e.data;
@@ -282,7 +295,7 @@ fn EditorLine<'a>(
 
             // Optimization: Re run the component only when the hover box is shown
             // otherwise just update the coordinates silently
-            if hover.read().is_some() {
+            if hover_location.read().is_some() {
                 *cursor_coords.write() = coords;
             } else {
                 *cursor_coords.write_silent() = coords;
@@ -316,7 +329,7 @@ fn EditorLine<'a>(
     let gutter_width = font_size * 3.0;
 
     render!(
-        if let Some((line, hover)) = hover.read().as_ref() {
+        if let Some((line, hover)) = hover_location.read().as_ref() {
             if *line == *line_index as u32 {
                 if let Some(content) = hover.hover_to_text() {
                     let cursor_coords = cursor_coords.read();
