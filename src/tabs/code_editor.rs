@@ -199,7 +199,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
                 offset_y: *offset_y.get(),
                 onscroll: onscroll,
                 builder_values: (cursor, metrics.clone(), editable, lsp_coroutine.clone(), file_uri, editor.rope(), hover.clone(), cursor_coords.clone(), debouncer.clone()),
-                length: metrics.0.len(),
+                length: metrics.read().0.len(),
                 item_size: manual_line_height,
                 builder: Box::new(move |(k, line_index, _cx, options)| {
                     rsx!(
@@ -219,7 +219,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
 
 type BuilderProps<'a> = (
     TextCursor,
-    UseState<(SyntaxBlocks, f32)>,
+    UseRef<(SyntaxBlocks, f32)>,
     use_editable::UseEdit,
     Coroutine<LspAction>,
     Url,
@@ -240,7 +240,7 @@ fn EditorLine<'a>(
 ) -> Element {
     let (cursor, metrics, editable, lsp_coroutine, file_uri, rope, hover, cursor_coords, debouncer) =
         options;
-    let (syntax_blocks, width) = metrics.get();
+    let (syntax_blocks, width) = &*metrics.read();
     let line = syntax_blocks.get(*line_index).unwrap();
     let line_str = rope.line(*line_index).to_string();
     let highlights_attr = editable.highlights_attr(cx, *line_index);

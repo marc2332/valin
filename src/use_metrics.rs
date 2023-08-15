@@ -18,8 +18,8 @@ pub fn use_metrics<'a>(
     manager: &EditorManagerWrapper,
     pane_index: usize,
     editor_index: usize,
-) -> (&'a UseState<(SyntaxBlocks, f32)>, &'a UnboundedSender<()>) {
-    let metrics = use_state::<(SyntaxBlocks, f32)>(cx, || (Vec::new(), 0.0));
+) -> (&'a UseRef<(SyntaxBlocks, f32)>, &'a UnboundedSender<()>) {
+    let metrics = use_ref::<(SyntaxBlocks, f32)>(cx, || (Vec::new(), 0.0));
 
     let metrics_sender = use_memo(cx, &(pane_index, editor_index), |_| {
         let (metrics_sender, mut metrics_receiver) = unbounded_channel::<()>();
@@ -73,10 +73,10 @@ pub fn use_metrics<'a>(
 
                 p.layout(scalar::MAX);
 
-                metrics.with_mut(|(syntax_blocks, width)| {
-                    parse(editor.rope(), syntax_blocks);
-                    *width = p.longest_line();
-                });
+                let (syntax_blocks, width) = &mut *metrics.write();
+
+                parse(editor.rope(), syntax_blocks);
+                *width = p.longest_line();
             }
         });
         metrics_sender
