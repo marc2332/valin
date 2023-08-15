@@ -253,7 +253,7 @@ fn Body(cx: Scope) -> Element {
                                                             key: "{tab_id}",
                                                             panel_index: panel_index,
                                                             editor: active_tab_index,
-                                                            language_id: editor.language_id.clone(),
+                                                            language_id: editor.language_id,
                                                             root_path: editor.root_path.clone()
                                                         }
                                                     )

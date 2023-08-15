@@ -22,6 +22,7 @@ use crate::manager::EditorManager;
 struct ClientState {
     indexed: Arc<Mutex<bool>>,
     lsp_status_coroutine: Coroutine<(String, String)>,
+    language_server: String,
 }
 
 struct Stop;
@@ -39,28 +40,24 @@ pub struct LSPBridge {
 }
 
 impl LspConfig {
-    pub fn new(root_dir: PathBuf, language: &str) -> Self {
-        #[allow(clippy::match_single_binding)]
-        let language_server = match language {
-            _ => "rust-analyzer",
-        }
-        .to_string();
+    pub fn new(root_dir: PathBuf, language_id: LanguageId) -> Option<Self> {
+        let language_server = language_id.language_server()?.to_string();
 
-        Self {
+        Some(Self {
             root_dir,
             language_server,
-        }
+        })
     }
 }
 
 pub async fn create_lsp(config: LspConfig, manager: &EditorManager) -> LSPBridge {
     let indexed = Arc::new(Mutex::new(false));
-    let lsp_status_coroutine = manager.lsp_status_coroutine.clone();
 
     let (mainloop, mut server) = async_lsp::MainLoop::new_client(|_server| {
         let mut router = Router::new(ClientState {
             indexed: indexed.clone(),
-            lsp_status_coroutine: lsp_status_coroutine.clone(),
+            lsp_status_coroutine: manager.lsp_status_coroutine.clone(),
+            language_server: config.language_server.clone(),
         });
         router
             .notification::<Progress>(|this, prog| {
@@ -76,7 +73,7 @@ pub async fn create_lsp(config: LspConfig, manager: &EditorManager) -> LSPBridge
                             }
                         });
                         this.lsp_status_coroutine.send((
-                            "rust-analyzer".to_string(),
+                            this.language_server.clone(),
                             format!(
                                 "{} {}",
                                 percentage.unwrap_or_default(),
@@ -139,5 +136,47 @@ pub async fn create_lsp(config: LspConfig, manager: &EditorManager) -> LSPBridge
     LSPBridge {
         indexed,
         server_socket: server,
+    }
+}
+
+#[derive(Default, Clone, Debug, PartialEq, Copy)]
+pub enum LanguageId {
+    Rust,
+    Python,
+    JavaScript,
+    TypeScript,
+    #[default]
+    Unknown,
+}
+
+impl ToString for LanguageId {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Rust => "rust",
+            Self::Python => "python",
+            Self::JavaScript => "javascript",
+            Self::TypeScript => "typescript",
+            Self::Unknown => "unknown",
+        }
+        .to_string()
+    }
+}
+
+impl LanguageId {
+    pub fn parse(id: &str) -> Self {
+        match id {
+            "rs" => LanguageId::Rust,
+            "py" => LanguageId::Python,
+            "js" => LanguageId::JavaScript,
+            "ts" => LanguageId::TypeScript,
+            _ => LanguageId::Unknown,
+        }
+    }
+
+    pub fn language_server(&self) -> Option<&str> {
+        match self {
+            LanguageId::Rust => Some("rust-analyzer"),
+            _ => None,
+        }
     }
 }

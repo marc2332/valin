@@ -15,7 +15,7 @@ use torin::geometry::CursorPoint;
 use uuid::Uuid;
 use winit::event_loop::EventLoopProxy;
 
-use crate::manager::EditorManagerWrapper;
+use crate::{lsp::LanguageId, manager::EditorManagerWrapper};
 
 /// Iterator over text lines.
 pub struct LinesIterator<'a> {
@@ -38,7 +38,7 @@ pub struct EditorData {
     rope: Rope,
     path: PathBuf,
     pub root_path: PathBuf,
-    pub language_id: String,
+    pub language_id: LanguageId,
 
     /// Selected text range
     selected: Option<(usize, usize)>,
@@ -59,13 +59,12 @@ impl EditorData {
 }
 
 impl EditorData {
-    pub fn new(
-        path: PathBuf,
-        rope: Rope,
-        (row, col): (usize, usize),
-        language_id: String,
-        root_path: PathBuf,
-    ) -> Self {
+    pub fn new(path: PathBuf, rope: Rope, (row, col): (usize, usize), root_path: PathBuf) -> Self {
+        let language_id = if let Some(ext) = path.extension() {
+            LanguageId::parse(ext.to_str().unwrap())
+        } else {
+            LanguageId::default()
+        };
         Self {
             path,
             rope,

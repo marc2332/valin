@@ -161,7 +161,6 @@ pub fn FileExplorer(cx: Scope) -> Element {
                                     file_path.to_path_buf(),
                                     Rope::from(content),
                                     (0, 0),
-                                    "Rust".to_string(),
                                     root_path,
                                 )),
                                 focused_panel,

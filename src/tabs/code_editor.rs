@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use crate::controlled_virtual_scroll_view::*;
+use crate::lsp::LanguageId;
 use crate::lsp::LspConfig;
 use crate::manager::use_manager;
 use crate::manager::EditorManager;
@@ -28,7 +29,7 @@ use tokio_stream::StreamExt;
 pub struct EditorProps {
     pub panel_index: usize,
     pub editor: usize,
-    pub language_id: String,
+    pub language_id: LanguageId,
     pub root_path: PathBuf,
 }
 
@@ -39,7 +40,7 @@ pub enum LspAction {
 
 #[allow(non_snake_case)]
 pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
-    let lsp_config = LspConfig::new(cx.props.root_path.clone(), &cx.props.language_id);
+    let lsp_config = LspConfig::new(cx.props.root_path.clone(), cx.props.language_id);
     let manager = use_manager(cx);
     let debouncer = use_debouncer(cx, Duration::from_millis(300));
     let hover_location = use_ref(cx, || None);
@@ -57,6 +58,7 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
 
     cx.use_hook(|| {
         to_owned![lsp_config, manager];
+        let language_id = cx.props.language_id.to_string();
 
         // Focus editor
         {
@@ -67,67 +69,71 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
                 .set_active_tab(cx.props.editor);
         }
 
-        let (file_uri, file_text) = {
-            let manager = manager.current();
+        if let Some(lsp_config) = lsp_config {
+            let (file_uri, file_text) = {
+                let manager = manager.current();
 
-            let editor = manager
-                .panel(cx.props.panel_index)
-                .tab(cx.props.editor)
-                .as_text_editor()
-                .unwrap();
+                let editor = manager
+                    .panel(cx.props.panel_index)
+                    .tab(cx.props.editor)
+                    .as_text_editor()
+                    .unwrap();
 
-            let path = editor.path();
-            (
-                Url::from_file_path(path).unwrap(),
-                editor.rope().to_string(),
-            )
-        };
+                let path = editor.path();
+                (
+                    Url::from_file_path(path).unwrap(),
+                    editor.rope().to_string(),
+                )
+            };
 
-        // Notify language server the file has been opened
-        cx.spawn(async move {
-            let mut lsp = EditorManager::get_or_insert_lsp(manager, &lsp_config).await;
+            // Notify language server the file has been opened
+            cx.spawn(async move {
+                let mut lsp = EditorManager::get_or_insert_lsp(manager, &lsp_config).await;
 
-            lsp.server_socket
-                .did_open(DidOpenTextDocumentParams {
-                    text_document: TextDocumentItem {
-                        uri: file_uri,
-                        language_id: "rust".into(),
-                        version: 0,
-                        text: file_text,
-                    },
-                })
-                .unwrap();
-        });
+                lsp.server_socket
+                    .did_open(DidOpenTextDocumentParams {
+                        text_document: TextDocumentItem {
+                            uri: file_uri,
+                            language_id,
+                            version: 0,
+                            text: file_text,
+                        },
+                    })
+                    .unwrap();
+            });
+        }
     });
 
     let lsp_coroutine = use_coroutine(cx, |mut rx: UnboundedReceiver<LspAction>| {
         to_owned![lsp_config, hover_location, manager];
         async move {
-            while let Some(action) = rx.next().await {
-                match action {
-                    LspAction::Hover(params) => {
-                        let lsp = manager.current().lsp(&lsp_config).cloned();
+            if let Some(lsp_config) = lsp_config {
+                while let Some(action) = rx.next().await {
+                    match action {
+                        LspAction::Hover(params) => {
+                            let lsp = manager.current().lsp(&lsp_config).cloned();
 
-                        if let Some(mut lsp) = lsp {
-                            let is_indexed = *lsp.indexed.lock().unwrap();
-                            if is_indexed {
-                                let line = params.text_document_position_params.position.line;
-                                let response = lsp.server_socket.hover(params).await;
+                            if let Some(mut lsp) = lsp {
+                                let is_indexed = *lsp.indexed.lock().unwrap();
+                                if is_indexed {
+                                    let line = params.text_document_position_params.position.line;
+                                    let response = lsp.server_socket.hover(params).await;
 
-                                if let Ok(Some(res)) = response {
-                                    *hover_location.write() = Some((line, res));
+                                    if let Ok(Some(res)) = response {
+                                        *hover_location.write() = Some((line, res));
+                                    } else {
+                                        *hover_location.write() = None;
+                                    }
                                 } else {
-                                    *hover_location.write() = None;
+                                    println!("LSP: Still indexing...");
                                 }
                             } else {
-                                println!("LSP: Still indexing...");
+                                println!("LSP: Not running.");
                             }
-                        } else {
-                            println!("LSP: Not running.");
                         }
-                    }
-                    LspAction::Clear => {
-                        *hover_location.write() = None;
+                        LspAction::Clear => {
+                            *hover_location.write() = None;
+                        }
                     }
                 }
             }
