@@ -1,6 +1,7 @@
 mod commander;
 mod controlled_virtual_scroll_view;
 mod file_explorer;
+mod icons;
 mod lsp;
 mod manager;
 mod parser;
@@ -20,6 +21,7 @@ use commander::*;
 use file_explorer::*;
 use freya::prelude::{keyboard::Code, *};
 use futures::StreamExt;
+use icons::*;
 use manager::*;
 use sidebar::*;
 use sidepanel::*;
@@ -156,12 +158,6 @@ fn Body(cx: Scope) -> Element {
                         manager.current().panels().iter().enumerate().map(|(panel_index, panel)| {
                             let is_focused = manager.current().focused_panel() == panel_index;
                             let active_tab_index = panel.active_tab();
-                            let panel_background = if is_focused {
-                                "rgb(247, 127, 0)"
-                            } else {
-                                "transparent"
-                            };
-
                             let close_panel = {
                                 to_owned![manager];
                                 move |_: MouseEvent| {
@@ -186,11 +182,19 @@ fn Body(cx: Scope) -> Element {
                                 }
                             };
 
+                            let show_close_panel = panels_len > 1;
+                            let tabsbar_scroll_offset = if show_close_panel {
+                                115
+                            } else {
+                                55
+                            };
+
                             rsx!(
                                 rect {
                                     direction: "vertical",
                                     height: "100%",
                                     width: "{panes_width}%",
+                                    overflow: "clip",
                                     rect {
                                         direction: "horizontal",
                                         height: "50",
@@ -198,7 +202,7 @@ fn Body(cx: Scope) -> Element {
                                         padding: "2.5",
                                         ScrollView {
                                             direction: "horizontal",
-                                            width: "calc(100% - 55)",
+                                            width: "calc(100% - {tabsbar_scroll_offset})",
                                             panel.tabs().iter().enumerate().map(|(i, tab)| {
                                                 let is_selected = active_tab_index == Some(i);
                                                 let (tab_id, tab_title) = tab.get_data();
@@ -236,12 +240,20 @@ fn Body(cx: Scope) -> Element {
                                                 "Split"
                                             }
                                         }
+                                        if show_close_panel {
+                                            rsx!(
+                                                Button {
+                                                    onclick: close_panel,
+                                                    label {
+                                                        "Close"
+                                                    }
+                                                }
+                                            )
+                                        }
                                     }
                                     rect {
                                         height: "calc(100%-50)",
                                         width: "100%",
-                                        background: "{panel_background}",
-                                        padding: "1.5",
                                         onclick: onclickpanel,
                                         if let Some(active_tab_index) = active_tab_index {
                                             let active_tab = panel.tab(active_tab_index);
@@ -274,26 +286,20 @@ fn Body(cx: Scope) -> Element {
                                                     height: "100%",
                                                     direction: "both",
                                                     background: "rgb(20, 20, 20)",
-                                                    if panels_len > 1 {
-                                                        rsx!(
-                                                            Button {
-                                                                onclick: close_panel,
-                                                                label {
-                                                                    "Close panel"
-                                                                }
-                                                            }
-                                                        )
-                                                    } else {
-                                                        rsx!(
-                                                            label {
-                                                                "Coding is fun"
-                                                            }
-                                                        )
+                                                    ExpandedIcon {
+                                                        Logo {
+                                                            enabled: is_focused,
+                                                            width: "200",
+                                                            height: "200"
+                                                        }
                                                     }
                                                 }
                                             )
                                         }
                                     }
+                                }
+                                Divider {
+
                                 }
                             )
                         })

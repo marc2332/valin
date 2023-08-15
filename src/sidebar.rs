@@ -19,17 +19,38 @@ pub fn Sidebar(cx: Scope) -> Element {
             direction: "vertical",
             width: "60",
             height: "100%",
-            Button {
-                label {
-                    "Files"
+            padding: "4 0",
+            SideBarButton {
+                Button {
+                    label {
+                        "Files"
+                    }
                 }
             }
-            Button {
-                onclick: open_settings,
-                label {
-                    "Conf"
+            SideBarButton {
+                Button {
+                    onclick: open_settings,
+                    label {
+                        "Conf"
+                    }
                 }
             }
+        }
+    )
+}
+
+#[derive(Props)]
+struct SideBarButtonProps<'a> {
+    children: Element<'a>,
+}
+
+#[allow(non_snake_case)]
+fn SideBarButton<'a>(cx: Scope<'a, SideBarButtonProps<'a>>) -> Element<'a> {
+    render!(
+        rect {
+            direction: "horizontal",
+            display: "center",
+            &cx.props.children
         }
     )
 }
