@@ -4,9 +4,10 @@
 
 ![Demo](./demo.png)
 
+- [x] Open folders
 - [x] Open files
-- [ ] Save files
-- [x] Syntax highlighting (only Rust for now)
+- [ ] Save files (hehe)
+- [x] Generic Syntax highlighting
 - [x] Text editing
 - [x] Text selection
 - [ ] Copy (ctr-c)
@@ -15,3 +16,6 @@
 - [ ] Redo (ctr-y)
 - [x] Files explorer
 - [ ] Intellisense
+  - [x] Hover (exprimental)
+  - [ ] Autocomplete
+  - [ ] Code actions
