@@ -1306,8 +1306,9 @@ dependencies = [
 
 [[package]]
 name = "freya"
-version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=3bae45f37a3381a513de22eb37673377b526c0e8#3bae45f37a3381a513de22eb37673377b526c0e8"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b4f245ec1fe497076f85ca0a69c9baf78ea27c8b85aa1a409ed8027fd2604a75"
 dependencies = [
  "anymap 0.12.1",
  "dioxus",
@@ -1336,7 +1337,8 @@ dependencies = [
 [[package]]
 name = "freya-common"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=3bae45f37a3381a513de22eb37673377b526c0e8#3bae45f37a3381a513de22eb37673377b526c0e8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eedd06a38e70900b93dd781e725ce929f05c1abc84c042c8f9c1f0d42bc7c045"
 dependencies = [
  "accesskit",
  "accesskit_winit",
@@ -1354,7 +1356,8 @@ dependencies = [
 [[package]]
 name = "freya-components"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=3bae45f37a3381a513de22eb37673377b526c0e8#3bae45f37a3381a513de22eb37673377b526c0e8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95aaa73daddaf4164b4e647ebce2bef69a59d42897f7a96707f4360e3021fc41"
 dependencies = [
  "dioxus",
  "dioxus-router",
@@ -1374,7 +1377,8 @@ dependencies = [
 [[package]]
 name = "freya-core"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=3bae45f37a3381a513de22eb37673377b526c0e8#3bae45f37a3381a513de22eb37673377b526c0e8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d382eb4e23adab7d4b736f58adb46d671027f9e45645a1200bf5b096520a52a"
 dependencies = [
  "accesskit",
  "dioxus-core",
@@ -1399,7 +1403,8 @@ dependencies = [
 [[package]]
 name = "freya-dom"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=3bae45f37a3381a513de22eb37673377b526c0e8#3bae45f37a3381a513de22eb37673377b526c0e8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b5be08a2b2ba64958421c7f664b88c969ed9e452f61260d1fc7fb47b8b318138"
 dependencies = [
  "dioxus-core",
  "dioxus-core-macro",
@@ -1445,7 +1450,8 @@ dependencies = [
 [[package]]
 name = "freya-elements"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=3bae45f37a3381a513de22eb37673377b526c0e8#3bae45f37a3381a513de22eb37673377b526c0e8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3fcfb62d98d1f6ee6bb30cc50f809051bfbeff1681a3ee054c1c8918f419c82b"
 dependencies = [
  "accesskit",
  "dioxus-core",
@@ -1463,7 +1469,8 @@ dependencies = [
 [[package]]
 name = "freya-hooks"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=3bae45f37a3381a513de22eb37673377b526c0e8#3bae45f37a3381a513de22eb37673377b526c0e8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ade3af11efd276812b975d48dd96b66d8ff895372e8f353a04c1dbfffed2c3ce"
 dependencies = [
  "accesskit",
  "bytes",
@@ -1489,7 +1496,8 @@ dependencies = [
 [[package]]
 name = "freya-layout"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=3bae45f37a3381a513de22eb37673377b526c0e8#3bae45f37a3381a513de22eb37673377b526c0e8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "db1d951ee9b55cd1b6602947d5d7e9b85851fabdfda71874fe5a781e0309f015"
 dependencies = [
  "accesskit",
  "dioxus",
@@ -1509,7 +1517,8 @@ dependencies = [
 [[package]]
 name = "freya-node-state"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=3bae45f37a3381a513de22eb37673377b526c0e8#3bae45f37a3381a513de22eb37673377b526c0e8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d88f765dc9533cd28d1cfdc251a74cb29622c90f12094f14681c70a66dad6e7b"
 dependencies = [
  "accesskit",
  "anymap 0.12.1",
@@ -1535,7 +1544,8 @@ dependencies = [
 [[package]]
 name = "freya-renderer"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=3bae45f37a3381a513de22eb37673377b526c0e8#3bae45f37a3381a513de22eb37673377b526c0e8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ec516c9736ad7cf2ea69cffb046a76afb0ed7e1e80dc444986547847cc70329"
 dependencies = [
  "accesskit",
  "accesskit_winit",
@@ -4014,7 +4024,8 @@ dependencies = [
 [[package]]
 name = "torin"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=3bae45f37a3381a513de22eb37673377b526c0e8#3bae45f37a3381a513de22eb37673377b526c0e8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eed5f715070e24e6b57b192546e66e54d45ac2b3c6ba1276c93bf888dfa9e79f"
 dependencies = [
  "dioxus-core",
  "dioxus-native-core",

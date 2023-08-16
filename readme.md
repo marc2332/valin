@@ -4,6 +4,10 @@
 
 ![Demo](./demo.png)
 
+Run with `--release` mode if you want max performance.
+
+## To Do
+
 - [x] Open folders
 - [x] Open files
 - [ ] Save files (hehe)
