@@ -338,7 +338,7 @@ fn EditorLine<'a>(
                     if let Some(content) = hover.hover_to_text() {
                         let cursor_coords = cursor_coords.read();
                         let offset_x = cursor_coords.x  as f32 + gutter_width;
-                            Some(rsx!(
+                            rsx!(
                                 rect {
                                     width: "0",
                                     height: "0",
@@ -348,13 +348,15 @@ fn EditorLine<'a>(
                                         content: content
                                     }
                                 }
-                            ))
-                    }  else {
-                        None
+                            )
+                    } else {
+                        rsx!( rect { } )
                     }
                 } else {
-                    None
+                    rsx!( rect { } )
                 }
+            } else {
+                rsx!( rect { } )
             }
             rect {
                 width: "{gutter_width}",
