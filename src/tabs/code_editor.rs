@@ -6,6 +6,7 @@ use crate::lsp::LanguageId;
 use crate::lsp::LspConfig;
 use crate::manager::use_manager;
 use crate::manager::EditorManager;
+use crate::manager::EditorView;
 use crate::parser::SyntaxBlocks;
 use crate::use_debouncer::use_debouncer;
 use crate::use_debouncer::UseDebouncer;
@@ -140,32 +141,36 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
         }
     });
 
-    let manager_ref = manager.current();
-    let cursor_attr = editable.cursor_attr(cx);
-    let font_size = manager_ref.font_size();
-    let manual_line_height = manager_ref.font_size() * manager_ref.line_height();
-    let is_panel_focused = manager_ref.focused_panel() == cx.props.panel_index;
-    let panel = manager_ref.panel(cx.props.panel_index);
-    let is_editor_focused = manager_ref.is_focused() && panel.active_tab() == Some(cx.props.editor);
-    let editor = panel.tab(cx.props.editor).as_text_editor().unwrap();
-    let path = editor.path();
-    let cursor = editor.cursor();
-    let file_uri = Url::from_file_path(path).unwrap();
-
     let onscroll = move |(axis, scroll): (Axis, i32)| match axis {
         Axis::X => scroll_offsets.write().0 = scroll,
         Axis::Y => scroll_offsets.write().1 = scroll,
     };
 
-    let onclick = {
+    let onglobalclick = {
         to_owned![editable, manager];
         move |_: MouseEvent| {
+            let is_panel_focused = manager.current().focused_panel() == cx.props.panel_index;
+
             if is_panel_focused {
                 editable.process_event(&EditableEvent::Click);
             }
+        }
+    };
+
+    let onclick = {
+        to_owned![manager];
+        move |_: MouseEvent| {
+            let is_editor_focused = {
+                let manager_ref = manager.current();
+                let panel = manager_ref.panel(cx.props.panel_index);
+                let is_editor_focused = *manager_ref.focused_view() == EditorView::CodeEditor
+                    && panel.active_tab() == Some(cx.props.editor);
+                is_editor_focused
+            };
+
             if !is_editor_focused {
                 let mut manager = manager.global_write();
-                manager.set_focused(true);
+                manager.set_focused_view(EditorView::CodeEditor);
                 manager.set_focused_panel(cx.props.panel_index);
                 manager
                     .panel_mut(cx.props.panel_index)
@@ -175,20 +180,41 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
     };
 
     let onkeydown = {
-        to_owned![editable];
+        to_owned![editable, manager];
         move |e: KeyboardEvent| {
+            let (is_panel_focused, is_editor_focused) = {
+                let manager_ref = manager.current();
+                let panel = manager_ref.panel(cx.props.panel_index);
+                let is_panel_focused = manager_ref.focused_panel() == cx.props.panel_index;
+                let is_editor_focused = *manager_ref.focused_view() == EditorView::CodeEditor
+                    && panel.active_tab() == Some(cx.props.editor);
+                (is_panel_focused, is_editor_focused)
+            };
+
             if is_panel_focused && is_editor_focused {
                 editable.process_event(&EditableEvent::KeyDown(e.data));
             }
         }
     };
 
+    let manager_ref = manager.current();
+    let cursor_attr = editable.cursor_attr(cx);
+    let font_size = manager_ref.font_size();
+    let manual_line_height = manager_ref.font_size() * manager_ref.line_height();
+    let panel = manager_ref.panel(cx.props.panel_index);
+
+    let editor = panel.tab(cx.props.editor).as_text_editor().unwrap();
+    let path = editor.path();
+    let cursor = editor.cursor();
+    let file_uri = Url::from_file_path(path).unwrap();
+
     render!(
         rect {
             width: "100%",
             height: "100%",
             onkeydown: onkeydown,
-            onglobalclick: onclick,
+            onglobalclick: onglobalclick,
+            onclick: onclick,
             cursor_reference: cursor_attr,
             direction: "horizontal",
             background: "rgb(40, 40, 40)",

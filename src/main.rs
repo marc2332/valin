@@ -63,7 +63,7 @@ fn Body(cx: Scope) -> Element {
         }
     });
     let manager = use_init_manager(cx, lsp_status_coroutine);
-    let show_commander = use_state(cx, || false);
+    let focused_view = manager.current().focused_view.clone();
 
     // Commands
     let commands = cx.use_hook(|| {
@@ -77,12 +77,11 @@ fn Body(cx: Scope) -> Element {
         })]
     });
 
-    let onsubmit = {
+    let onsubmitcommander = {
         to_owned![manager];
         move |_| {
             let mut manager = manager.global_write();
-            manager.set_focused(true);
-            show_commander.set(false);
+            manager.set_focused_view_to_previous();
         }
     };
 
@@ -91,19 +90,21 @@ fn Body(cx: Scope) -> Element {
         move |e: KeyboardEvent| {
             let mut manager = manager.global_write();
             if e.code == Code::Escape {
-                if *show_commander.current() {
-                    manager.set_focused(true);
-                    show_commander.set(false);
+                if manager.focused_view == EditorView::Commander {
+                    manager.set_focused_view_to_previous();
                 } else {
-                    manager.set_focused(false);
-                    show_commander.set(true);
+                    manager.set_focused_view(EditorView::Commander);
                 }
             }
         }
     };
 
+    // TODO: Use `onglobalmouseodown` when it gets added to freya
     let onglobalclick = |_| {
-        show_commander.set(false);
+        let mut manager = manager.global_write();
+        if manager.focused_view == EditorView::Commander {
+            manager.set_focused_view_to_previous();
+        }
     };
 
     let panels_len = manager.current().panels().len();
@@ -130,6 +131,14 @@ fn Body(cx: Scope) -> Element {
             height: "100%",
             onkeydown: onkeydown,
             onglobalclick: onglobalclick,
+            if focused_view == EditorView::Commander {
+                rsx!(
+                    Commander {
+                        onsubmit: onsubmitcommander,
+                        commands: commands
+                    }
+                )
+            }
             rect {
                 height: "calc(100% - 32)",
                 direction: "horizontal",
@@ -143,14 +152,6 @@ fn Body(cx: Scope) -> Element {
                     direction: "vertical",
                     width: "calc(100% - 334)",
                     height: "100%",
-                    if *show_commander.current(){
-                        rsx!(
-                            Commander {
-                                onsubmit: onsubmit,
-                                commands: commands
-                            }
-                        )
-                    }
                     rect {
                         height: "100%",
                         width: "100%",
@@ -314,17 +315,20 @@ fn Body(cx: Scope) -> Element {
                 direction: "horizontal",
                 padding: "5",
                 color: "rgb(200, 200, 200)",
+                label {
+                    "{focused_view}"
+                }
                 if let Some(cursor) = cursor {
                     rsx!(
                         label {
-                            "Ln {cursor.row() + 1}, Col {cursor.col() + 1}"
+                            " | Ln {cursor.row() + 1}, Col {cursor.col() + 1}"
                         }
                     )
                 }
                 for (name, msg) in lsp_messages.get() {
                     rsx!(
                         label {
-                            "  {name} {msg}"
+                            " | {name} {msg}"
                         }
                     )
                 }

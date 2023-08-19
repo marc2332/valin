@@ -1,5 +1,6 @@
 use std::{
     collections::{HashMap, HashSet},
+    fmt::Display,
     ops::{Deref, DerefMut},
     rc::Rc,
     sync::Arc,
@@ -217,9 +218,28 @@ impl<'a> DerefMut for EditorManagerWrapperGuard<'a> {
     }
 }
 
+#[derive(Clone, Default, PartialEq)]
+pub enum EditorView {
+    #[default]
+    CodeEditor,
+    FilesExplorer,
+    Commander,
+}
+
+impl Display for EditorView {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::CodeEditor => f.write_str("Code Editor"),
+            Self::FilesExplorer => f.write_str("Files Explorer"),
+            Self::Commander => f.write_str("Commander"),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct EditorManager {
-    pub is_focused: bool,
+    pub previous_focused_view: Option<EditorView>,
+    pub focused_view: EditorView,
     pub focused_panel: usize,
     pub panes: Vec<Panel>,
     pub font_size: f32,
@@ -231,7 +251,8 @@ pub struct EditorManager {
 impl EditorManager {
     pub fn new(lsp_status_coroutine: Coroutine<(String, String)>) -> Self {
         Self {
-            is_focused: true,
+            previous_focused_view: None,
+            focused_view: EditorView::default(),
             focused_panel: 0,
             panes: vec![Panel::new()],
             font_size: 17.0,
@@ -245,12 +266,21 @@ impl EditorManager {
         self.font_size = fontsize;
     }
 
-    pub fn set_focused(&mut self, focused: bool) {
-        self.is_focused = focused;
+    pub fn set_focused_view(&mut self, focused_view: EditorView) {
+        self.previous_focused_view = Some(self.focused_view.clone());
+
+        self.focused_view = focused_view;
     }
 
-    pub fn is_focused(&self) -> bool {
-        self.is_focused
+    pub fn focused_view(&self) -> &EditorView {
+        &self.focused_view
+    }
+
+    pub fn set_focused_view_to_previous(&mut self) {
+        if let Some(previous_focused_view) = self.previous_focused_view.clone() {
+            self.focused_view = previous_focused_view;
+            self.previous_focused_view = None;
+        }
     }
 
     pub fn font_size(&self) -> f32 {
