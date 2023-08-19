@@ -1,5 +1,8 @@
 use dioxus::core::AttributeValue;
-use freya::prelude::{keyboard::Key, *};
+use freya::prelude::{
+    keyboard::{Key, Modifiers},
+    *,
+};
 use freya_common::{CursorLayoutResponse, EventMessage};
 use freya_node_state::CursorReference;
 use ropey::iter::Lines;
@@ -286,7 +289,7 @@ impl UseEdit {
                 *self.selecting_text_with_mouse.write_silent() = None;
             }
             EditableEvent::KeyDown(e) => {
-                if e.key == Key::Escape {
+                if e.key == Key::Escape || e.modifiers.contains(Modifiers::ALT) {
                     return;
                 }
                 let mut manager = self.manager.write();

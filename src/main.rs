@@ -19,7 +19,8 @@ use std::collections::HashMap;
 
 use commander::*;
 use file_explorer::*;
-use freya::prelude::{keyboard::Code, *};
+use freya::prelude::keyboard::{Key, Modifiers};
+use freya::prelude::*;
 use futures::StreamExt;
 use icons::*;
 use manager::*;
@@ -89,12 +90,30 @@ fn Body(cx: Scope) -> Element {
         to_owned![manager];
         move |e: KeyboardEvent| {
             let mut manager = manager.global_write();
-            if e.code == Code::Escape {
-                if manager.focused_view == EditorView::Commander {
-                    manager.set_focused_view_to_previous();
-                } else {
-                    manager.set_focused_view(EditorView::Commander);
+            match &e.key {
+                Key::Escape => {
+                    if manager.focused_view == EditorView::Commander {
+                        manager.set_focused_view_to_previous();
+                    } else {
+                        manager.set_focused_view(EditorView::Commander);
+                    }
                 }
+                Key::Character(ch) if e.modifiers.contains(Modifiers::ALT) => {
+                    let font_size = manager.font_size;
+                    match ch.as_str() {
+                        "+" => manager.set_fontsize(font_size + 4.0),
+                        "-" => manager.set_fontsize(font_size - 4.0),
+                        "e" => {
+                            if *manager.focused_view() == EditorView::FilesExplorer {
+                                manager.set_focused_view(EditorView::CodeEditor)
+                            } else {
+                                manager.set_focused_view(EditorView::FilesExplorer)
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                _ => {}
             }
         }
     };

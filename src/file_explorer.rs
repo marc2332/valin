@@ -187,96 +187,28 @@ pub fn FileExplorer(cx: Scope) -> Element {
         }
     });
 
-    let open_dialog = |_| {
-        cx.spawn({
-            to_owned![tree];
-            async {
-                let tree = tree;
-                let task = rfd::AsyncFileDialog::new().pick_folder();
-                let folder = task.await;
+    let open_dialog = {
+        to_owned![manager];
+        move |_| {
+            cx.spawn({
+                to_owned![tree, manager];
+                async move {
+                    let task = rfd::AsyncFileDialog::new().pick_folder();
+                    let folder = task.await;
 
-                if let Some(folder) = folder {
-                    let path = folder.path().to_owned();
-                    let items = read_folder_as_items(&path).await.unwrap_or_default();
-                    *tree.write() = Some(TreeItem::Folder {
-                        path,
-                        state: FolderState::Opened(items),
-                    });
-                }
-            }
-        });
-    };
-
-    type TreeBuilderOptions<'a> = Option<(
-        &'a Vec<FlatItem>,
-        Coroutine<(TreeTask, usize)>,
-        UseState<usize>,
-        bool,
-    )>;
-
-    let tree_builder = |(_key, index, _cx, values): (_, usize, _, &TreeBuilderOptions)| {
-        let (items, channel, focused_item, is_focused_files_explorer) = values.as_ref().unwrap();
-        let item: &FlatItem = &items[index];
-
-        let path = item.path.to_str().unwrap().to_owned();
-        let name = item
-            .path
-            .file_name()
-            .unwrap()
-            .to_owned()
-            .to_str()
-            .unwrap()
-            .to_string();
-        let is_focused = *focused_item.get() == index;
-        let is_focused_files_explorer = *is_focused_files_explorer;
-
-        if item.is_file {
-            to_owned![channel, item];
-            let onclick = move |_| {
-                channel.send((TreeTask::OpenFile(item.path.clone()), index));
-            };
-            rsx!(
-                FileExplorerItem {
-                    key: "{path}",
-                    depth: item.depth,
-                    onclick: onclick,
-                    is_focused: is_focused,
-                    is_focused_files_explorer: is_focused_files_explorer,
-                    label {
-                        font_size: "14",
-                        max_lines: "1",
-                        text_overflow: "ellipsis",
-                        "📃 {name}"
+                    if let Some(folder) = folder {
+                        let path = folder.path().to_owned();
+                        let items = read_folder_as_items(&path).await.unwrap_or_default();
+                        *tree.write() = Some(TreeItem::Folder {
+                            path,
+                            state: FolderState::Opened(items),
+                        });
+                        manager
+                            .global_write()
+                            .set_focused_view(EditorView::FilesExplorer);
                     }
                 }
-            )
-        } else {
-            to_owned![channel, item];
-            let onclick = move |_| {
-                if item.is_opened {
-                    channel.send((TreeTask::CloseFolder(item.path.clone()), index));
-                } else {
-                    channel.send((TreeTask::OpenFolder(item.path.clone()), index));
-                }
-            };
-
-            let icon = if item.is_opened { "📂" } else { "📁" };
-
-            rsx!(
-                FileExplorerItem {
-                    key: "{path}",
-                    depth: item.depth,
-                    onclick: onclick,
-                    is_focused: is_focused,
-                    is_focused_files_explorer: is_focused_files_explorer,
-                    label {
-                        font_size: "14",
-                        max_lines: "1",
-                        text_overflow: "ellipsis",
-                        "{icon} {name}"
-                    }
-                }
-            )
+            });
         }
     };
 
@@ -325,9 +257,89 @@ pub fn FileExplorer(cx: Scope) -> Element {
                 builder_values: (items, channel.clone(), focused_item.clone(), is_focused_files_explorer),
                 direction: "vertical",
                 scroll_with_arrows: false,
-                builder: Box::new(tree_builder)
+                builder: Box::new(file_explorer_item_builder)
             }
         })
+    }
+}
+
+type TreeBuilderOptions<'a> = (
+    &'a Vec<FlatItem>,
+    Coroutine<(TreeTask, usize)>,
+    UseState<usize>,
+    bool,
+);
+
+fn file_explorer_item_builder<'a>(
+    (_key, index, _cx, values): (
+        usize,
+        usize,
+        Scope<'a, VirtualScrollViewProps<TreeBuilderOptions>>,
+        &Option<TreeBuilderOptions>,
+    ),
+) -> LazyNodes<'a, 'a> {
+    let (items, channel, focused_item, is_focused_files_explorer) = values.as_ref().unwrap();
+    let item: &FlatItem = &items[index];
+
+    let path = item.path.to_str().unwrap().to_owned();
+    let name = item
+        .path
+        .file_name()
+        .unwrap()
+        .to_owned()
+        .to_str()
+        .unwrap()
+        .to_string();
+    let is_focused = *focused_item.get() == index;
+    let is_focused_files_explorer = *is_focused_files_explorer;
+
+    if item.is_file {
+        to_owned![channel, item];
+        let onclick = move |_| {
+            channel.send((TreeTask::OpenFile(item.path.clone()), index));
+        };
+        rsx!(
+            FileExplorerItem {
+                key: "{path}",
+                depth: item.depth,
+                onclick: onclick,
+                is_focused: is_focused,
+                is_focused_files_explorer: is_focused_files_explorer,
+                label {
+                    font_size: "14",
+                    max_lines: "1",
+                    text_overflow: "ellipsis",
+                    "📃 {name}"
+                }
+            }
+        )
+    } else {
+        to_owned![channel, item];
+        let onclick = move |_| {
+            if item.is_opened {
+                channel.send((TreeTask::CloseFolder(item.path.clone()), index));
+            } else {
+                channel.send((TreeTask::OpenFolder(item.path.clone()), index));
+            }
+        };
+
+        let icon = if item.is_opened { "📂" } else { "📁" };
+
+        rsx!(
+            FileExplorerItem {
+                key: "{path}",
+                depth: item.depth,
+                onclick: onclick,
+                is_focused: is_focused,
+                is_focused_files_explorer: is_focused_files_explorer,
+                label {
+                    font_size: "14",
+                    max_lines: "1",
+                    text_overflow: "ellipsis",
+                    "{icon} {name}"
+                }
+            }
+        )
     }
 }
 
