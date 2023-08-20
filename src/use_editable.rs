@@ -289,10 +289,12 @@ impl UseEdit {
                 *self.selecting_text_with_mouse.write_silent() = None;
             }
             EditableEvent::KeyDown(e) => {
-                let is_plus_or_minus = e.key == Key::Character("+".to_string())
-                    || e.key == Key::Character("-".to_string());
+                let is_plus = e.key == Key::Character("+".to_string());
+                let is_minus = e.key == Key::Character("-".to_string());
+                let is_e = e.key == Key::Character("e".to_string());
+
                 if e.key == Key::Escape
-                    || (e.modifiers.contains(Modifiers::ALT) && is_plus_or_minus)
+                    || (e.modifiers.contains(Modifiers::ALT) && (is_plus || is_minus || is_e))
                 {
                     return;
                 }
