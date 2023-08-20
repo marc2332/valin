@@ -289,9 +289,14 @@ impl UseEdit {
                 *self.selecting_text_with_mouse.write_silent() = None;
             }
             EditableEvent::KeyDown(e) => {
-                if e.key == Key::Escape || e.modifiers.contains(Modifiers::ALT) {
+                let is_plus_or_minus = e.key == Key::Character("+".to_string())
+                    || e.key == Key::Character("-".to_string());
+                if e.key == Key::Escape
+                    || (e.modifiers.contains(Modifiers::ALT) && is_plus_or_minus)
+                {
                     return;
                 }
+
                 let mut manager = self.manager.write();
                 let editor = manager
                     .panel_mut(self.pane_index)

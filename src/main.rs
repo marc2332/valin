@@ -32,6 +32,9 @@ use tabs::config::*;
 use text_area::*;
 use utils::*;
 
+static BASE_FONT_SIZE: f32 = 5.0;
+static MAX_FONT_SIZE: f32 = 150.0;
+
 fn main() {
     launch_cfg(
         app,
@@ -101,8 +104,10 @@ fn Body(cx: Scope) -> Element {
                 Key::Character(ch) if e.modifiers.contains(Modifiers::ALT) => {
                     let font_size = manager.font_size;
                     match ch.as_str() {
-                        "+" => manager.set_fontsize(font_size + 4.0),
-                        "-" => manager.set_fontsize(font_size - 4.0),
+                        "+" => manager
+                            .set_fontsize((font_size + 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE)),
+                        "-" => manager
+                            .set_fontsize((font_size - 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE)),
                         "e" => {
                             if *manager.focused_view() == EditorView::FilesExplorer {
                                 manager.set_focused_view(EditorView::CodeEditor)
