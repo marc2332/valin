@@ -14,12 +14,12 @@ Run with `--release` mode if you want max performance.
 - [x] Generic Syntax highlighting
 - [x] Text editing
 - [x] Text selection
-- [ ] Copy (ctr-c)
-- [ ] Paste (ctr-v)
-- [ ] Undo (ctr-z)
-- [ ] Redo (ctr-y)
+- [ ] Copy
+- [ ] Paste
+- [x] Undo
+- [x] Redo
 - [x] Files explorer
 - [ ] Intellisense
-  - [x] Hover (exprimental)
+  - [x] Hover (exprimental, only rust-analyzer atm)
   - [ ] Autocomplete
   - [ ] Code actions

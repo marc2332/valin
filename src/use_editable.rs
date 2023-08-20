@@ -1,6 +1,6 @@
 use dioxus::core::AttributeValue;
 use freya::prelude::{
-    keyboard::{Key, Modifiers},
+    keyboard::{Code, Key, Modifiers},
     *,
 };
 use freya_common::{CursorLayoutResponse, EventMessage};
@@ -18,7 +18,11 @@ use torin::geometry::CursorPoint;
 use uuid::Uuid;
 use winit::event_loop::EventLoopProxy;
 
-use crate::{lsp::LanguageId, manager::UseManager};
+use crate::{
+    history::{History, HistoryChange},
+    lsp::LanguageId,
+    manager::UseManager,
+};
 
 /// Iterator over text lines.
 pub struct LinesIterator<'a> {
@@ -38,6 +42,7 @@ impl<'a> Iterator for LinesIterator<'a> {
 #[derive(Clone)]
 pub struct EditorData {
     cursor: TextCursor,
+    history: History,
     rope: Rope,
     path: PathBuf,
     pub root_path: PathBuf,
@@ -45,20 +50,6 @@ pub struct EditorData {
 
     /// Selected text range
     selected: Option<(usize, usize)>,
-}
-
-impl EditorData {
-    pub fn path(&self) -> &PathBuf {
-        &self.path
-    }
-
-    pub fn cursor(&self) -> TextCursor {
-        self.cursor.clone()
-    }
-
-    pub fn rope(&self) -> &Rope {
-        &self.rope
-    }
 }
 
 impl EditorData {
@@ -75,7 +66,45 @@ impl EditorData {
             selected: None,
             language_id,
             root_path,
+            history: History::new(),
         }
+    }
+
+    pub fn move_cursor_to_idx(&mut self, idx: usize) {
+        let row = self.rope.byte_to_line(idx);
+        let line_idx = self.rope.line_to_byte(row);
+        let col = idx - line_idx;
+        self.cursor_mut().move_to(row, col);
+    }
+
+    pub fn redo(&mut self) {
+        if self.history.can_redo() {
+            let cursor_idx = self.history.redo(&mut self.rope);
+            if let Some(cursor_idx) = cursor_idx {
+                self.move_cursor_to_idx(cursor_idx);
+            }
+        }
+    }
+
+    pub fn undo(&mut self) {
+        if self.history.can_undo() {
+            let cursor_idx = self.history.undo(&mut self.rope);
+            if let Some(cursor_idx) = cursor_idx {
+                self.move_cursor_to_idx(cursor_idx);
+            }
+        }
+    }
+
+    pub fn path(&self) -> &PathBuf {
+        &self.path
+    }
+
+    pub fn cursor(&self) -> TextCursor {
+        self.cursor.clone()
+    }
+
+    pub fn rope(&self) -> &Rope {
+        &self.rope
     }
 }
 
@@ -96,14 +125,27 @@ impl TextEditor for EditorData {
     }
 
     fn insert_char(&mut self, char: char, char_idx: usize) {
+        self.history.push_change(HistoryChange::InsertChar {
+            idx: char_idx,
+            ch: char,
+        });
         self.rope.insert_char(char_idx, char);
     }
 
-    fn insert(&mut self, text: &str, char_idx: usize) {
-        self.rope.insert(char_idx, text);
+    fn insert(&mut self, text: &str, idx: usize) {
+        self.history.push_change(HistoryChange::InsertText {
+            idx,
+            text: text.to_owned(),
+        });
+        self.rope.insert(idx, text);
     }
 
     fn remove(&mut self, range: Range<usize>) {
+        let text = self.rope.slice(range.clone()).to_string();
+        self.history.push_change(HistoryChange::Remove {
+            idx: range.start,
+            text,
+        });
         self.rope.remove(range)
     }
 
@@ -298,6 +340,21 @@ impl UseEdit {
                     .tab_mut(self.editor_index)
                     .as_text_editor_mut()
                     .unwrap();
+
+                println!("{e:?}");
+
+                if e.modifiers.contains(Modifiers::CONTROL) {
+                    if e.code == Code::KeyZ {
+                        editor.undo();
+                        self.coroutine_coroutine.send(()).unwrap();
+                        return;
+                    } else if e.code == Code::KeyY {
+                        editor.redo();
+                        self.coroutine_coroutine.send(()).unwrap();
+                        return;
+                    }
+                }
+
                 let event = editor.process_key(&e.key, &e.code, &e.modifiers);
                 if event == TextEvent::TextChanged {
                     self.coroutine_coroutine.send(()).unwrap();
