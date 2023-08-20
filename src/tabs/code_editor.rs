@@ -16,6 +16,8 @@ use crate::use_metrics::*;
 use crate::utils::create_paragraph;
 use async_lsp::LanguageServer;
 use freya::prelude::events::KeyboardEvent;
+use freya::prelude::keyboard::Key;
+use freya::prelude::keyboard::Modifiers;
 use freya::prelude::*;
 use lsp_types::Hover;
 use lsp_types::MarkedString;
@@ -179,6 +181,12 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
         }
     };
 
+    let manager_ref = manager.current();
+    let cursor_attr = editable.cursor_attr(cx);
+    let font_size = manager_ref.font_size();
+    let manual_line_height = manager_ref.font_size() * manager_ref.line_height();
+    let panel = manager_ref.panel(cx.props.panel_index);
+
     let onkeydown = {
         to_owned![editable, manager];
         move |e: KeyboardEvent| {
@@ -192,16 +200,27 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
             };
 
             if is_panel_focused && is_editor_focused {
-                editable.process_event(&EditableEvent::KeyDown(e.data));
+                let current_scroll = scroll_offsets.read().1;
+                let lines_jump = (manual_line_height * 4.0) as i32;
+                let min_height = -(metrics.read().0.len() as f32 * manual_line_height) as i32;
+                let max_height = 0; // TODO, this should be the height of the viewport
+
+                match e.key {
+                    Key::ArrowUp if e.modifiers.contains(Modifiers::ALT) => {
+                        let jump = (current_scroll + lines_jump).clamp(min_height, max_height);
+                        scroll_offsets.write().1 = jump;
+                    }
+                    Key::ArrowDown if e.modifiers.contains(Modifiers::ALT) => {
+                        let jump = (current_scroll - lines_jump).clamp(min_height, max_height);
+                        scroll_offsets.write().1 = jump;
+                    }
+                    _ => {
+                        editable.process_event(&EditableEvent::KeyDown(e.data));
+                    }
+                }
             }
         }
     };
-
-    let manager_ref = manager.current();
-    let cursor_attr = editable.cursor_attr(cx);
-    let font_size = manager_ref.font_size();
-    let manual_line_height = manager_ref.font_size() * manager_ref.line_height();
-    let panel = manager_ref.panel(cx.props.panel_index);
 
     let editor = panel.tab(cx.props.editor).as_text_editor().unwrap();
     let path = editor.path();
