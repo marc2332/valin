@@ -341,8 +341,6 @@ impl UseEdit {
                     .as_text_editor_mut()
                     .unwrap();
 
-                println!("{e:?}");
-
                 if e.modifiers.contains(Modifiers::CONTROL) {
                     if e.code == Code::KeyZ {
                         editor.undo();
