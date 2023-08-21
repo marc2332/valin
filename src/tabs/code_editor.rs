@@ -28,6 +28,9 @@ use lsp_types::{
 };
 use tokio_stream::StreamExt;
 
+static LINES_JUMP_ALT: usize = 5;
+static LINES_JUMP_CONTROL: usize = 3;
+
 #[derive(Props, PartialEq)]
 pub struct EditorProps {
     pub panel_index: usize,
@@ -162,17 +165,23 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
     let onclick = {
         to_owned![manager];
         move |_: MouseEvent| {
-            let is_editor_focused = {
+            let (is_code_editor_view_focused, is_editor_focused) = {
                 let manager_ref = manager.current();
                 let panel = manager_ref.panel(cx.props.panel_index);
-                let is_editor_focused = *manager_ref.focused_view() == EditorView::CodeEditor
+                let is_code_editor_view_focused =
+                    *manager_ref.focused_view() == EditorView::CodeEditor;
+                let is_editor_focused = manager_ref.focused_panel() == cx.props.panel_index
                     && panel.active_tab() == Some(cx.props.editor);
-                is_editor_focused
+                (is_code_editor_view_focused, is_editor_focused)
             };
+
+            if !is_code_editor_view_focused {
+                let mut manager = manager.global_write();
+                manager.set_focused_view(EditorView::CodeEditor);
+            }
 
             if !is_editor_focused {
                 let mut manager = manager.global_write();
-                manager.set_focused_view(EditorView::CodeEditor);
                 manager.set_focused_panel(cx.props.panel_index);
                 manager
                     .panel_mut(cx.props.panel_index)
@@ -184,7 +193,8 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
     let manager_ref = manager.current();
     let cursor_attr = editable.cursor_attr(cx);
     let font_size = manager_ref.font_size();
-    let manual_line_height = manager_ref.font_size() * manager_ref.line_height();
+    let line_height = manager_ref.line_height();
+    let manual_line_height = (font_size * line_height).floor();
     let panel = manager_ref.panel(cx.props.panel_index);
 
     let onkeydown = {
@@ -201,22 +211,36 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
 
             if is_panel_focused && is_editor_focused {
                 let current_scroll = scroll_offsets.read().1;
-                let lines_jump = (manual_line_height * 4.0) as i32;
+                let lines_jump = (manual_line_height * LINES_JUMP_ALT as f32).ceil() as i32;
                 let min_height = -(metrics.read().0.len() as f32 * manual_line_height) as i32;
                 let max_height = 0; // TODO, this should be the height of the viewport
 
-                match e.key {
+                let events = match &e.key {
                     Key::ArrowUp if e.modifiers.contains(Modifiers::ALT) => {
                         let jump = (current_scroll + lines_jump).clamp(min_height, max_height);
                         scroll_offsets.write().1 = jump;
+                        (0..LINES_JUMP_ALT)
+                            .map(|_| EditableEvent::KeyDown(e.data.clone()))
+                            .collect::<Vec<EditableEvent>>()
                     }
                     Key::ArrowDown if e.modifiers.contains(Modifiers::ALT) => {
                         let jump = (current_scroll - lines_jump).clamp(min_height, max_height);
                         scroll_offsets.write().1 = jump;
+                        (0..LINES_JUMP_ALT)
+                            .map(|_| EditableEvent::KeyDown(e.data.clone()))
+                            .collect::<Vec<EditableEvent>>()
                     }
+                    Key::ArrowDown | Key::ArrowUp if e.modifiers.contains(Modifiers::CONTROL) => (0
+                        ..LINES_JUMP_CONTROL)
+                        .map(|_| EditableEvent::KeyDown(e.data.clone()))
+                        .collect::<Vec<EditableEvent>>(),
                     _ => {
-                        editable.process_event(&EditableEvent::KeyDown(e.data));
+                        vec![EditableEvent::KeyDown(e.data)]
                     }
+                };
+
+                for event in events {
+                    editable.process_event(&event);
                 }
             }
         }

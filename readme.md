@@ -23,3 +23,12 @@ Run with `--release` mode if you want max performance.
   - [x] Hover (exprimental, only rust-analyzer atm)
   - [ ] Autocomplete
   - [ ] Code actions
+
+# Shortcuts
+- `Alt E`: Toggle focus between the files explorer and the code editors
+- `Alt +`: Increase font size
+- `Alt -`: Decrease font size
+- `Esc`: Open Commander
+- `Arrows`: Navigate the files explorer when focused
+- `Alt Arrows`: Scroll the editor and the cursor with increased speed
+- `Ctrl Arrows`: Scroll the cursor with increased speed  
