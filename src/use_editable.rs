@@ -1,5 +1,8 @@
 use dioxus::core::AttributeValue;
-use freya::prelude::{keyboard::Key, *};
+use freya::prelude::{
+    keyboard::{Key, Modifiers},
+    *,
+};
 use freya_common::{CursorLayoutResponse, EventMessage};
 use freya_node_state::CursorReference;
 use ropey::iter::Lines;
@@ -286,9 +289,16 @@ impl UseEdit {
                 *self.selecting_text_with_mouse.write_silent() = None;
             }
             EditableEvent::KeyDown(e) => {
-                if e.key == Key::Escape {
+                let is_plus = e.key == Key::Character("+".to_string());
+                let is_minus = e.key == Key::Character("-".to_string());
+                let is_e = e.key == Key::Character("e".to_string());
+
+                if e.key == Key::Escape
+                    || (e.modifiers.contains(Modifiers::ALT) && (is_plus || is_minus || is_e))
+                {
                     return;
                 }
+
                 let mut manager = self.manager.write();
                 let editor = manager
                     .panel_mut(self.pane_index)

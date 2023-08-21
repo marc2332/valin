@@ -6,6 +6,7 @@ use crate::lsp::LanguageId;
 use crate::lsp::LspConfig;
 use crate::manager::use_manager;
 use crate::manager::EditorManager;
+use crate::manager::EditorView;
 use crate::parser::SyntaxBlocks;
 use crate::use_debouncer::use_debouncer;
 use crate::use_debouncer::UseDebouncer;
@@ -15,6 +16,8 @@ use crate::use_metrics::*;
 use crate::utils::create_paragraph;
 use async_lsp::LanguageServer;
 use freya::prelude::events::KeyboardEvent;
+use freya::prelude::keyboard::Key;
+use freya::prelude::keyboard::Modifiers;
 use freya::prelude::*;
 use lsp_types::Hover;
 use lsp_types::MarkedString;
@@ -24,6 +27,9 @@ use lsp_types::{
     TextDocumentItem, TextDocumentPositionParams, Url, WorkDoneProgressParams,
 };
 use tokio_stream::StreamExt;
+
+static LINES_JUMP_ALT: usize = 5;
+static LINES_JUMP_CONTROL: usize = 3;
 
 #[derive(Props, PartialEq)]
 pub struct EditorProps {
@@ -140,32 +146,42 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
         }
     });
 
-    let manager_ref = manager.current();
-    let cursor_attr = editable.cursor_attr(cx);
-    let font_size = manager_ref.font_size();
-    let manual_line_height = manager_ref.font_size() * manager_ref.line_height();
-    let is_panel_focused = manager_ref.focused_panel() == cx.props.panel_index;
-    let panel = manager_ref.panel(cx.props.panel_index);
-    let is_editor_focused = manager_ref.is_focused() && panel.active_tab() == Some(cx.props.editor);
-    let editor = panel.tab(cx.props.editor).as_text_editor().unwrap();
-    let path = editor.path();
-    let cursor = editor.cursor();
-    let file_uri = Url::from_file_path(path).unwrap();
-
     let onscroll = move |(axis, scroll): (Axis, i32)| match axis {
         Axis::X => scroll_offsets.write().0 = scroll,
         Axis::Y => scroll_offsets.write().1 = scroll,
     };
 
-    let onclick = {
+    let onglobalclick = {
         to_owned![editable, manager];
         move |_: MouseEvent| {
+            let is_panel_focused = manager.current().focused_panel() == cx.props.panel_index;
+
             if is_panel_focused {
                 editable.process_event(&EditableEvent::Click);
             }
+        }
+    };
+
+    let onclick = {
+        to_owned![manager];
+        move |_: MouseEvent| {
+            let (is_code_editor_view_focused, is_editor_focused) = {
+                let manager_ref = manager.current();
+                let panel = manager_ref.panel(cx.props.panel_index);
+                let is_code_editor_view_focused =
+                    *manager_ref.focused_view() == EditorView::CodeEditor;
+                let is_editor_focused = manager_ref.focused_panel() == cx.props.panel_index
+                    && panel.active_tab() == Some(cx.props.editor);
+                (is_code_editor_view_focused, is_editor_focused)
+            };
+
+            if !is_code_editor_view_focused {
+                let mut manager = manager.global_write();
+                manager.set_focused_view(EditorView::CodeEditor);
+            }
+
             if !is_editor_focused {
                 let mut manager = manager.global_write();
-                manager.set_focused(true);
                 manager.set_focused_panel(cx.props.panel_index);
                 manager
                     .panel_mut(cx.props.panel_index)
@@ -174,21 +190,74 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
         }
     };
 
+    let manager_ref = manager.current();
+    let cursor_attr = editable.cursor_attr(cx);
+    let font_size = manager_ref.font_size();
+    let line_height = manager_ref.line_height();
+    let manual_line_height = (font_size * line_height).floor();
+    let panel = manager_ref.panel(cx.props.panel_index);
+
     let onkeydown = {
-        to_owned![editable];
+        to_owned![editable, manager];
         move |e: KeyboardEvent| {
+            let (is_panel_focused, is_editor_focused) = {
+                let manager_ref = manager.current();
+                let panel = manager_ref.panel(cx.props.panel_index);
+                let is_panel_focused = manager_ref.focused_panel() == cx.props.panel_index;
+                let is_editor_focused = *manager_ref.focused_view() == EditorView::CodeEditor
+                    && panel.active_tab() == Some(cx.props.editor);
+                (is_panel_focused, is_editor_focused)
+            };
+
             if is_panel_focused && is_editor_focused {
-                editable.process_event(&EditableEvent::KeyDown(e.data));
+                let current_scroll = scroll_offsets.read().1;
+                let lines_jump = (manual_line_height * LINES_JUMP_ALT as f32).ceil() as i32;
+                let min_height = -(metrics.read().0.len() as f32 * manual_line_height) as i32;
+                let max_height = 0; // TODO, this should be the height of the viewport
+
+                let events = match &e.key {
+                    Key::ArrowUp if e.modifiers.contains(Modifiers::ALT) => {
+                        let jump = (current_scroll + lines_jump).clamp(min_height, max_height);
+                        scroll_offsets.write().1 = jump;
+                        (0..LINES_JUMP_ALT)
+                            .map(|_| EditableEvent::KeyDown(e.data.clone()))
+                            .collect::<Vec<EditableEvent>>()
+                    }
+                    Key::ArrowDown if e.modifiers.contains(Modifiers::ALT) => {
+                        let jump = (current_scroll - lines_jump).clamp(min_height, max_height);
+                        scroll_offsets.write().1 = jump;
+                        (0..LINES_JUMP_ALT)
+                            .map(|_| EditableEvent::KeyDown(e.data.clone()))
+                            .collect::<Vec<EditableEvent>>()
+                    }
+                    Key::ArrowDown | Key::ArrowUp if e.modifiers.contains(Modifiers::CONTROL) => (0
+                        ..LINES_JUMP_CONTROL)
+                        .map(|_| EditableEvent::KeyDown(e.data.clone()))
+                        .collect::<Vec<EditableEvent>>(),
+                    _ => {
+                        vec![EditableEvent::KeyDown(e.data)]
+                    }
+                };
+
+                for event in events {
+                    editable.process_event(&event);
+                }
             }
         }
     };
+
+    let editor = panel.tab(cx.props.editor).as_text_editor().unwrap();
+    let path = editor.path();
+    let cursor = editor.cursor();
+    let file_uri = Url::from_file_path(path).unwrap();
 
     render!(
         rect {
             width: "100%",
             height: "100%",
             onkeydown: onkeydown,
-            onglobalclick: onclick,
+            onglobalclick: onglobalclick,
+            onclick: onclick,
             cursor_reference: cursor_attr,
             direction: "horizontal",
             background: "rgb(40, 40, 40)",

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
-use dioxus::prelude::*;
 use freya::elements as dioxus_elements;
+use freya::prelude::keyboard::Code;
 use freya::prelude::*;
 use futures::StreamExt;
 use tokio::fs::read_to_string;
@@ -11,6 +11,7 @@ use tokio::{
 };
 
 use crate::manager::use_manager;
+use crate::manager::EditorView;
 use crate::manager::PanelTab;
 use crate::use_editable::EditorData;
 
@@ -124,7 +125,9 @@ enum TreeTask {
 #[allow(non_snake_case)]
 pub fn FileExplorer(cx: Scope) -> Element {
     let manager = use_manager(cx);
+    let is_focused_files_explorer = *manager.current().focused_view() == EditorView::FilesExplorer;
     let tree = use_ref::<Option<TreeItem>>(cx, || None);
+    let focused_item = use_state(cx, || 0);
 
     let items = use_memo(cx, tree, move |tree| {
         if let Some(tree) = tree.read().as_ref() {
@@ -135,9 +138,17 @@ pub fn FileExplorer(cx: Scope) -> Element {
     });
 
     let channel = use_coroutine(cx, |mut rx| {
-        to_owned![tree, manager];
+        to_owned![tree, manager, focused_item];
         async move {
-            while let Some(task) = rx.next().await {
+            while let Some((task, item_index)) = rx.next().await {
+                // Focus the FilesExplorer view if it wasn't focused already
+                let focused_view = manager.current().focused_view().clone();
+                if focused_view != EditorView::FilesExplorer {
+                    manager
+                        .global_write()
+                        .set_focused_view(EditorView::FilesExplorer);
+                }
+
                 match task {
                     TreeTask::OpenFolder(folder_path) => {
                         if let Ok(items) = read_folder_as_items(&folder_path).await {
@@ -171,90 +182,51 @@ pub fn FileExplorer(cx: Scope) -> Element {
                         }
                     }
                 }
+                focused_item.set(item_index);
             }
         }
     });
 
-    let open_dialog = |_| {
-        cx.spawn({
-            to_owned![tree];
-            async {
-                let tree = tree;
-                let task = rfd::AsyncFileDialog::new().pick_folder();
-                let folder = task.await;
+    let open_dialog = {
+        to_owned![manager];
+        move |_| {
+            cx.spawn({
+                to_owned![tree, manager];
+                async move {
+                    let task = rfd::AsyncFileDialog::new().pick_folder();
+                    let folder = task.await;
 
-                if let Some(folder) = folder {
-                    let path = folder.path().to_owned();
-                    let items = read_folder_as_items(&path).await.unwrap_or_default();
-                    *tree.write() = Some(TreeItem::Folder {
-                        path,
-                        state: FolderState::Opened(items),
-                    });
+                    if let Some(folder) = folder {
+                        let path = folder.path().to_owned();
+                        let items = read_folder_as_items(&path).await.unwrap_or_default();
+                        *tree.write() = Some(TreeItem::Folder {
+                            path,
+                            state: FolderState::Opened(items),
+                        });
+                        manager
+                            .global_write()
+                            .set_focused_view(EditorView::FilesExplorer);
+                    }
                 }
-            }
-        });
+            });
+        }
     };
 
-    let tree_builder =
-        |(_key, index, _cx, values): (_, _, _, &Option<(&Vec<FlatItem>, Coroutine<TreeTask>)>)| {
-            let (items, channel) = values.as_ref().unwrap();
-            let item: &FlatItem = &items[index];
-
-            let path = item.path.to_str().unwrap().to_owned();
-            let name = item
-                .path
-                .file_name()
-                .unwrap()
-                .to_owned()
-                .to_str()
-                .unwrap()
-                .to_string();
-
-            if item.is_file {
-                to_owned![channel, item];
-                let onclick = move |_| {
-                    channel.send(TreeTask::OpenFile(item.path.clone()));
-                };
-                rsx!(
-                    FileExplorerItem {
-                        key: "{path}",
-                        depth: item.depth,
-                        onclick: onclick,
-                        label {
-                            font_size: "14",
-                            max_lines: "1",
-                            text_overflow: "ellipsis",
-                            "📃 {name}"
-                        }
-                    }
-                )
-            } else {
-                to_owned![channel, item];
-                let onclick = move |_| {
-                    if item.is_opened {
-                        channel.send(TreeTask::CloseFolder(item.path.clone()));
-                    } else {
-                        channel.send(TreeTask::OpenFolder(item.path.clone()));
-                    }
-                };
-
-                let icon = if item.is_opened { "📂" } else { "📁" };
-
-                rsx!(
-                    FileExplorerItem {
-                        key: "{path}",
-                        depth: item.depth,
-                        onclick: onclick,
-                        label {
-                            font_size: "14",
-                            max_lines: "1",
-                            text_overflow: "ellipsis",
-                            "{icon} {name}"
-                        }
-                    }
-                )
+    let onkeydown = move |ev: KeyboardEvent| {
+        let is_focused_files_explorer =
+            *manager.current().focused_view() == EditorView::FilesExplorer;
+        if is_focused_files_explorer {
+            match ev.code {
+                Code::ArrowDown => {
+                    focused_item.modify(|i| if *i < items.len() - 1 { i + 1 } else { *i });
+                }
+                Code::ArrowUp => {
+                    focused_item.modify(|i| if *i > 0 { i - 1 } else { *i });
+                }
+                _ => {}
             }
-        };
+        }
+    };
 
     if items.is_empty() {
         render!(
@@ -276,16 +248,98 @@ pub fn FileExplorer(cx: Scope) -> Element {
             width: "100%",
             height: "100%",
             padding: "10",
+            onkeydown: onkeydown,
             VirtualScrollView {
                 width: "100%",
                 height: "100%",
                 length: items.len(),
                 item_size: 26.0,
-                builder_values: (items, channel.clone()),
+                builder_values: (items, channel.clone(), focused_item.clone(), is_focused_files_explorer),
                 direction: "vertical",
-                builder: Box::new(tree_builder)
+                scroll_with_arrows: false,
+                builder: Box::new(file_explorer_item_builder)
             }
         })
+    }
+}
+
+type TreeBuilderOptions<'a> = (
+    &'a Vec<FlatItem>,
+    Coroutine<(TreeTask, usize)>,
+    UseState<usize>,
+    bool,
+);
+
+fn file_explorer_item_builder<'a>(
+    (_key, index, _cx, values): (
+        usize,
+        usize,
+        Scope<'a, VirtualScrollViewProps<TreeBuilderOptions>>,
+        &Option<TreeBuilderOptions>,
+    ),
+) -> LazyNodes<'a, 'a> {
+    let (items, channel, focused_item, is_focused_files_explorer) = values.as_ref().unwrap();
+    let item: &FlatItem = &items[index];
+
+    let path = item.path.to_str().unwrap().to_owned();
+    let name = item
+        .path
+        .file_name()
+        .unwrap()
+        .to_owned()
+        .to_str()
+        .unwrap()
+        .to_string();
+    let is_focused = *focused_item.get() == index;
+    let is_focused_files_explorer = *is_focused_files_explorer;
+
+    if item.is_file {
+        to_owned![channel, item];
+        let onclick = move |_| {
+            channel.send((TreeTask::OpenFile(item.path.clone()), index));
+        };
+        rsx!(
+            FileExplorerItem {
+                key: "{path}",
+                depth: item.depth,
+                onclick: onclick,
+                is_focused: is_focused,
+                is_focused_files_explorer: is_focused_files_explorer,
+                label {
+                    font_size: "14",
+                    max_lines: "1",
+                    text_overflow: "ellipsis",
+                    "📃 {name}"
+                }
+            }
+        )
+    } else {
+        to_owned![channel, item];
+        let onclick = move |_| {
+            if item.is_opened {
+                channel.send((TreeTask::CloseFolder(item.path.clone()), index));
+            } else {
+                channel.send((TreeTask::OpenFolder(item.path.clone()), index));
+            }
+        };
+
+        let icon = if item.is_opened { "📂" } else { "📁" };
+
+        rsx!(
+            FileExplorerItem {
+                key: "{path}",
+                depth: item.depth,
+                onclick: onclick,
+                is_focused: is_focused,
+                is_focused_files_explorer: is_focused_files_explorer,
+                label {
+                    font_size: "14",
+                    max_lines: "1",
+                    text_overflow: "ellipsis",
+                    "{icon} {name}"
+                }
+            }
+        )
     }
 }
 
@@ -296,6 +350,8 @@ fn FileExplorerItem<'a>(
     children: Element<'a>,
     onclick: EventHandler<'a, ()>,
     depth: usize,
+    is_focused: bool,
+    is_focused_files_explorer: bool,
 ) -> Element<'a> {
     let status = use_state(cx, || ButtonStatus::Idle);
 
@@ -307,16 +363,26 @@ fn FileExplorerItem<'a>(
         ButtonStatus::Hovering => "rgb(35, 35, 35)",
     };
 
+    let border = if *is_focused {
+        "2 solid rgb(255, 255, 255, 100)"
+    } else {
+        "none"
+    };
+
     render!(rect {
         onmouseenter: onmouseenter,
         onmouseleave: onmouseleave,
         onclick: move |_| onclick.call(()),
+        onkeydown: move |e| if e.code == Code::Enter && *is_focused && *is_focused_files_explorer {
+            onclick.call(());
+        },
         background: "{background}",
         corner_radius: "5",
         margin: "0 0 0 {depth * 10}",
         direction: "horizontal",
         padding: "4 8",
         height: "26",
+        border: border,
         children
     })
 }
