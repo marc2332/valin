@@ -165,17 +165,23 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
     let onclick = {
         to_owned![manager];
         move |_: MouseEvent| {
-            let is_editor_focused = {
+            let (is_code_editor_view_focused, is_editor_focused) = {
                 let manager_ref = manager.current();
                 let panel = manager_ref.panel(cx.props.panel_index);
-                let is_editor_focused = *manager_ref.focused_view() == EditorView::CodeEditor
+                let is_code_editor_view_focused =
+                    *manager_ref.focused_view() == EditorView::CodeEditor;
+                let is_editor_focused = manager_ref.focused_panel() == cx.props.panel_index
                     && panel.active_tab() == Some(cx.props.editor);
-                is_editor_focused
+                (is_code_editor_view_focused, is_editor_focused)
             };
+
+            if !is_code_editor_view_focused {
+                let mut manager = manager.global_write();
+                manager.set_focused_view(EditorView::CodeEditor);
+            }
 
             if !is_editor_focused {
                 let mut manager = manager.global_write();
-                manager.set_focused_view(EditorView::CodeEditor);
                 manager.set_focused_panel(cx.props.panel_index);
                 manager
                     .panel_mut(cx.props.panel_index)
