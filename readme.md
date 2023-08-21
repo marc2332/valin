@@ -32,3 +32,5 @@ Run with `--release` mode if you want max performance.
 - `Arrows`: Navigate the files explorer when focused
 - `Alt Arrows`: Scroll the editor and the cursor with increased speed
 - `Ctrl Arrows`: Scroll the cursor with increased speed  
+- `Ctrl Z`: Undo
+- `Ctrl Y`: Redo
