@@ -5,7 +5,7 @@ use freya::prelude::{dioxus_elements, keyboard::Key};
 
 use crate::{
     get_container_size, get_corrected_scroll_position, get_scroll_position_from_cursor,
-    get_scrollbar_pos_and_size, is_scrollbar_visible, Axis, SCROLLBAR_SIZE,
+    is_scrollbar_visible, Axis, SCROLLBAR_SIZE,
 };
 
 pub fn get_scroll_position_from_wheel(
@@ -300,4 +300,21 @@ pub fn ControlledVirtualScrollView<'a, T>(
             }
         }
     )
+}
+
+#[doc(hidden)]
+fn get_scrollbar_pos_and_size(
+    inner_size: f32,
+    viewport_size: f32,
+    scroll_position: f32,
+) -> (f32, f32) {
+    let scrollbar_height = if viewport_size >= inner_size {
+        inner_size
+    } else {
+        let viewable_ratio_height = viewport_size / inner_size;
+        (viewport_size * viewable_ratio_height).max(20.0) // TODO: REMOVE THIS
+    };
+    let scroll_position = (100.0 / inner_size) * -scroll_position;
+    let scrollbar_position = (scroll_position / 100.0) * viewport_size;
+    (scrollbar_position, scrollbar_height)
 }
