@@ -14,13 +14,13 @@ Run with `--release` mode if you want max performance.
 - [x] Generic Syntax highlighting
 - [x] Text editing
 - [x] Text selection
-- [ ] Copy (ctr-c)
-- [ ] Paste (ctr-v)
-- [ ] Undo (ctr-z)
-- [ ] Redo (ctr-y)
+- [ ] Copy
+- [ ] Paste
+- [x] Undo
+- [x] Redo
 - [x] Files explorer
 - [ ] Intellisense
-  - [x] Hover (exprimental)
+  - [x] Hover (exprimental, only rust-analyzer atm)
   - [ ] Autocomplete
   - [ ] Code actions
 
@@ -32,3 +32,5 @@ Run with `--release` mode if you want max performance.
 - `Arrows`: Navigate the files explorer when focused
 - `Alt Arrows`: Scroll the editor and the cursor with increased speed
 - `Ctrl Arrows`: Scroll the cursor with increased speed  
+- `Ctrl Z`: Undo
+- `Ctrl Y`: Redo

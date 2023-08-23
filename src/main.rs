@@ -1,6 +1,7 @@
 mod commander;
 mod controlled_virtual_scroll_view;
 mod file_explorer;
+mod history;
 mod icons;
 mod lsp;
 mod manager;
