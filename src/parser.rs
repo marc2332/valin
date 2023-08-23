@@ -202,7 +202,7 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
 
                 // Stop a multi line comment
                 if ch == '/' && current_comment.ends_with("*/") {
-                    generic_stack.take().unwrap();
+                    generic_stack.take();
                     line.push((
                         SyntaxType::Comment,
                         TextType::String(comment_stack.take().unwrap()),
