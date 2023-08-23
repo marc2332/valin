@@ -456,11 +456,12 @@ fn EditorLine<'a>(
                 font_size: "{font_size}",
                 font_family: "Jetbrains Mono",
                 line.iter().enumerate().map(|(i, (syntax_type, word))| {
+                    let word = word.to_string(rope);
                     rsx!(
                         text {
                             key: "{i}",
                             color: "{syntax_type.color()}",
-                            "{word}"
+                            word
                         }
                     )
                 })

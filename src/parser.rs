@@ -1,7 +1,9 @@
-use std::fmt::{Display, Write};
+use std::{borrow::Cow, ops::Range};
 
 use ropey::Rope;
 use smallvec::SmallVec;
+
+const LARGE_FILE: usize = 45_000_000;
 
 #[derive(Clone, Debug)]
 pub enum SyntaxType {
@@ -47,15 +49,15 @@ impl From<SyntaxSemantic> for SyntaxType {
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum TextType {
-    String(String),
+    String(Range<usize>),
     Char(char),
 }
 
-impl Display for TextType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl TextType {
+    pub fn to_string(&self, rope: &Rope) -> String {
         match self {
-            Self::String(s) => f.write_str(s),
-            Self::Char(c) => f.write_char(*c),
+            Self::String(char_range) => rope.slice(char_range.clone()).to_string(),
+            Self::Char(c) => c.to_string(),
         }
     }
 }
@@ -83,36 +85,44 @@ enum CommentTracking {
 }
 
 fn flush_generic_stack(
-    generic_stack: &mut Option<String>,
+    rope: &Rope,
+    generic_stack: &mut Option<Range<usize>>,
     syntax_blocks: &mut SyntaxLine,
     last_semantic: &mut SyntaxSemantic,
 ) {
-    if let Some(word) = generic_stack {
+    if let Some(word_pos) = generic_stack {
+        let word: Cow<str> = rope.slice(word_pos.clone()).into();
         let trimmed = word.trim();
         if trimmed.is_empty() {
             return;
         }
-        let word = generic_stack.take().unwrap();
+
+        let word_pos = generic_stack.take().unwrap();
 
         // Match special keywords
-        if GENERIC_KEYWORDS.contains(&word.as_str().trim()) {
-            syntax_blocks.push((SyntaxType::Keyword, TextType::String(word)));
+        if GENERIC_KEYWORDS.contains(&trimmed) {
+            syntax_blocks.push((SyntaxType::Keyword, TextType::String(word_pos)));
         }
         // Match other special keyword, CONSTANTS and numbers
-        else if SPECIAL_KEYWORDS.contains(&word.as_str().trim()) || word.to_uppercase() == word {
-            syntax_blocks.push((SyntaxType::SpecialKeyword, TextType::String(word)));
+        else if SPECIAL_KEYWORDS.contains(&trimmed) || word.to_uppercase() == word {
+            syntax_blocks.push((SyntaxType::SpecialKeyword, TextType::String(word_pos)));
         }
         // Match anything else
         else {
-            syntax_blocks.push(((*last_semantic).into(), TextType::String(word)));
+            syntax_blocks.push(((*last_semantic).into(), TextType::String(word_pos)));
         }
 
         *last_semantic = SyntaxSemantic::Unknown;
     }
 }
 
-fn flush_spaces_stack(generic_stack: &mut Option<String>, syntax_blocks: &mut SyntaxLine) {
-    if let Some(word) = &generic_stack {
+fn flush_spaces_stack(
+    rope: &Rope,
+    generic_stack: &mut Option<Range<usize>>,
+    syntax_blocks: &mut SyntaxLine,
+) {
+    if let Some(word_pos) = &generic_stack {
+        let word: Cow<str> = rope.slice(word_pos.clone()).into();
         let trimmed = word.trim();
         if trimmed.is_empty() {
             syntax_blocks.push((
@@ -127,16 +137,27 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
     // Clear any blocks from before
     syntax_blocks.clear();
 
+    if rope.len_chars() >= LARGE_FILE {
+        for (n, line) in rope.lines().enumerate() {
+            let mut line_blocks = SmallVec::default();
+            let start = rope.line_to_char(n);
+            let end = line.len_chars();
+            line_blocks.push((SyntaxType::Unknown, TextType::String(start..start + end)));
+            syntax_blocks.push(line_blocks);
+        }
+        return;
+    }
+
     // Track comments
     let mut tracking_comment = CommentTracking::None;
-    let mut comment_stack: Option<String> = None;
+    let mut comment_stack: Option<Range<usize>> = None;
 
     // Track strings
     let mut tracking_string = false;
-    let mut string_stack: Option<String> = None;
+    let mut string_stack: Option<Range<usize>> = None;
 
     // Track anything else
-    let mut generic_stack: Option<String> = None;
+    let mut generic_stack: Option<Range<usize>> = None;
     let mut last_semantic = SyntaxSemantic::Unknown;
 
     // Elements of the current line
@@ -152,33 +173,36 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
 
         // Flush all whitespaces from the backback if the character is not an space
         if !ch.is_whitespace() {
-            flush_spaces_stack(&mut generic_stack, &mut line);
+            flush_spaces_stack(rope, &mut generic_stack, &mut line);
         }
 
         // Stop tracking a string
         if tracking_string && ch == '"' {
-            flush_generic_stack(&mut generic_stack, &mut line, &mut last_semantic);
+            flush_generic_stack(rope, &mut generic_stack, &mut line, &mut last_semantic);
 
-            let mut st = string_stack.take().unwrap_or_default();
+            let st = string_stack.take().unwrap_or_default();
 
             // Strings
-            st.push('"');
+            line.push((SyntaxType::String, TextType::Char('"')));
             line.push((SyntaxType::String, TextType::String(st)));
+            line.push((SyntaxType::String, TextType::Char('"')));
             tracking_string = false;
         }
         // Start tracking a string
         else if tracking_comment == CommentTracking::None && ch == '"' {
-            string_stack = Some(String::from('"'));
+            string_stack = Some(i..i + 1);
             tracking_string = true;
         }
         // While tracking a comment
         else if tracking_comment != CommentTracking::None {
             if let Some(ct) = comment_stack.as_mut() {
-                ct.push(ch);
+                ct.end = i + 1;
+
+                let current_comment: Cow<str> = rope.slice(ct.clone()).into();
 
                 // Stop a multi line comment
-                if ch == '/' && ct.ends_with("*/") {
-                    generic_stack.take().unwrap();
+                if ch == '/' && current_comment.ends_with("*/") {
+                    generic_stack.take();
                     line.push((
                         SyntaxType::Comment,
                         TextType::String(comment_stack.take().unwrap()),
@@ -186,16 +210,16 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
                     tracking_comment = CommentTracking::None;
                 }
             } else {
-                comment_stack = Some(String::from(ch));
+                comment_stack = Some(i..i + 1);
             }
         }
         // While tracking a string
         else if tracking_string {
-            push_to_stack(&mut string_stack, ch);
+            push_to_stack(&mut string_stack, i);
         }
         // If is a special character
         else if SPECIAL_CHARACTER.contains(&ch) {
-            flush_generic_stack(&mut generic_stack, &mut line, &mut last_semantic);
+            flush_generic_stack(rope, &mut generic_stack, &mut line, &mut last_semantic);
 
             if ch == '.' && last_semantic != SyntaxSemantic::PropertyAccess {
                 last_semantic = SyntaxSemantic::PropertyAccess;
@@ -205,7 +229,7 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
         }
         // If is a special character 2
         else if SPECIAL_CHARACTER_2.contains(&ch) {
-            flush_generic_stack(&mut generic_stack, &mut line, &mut last_semantic);
+            flush_generic_stack(rope, &mut generic_stack, &mut line, &mut last_semantic);
 
             if ch == '.' && last_semantic != SyntaxSemantic::PropertyAccess {
                 last_semantic = SyntaxSemantic::PropertyAccess;
@@ -218,10 +242,11 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
             // Start tracking a comment (both one line and multine)
             if tracking_comment == CommentTracking::None && (ch == '*' || ch == '/') {
                 if let Some(us) = generic_stack.as_mut() {
-                    if us == "/" {
+                    let generic_stack_text: Cow<str> = rope.slice(us.clone()).into();
+                    if generic_stack_text == "/" {
                         comment_stack = generic_stack.take();
 
-                        push_to_stack(&mut comment_stack, ch);
+                        push_to_stack(&mut comment_stack, i);
 
                         if ch == '*' {
                             tracking_comment = CommentTracking::MultiLine
@@ -234,10 +259,10 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
 
             // Flush the generic stack before adding the space
             if ch.is_whitespace() {
-                flush_generic_stack(&mut generic_stack, &mut line, &mut last_semantic);
+                flush_generic_stack(rope, &mut generic_stack, &mut line, &mut last_semantic);
             }
 
-            push_to_stack(&mut generic_stack, ch);
+            push_to_stack(&mut generic_stack, i);
         }
 
         if ch == '\n' || is_last_character {
@@ -253,8 +278,8 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
                 }
             }
 
-            flush_generic_stack(&mut generic_stack, &mut line, &mut last_semantic);
-            flush_spaces_stack(&mut generic_stack, &mut line);
+            flush_generic_stack(rope, &mut generic_stack, &mut line, &mut last_semantic);
+            flush_spaces_stack(rope, &mut generic_stack, &mut line);
 
             if let Some(st) = string_stack.take() {
                 line.push((SyntaxType::String, TextType::String(st)));
@@ -271,10 +296,10 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
 }
 
 // Push if exists otherwise create the stack
-fn push_to_stack(stack: &mut Option<String>, ch: char) {
+fn push_to_stack(stack: &mut Option<Range<usize>>, idx: usize) {
     if let Some(stack) = stack.as_mut() {
-        stack.push(ch);
+        stack.end = idx + 1;
     } else {
-        stack.replace(ch.to_string());
+        stack.replace(idx..idx + 1);
     }
 }
