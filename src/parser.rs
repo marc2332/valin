@@ -56,7 +56,7 @@ pub enum TextType {
 impl TextType {
     pub fn to_string(&self, rope: &Rope) -> String {
         match self {
-            Self::String(char_range) => rope.slice(char_range.clone()).to_string(), // TODO: meh
+            Self::String(char_range) => rope.slice(char_range.clone()).to_string(),
             Self::Char(c) => c.to_string(),
         }
     }
