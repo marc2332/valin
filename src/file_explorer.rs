@@ -253,7 +253,7 @@ pub fn FileExplorer(cx: Scope) -> Element {
                 width: "100%",
                 height: "100%",
                 length: items.len(),
-                item_size: 26.0,
+                item_size: 25.0,
                 builder_values: (items, channel.clone(), focused_item.clone(), is_focused_files_explorer),
                 direction: "vertical",
                 scroll_with_arrows: false,
@@ -306,6 +306,7 @@ fn file_explorer_item_builder<'a>(
                 is_focused: is_focused,
                 is_focused_files_explorer: is_focused_files_explorer,
                 label {
+                    font_family: "jetbrains mono",
                     font_size: "14",
                     max_lines: "1",
                     text_overflow: "ellipsis",
@@ -333,6 +334,7 @@ fn file_explorer_item_builder<'a>(
                 is_focused: is_focused,
                 is_focused_files_explorer: is_focused_files_explorer,
                 label {
+                    font_family: "jetbrains mono",
                     font_size: "14",
                     max_lines: "1",
                     text_overflow: "ellipsis",
@@ -381,8 +383,8 @@ fn FileExplorerItem<'a>(
         corner_radius: "5",
         margin: "0 0 0 {depth * 10}",
         direction: "horizontal",
-        padding: "4 8",
-        height: "26",
+        padding: "3 8",
+        height: "25",
         border: border,
         children
     })

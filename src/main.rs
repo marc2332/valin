@@ -223,12 +223,12 @@ fn Body(cx: Scope) -> Element {
                                     overflow: "clip",
                                     rect {
                                         direction: "horizontal",
-                                        height: "50",
+                                        height: "40",
                                         width: "100%",
-                                        padding: "2.5",
                                         ScrollView {
                                             direction: "horizontal",
                                             width: "calc(100% - {tabsbar_scroll_offset})",
+                                            padding: "3 0 3 1",
                                             panel.tabs().iter().enumerate().map(|(i, tab)| {
                                                 let is_selected = active_tab_index == Some(i);
                                                 let (tab_id, tab_title) = tab.get_data();
@@ -278,7 +278,7 @@ fn Body(cx: Scope) -> Element {
                                         }
                                     }
                                     rect {
-                                        height: "calc(100%-50)",
+                                        height: "calc(100% - 40)",
                                         width: "100%",
                                         onclick: onclickpanel,
                                         if let Some(active_tab_index) = active_tab_index {
