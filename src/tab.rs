@@ -36,12 +36,11 @@ pub fn Tab<'a>(
             onclick: move |_| onclick.call(()),
             onmouseenter: onmouseenter,
             onmouseleave: onmouseleave,
-            padding: "8 12",
+            padding: "0 12",
             height: "100%",
             width: "130",
             display: "center",
             rect {
-                height: "100%",
                 width: "100%",
                 direction: "horizontal",
                 label {

@@ -165,7 +165,7 @@ fn Body(cx: Scope) -> Element {
                 )
             }
             rect {
-                height: "calc(100% - 32)",
+                height: "calc(100% - 25)",
                 direction: "horizontal",
                 Sidebar {}
                 Divider {}
@@ -335,17 +335,19 @@ fn Body(cx: Scope) -> Element {
             VerticalDivider {}
             rect {
                 width: "100%",
-                height: "30",
+                height: "25",
                 background: "rgb(20, 20, 20)",
                 direction: "horizontal",
-                padding: "5",
+                padding: "3 6",
                 color: "rgb(200, 200, 200)",
                 label {
+                    font_size: "14",
                     "{focused_view}"
                 }
                 if let Some(cursor) = cursor {
                     rsx!(
                         label {
+                            font_size: "14",
                             " | Ln {cursor.row() + 1}, Col {cursor.col() + 1}"
                         }
                     )
@@ -353,6 +355,7 @@ fn Body(cx: Scope) -> Element {
                 for (name, msg) in lsp_messages.get() {
                     rsx!(
                         label {
+                            font_size: "14",
                             " | {name} {msg}"
                         }
                     )
