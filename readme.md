@@ -1,3 +1,5 @@
+[![Discord Server](https://img.shields.io/discord/1015005816094478347.svg?logo=discord&style=flat-square)](https://discord.gg/SNcFbYmzbq)
+
 # freya-editor 
 
 ⚠️ This is a **work in progress experimental** code editor using [Freya 🦀](https://github.com/marc2332/freya).
