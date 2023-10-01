@@ -183,7 +183,6 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
             let st = string_stack.take().unwrap_or_default();
 
             // Strings
-            line.push((SyntaxType::String, TextType::Char('"')));
             line.push((SyntaxType::String, TextType::String(st)));
             line.push((SyntaxType::String, TextType::Char('"')));
             tracking_string = false;
