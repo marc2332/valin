@@ -261,12 +261,12 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
             cursor_reference: cursor_attr,
             direction: "horizontal",
             background: "rgb(40, 40, 40)",
-            padding: "5",
+            padding: "5 0 0 5",
             ControlledVirtualScrollView {
                 offset_x: scroll_offsets.read().0,
                 offset_y: scroll_offsets.read().1,
                 onscroll: onscroll,
-                builder_values: (cursor, metrics.clone(), editable, lsp_coroutine.clone(), file_uri, editor.rope(), hover_location.clone(), cursor_coords.clone(), debouncer.clone()),
+                builder_values: (cursor, metrics.clone(), editable, lsp_coroutine.clone(), file_uri, editor.rope().clone(), hover_location.clone(), cursor_coords.clone(), debouncer.clone()),
                 length: metrics.read().0.len(),
                 item_size: manual_line_height,
                 builder: Box::new(move |(k, line_index, _cx, options)| {
@@ -285,13 +285,13 @@ pub fn CodeEditorTab(cx: Scope<EditorProps>) -> Element {
     )
 }
 
-type BuilderProps<'a> = (
+type BuilderProps = (
     TextCursor,
     UseRef<(SyntaxBlocks, f32)>,
     use_editable::UseEdit,
     Coroutine<LspAction>,
     Url,
-    &'a Rope,
+    Rope,
     UseRef<Option<(u32, Hover)>>,
     UseRef<CursorPoint>,
     UseDebouncer,
@@ -300,12 +300,12 @@ type BuilderProps<'a> = (
 #[allow(non_snake_case)]
 #[inline_props]
 fn EditorLine<'a>(
-    cx: Scope,
-    options: &'a BuilderProps<'a>,
+    cx: Scope<'a>,
+    options: &'a BuilderProps,
     line_index: usize,
     font_size: f32,
     line_height: f32,
-) -> Element {
+) -> Element<'a> {
     let (
         cursor,
         metrics,
