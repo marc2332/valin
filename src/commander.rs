@@ -47,8 +47,8 @@ pub fn Commander<'a>(
             rect {
                 width: "100%",
                 height: "75",
-                display: "center",
-                direction: "both",
+                main_align: "center",
+                cross_align: "center",
                 padding: "10",
                 rect {
                     background: "rgb(45, 45, 45)",

@@ -233,8 +233,8 @@ pub fn FileExplorer(cx: Scope) -> Element {
             rect {
                 width: "100%",
                 height: "100%",
-                display: "center",
-                direction: "both",
+                main_align: "center",
+                cross_align: "center",
                 Button {
                     onclick: open_dialog,
                     label {

@@ -19,9 +19,12 @@ pub fn Sidebar(cx: Scope) -> Element {
             direction: "vertical",
             width: "60",
             height: "100%",
-            padding: "4 0",
+            padding: "2",
+            cross_align: "center",
             SideBarButton {
                 Button {
+                    width: "100%",
+                    padding: "10 8",
                     label {
                         "Files"
                     }
@@ -29,6 +32,8 @@ pub fn Sidebar(cx: Scope) -> Element {
             }
             SideBarButton {
                 Button {
+                    width: "100%",
+                    padding: "10 8",
                     onclick: open_settings,
                     label {
                         "Conf"
@@ -49,7 +54,7 @@ fn SideBarButton<'a>(cx: Scope<'a, SideBarButtonProps<'a>>) -> Element<'a> {
     render!(
         rect {
             direction: "horizontal",
-            display: "center",
+            main_align: "center",
             &cx.props.children
         }
     )
