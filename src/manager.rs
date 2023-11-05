@@ -241,7 +241,7 @@ pub struct EditorManager {
     pub previous_focused_view: Option<EditorView>,
     pub focused_view: EditorView,
     pub focused_panel: usize,
-    pub panes: Vec<Panel>,
+    pub panels: Vec<Panel>,
     pub font_size: f32,
     pub line_height: f32,
     pub language_servers: HashMap<String, LSPBridge>,
@@ -254,7 +254,7 @@ impl EditorManager {
             previous_focused_view: None,
             focused_view: EditorView::default(),
             focused_panel: 0,
-            panes: vec![Panel::new()],
+            panels: vec![Panel::new()],
             font_size: 17.0,
             line_height: 1.2,
             language_servers: HashMap::default(),
@@ -296,7 +296,7 @@ impl EditorManager {
     }
 
     pub fn push_tab(&mut self, tab: PanelTab, panel: usize, focus: bool) {
-        let opened_tab = self.panes[panel]
+        let opened_tab = self.panels[panel]
             .tabs
             .iter()
             .enumerate()
@@ -305,24 +305,24 @@ impl EditorManager {
         if let Some((tab_index, _)) = opened_tab {
             if focus {
                 self.focused_panel = panel;
-                self.panes[panel].active_tab = Some(tab_index);
+                self.panels[panel].active_tab = Some(tab_index);
             }
         } else {
-            self.panes[panel].tabs.push(tab);
+            self.panels[panel].tabs.push(tab);
 
             if focus {
                 self.focused_panel = panel;
-                self.panes[panel].active_tab = Some(self.panes[panel].tabs.len() - 1);
+                self.panels[panel].active_tab = Some(self.panels[panel].tabs.len() - 1);
             }
         }
     }
 
     pub fn close_editor(&mut self, panel: usize, editor: usize) {
-        if let Some(active_tab) = self.panes[panel].active_tab {
+        if let Some(active_tab) = self.panels[panel].active_tab {
             let prev_editor = editor > 0;
-            let next_editor = self.panes[panel].tabs.get(editor + 1).is_some();
+            let next_editor = self.panels[panel].tabs.get(editor + 1).is_some();
             if active_tab == editor {
-                self.panes[panel].active_tab = if next_editor {
+                self.panels[panel].active_tab = if next_editor {
                     Some(editor)
                 } else if prev_editor {
                     Some(editor - 1)
@@ -330,27 +330,27 @@ impl EditorManager {
                     None
                 };
             } else if active_tab >= editor {
-                self.panes[panel].active_tab = Some(active_tab - 1);
+                self.panels[panel].active_tab = Some(active_tab - 1);
             }
         }
 
-        self.panes[panel].tabs.remove(editor);
+        self.panels[panel].tabs.remove(editor);
     }
 
     pub fn push_panel(&mut self, panel: Panel) {
-        self.panes.push(panel);
+        self.panels.push(panel);
     }
 
     pub fn panels(&self) -> &[Panel] {
-        &self.panes
+        &self.panels
     }
 
     pub fn panel(&self, panel: usize) -> &Panel {
-        &self.panes[panel]
+        &self.panels[panel]
     }
 
     pub fn panel_mut(&mut self, panel: usize) -> &mut Panel {
-        &mut self.panes[panel]
+        &mut self.panels[panel]
     }
 
     pub fn set_focused_panel(&mut self, panel: usize) {
@@ -358,8 +358,8 @@ impl EditorManager {
     }
 
     pub fn close_panel(&mut self, panel: usize) {
-        if self.panes.len() > 1 {
-            self.panes.remove(panel);
+        if self.panels.len() > 1 {
+            self.panels.remove(panel);
             if self.focused_panel > 0 {
                 self.focused_panel -= 1;
             }
