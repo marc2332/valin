@@ -408,25 +408,25 @@ fn EditorLine<'a>(
                     if let Some(content) = hover.hover_to_text() {
                         let cursor_coords = cursor_coords.read();
                         let offset_x = cursor_coords.x  as f32 + gutter_width;
-                            rsx!(
-                                rect {
-                                    width: "0",
-                                    height: "0",
-                                    offset_y: "{line_height}",
-                                    offset_x: "{offset_x}",
-                                    HoverBox {
-                                        content: content
-                                    }
+                        Some(rsx!(
+                            rect {
+                                width: "0",
+                                height: "0",
+                                offset_y: "{line_height}",
+                                offset_x: "{offset_x}",
+                                HoverBox {
+                                    content: content
                                 }
-                            )
+                            }
+                        ))
                     } else {
-                        rsx!( rect { } )
+                        None
                     }
                 } else {
-                    rsx!( rect { } )
+                    None
                 }
             } else {
-                rsx!( rect { } )
+                None
             }
             rect {
                 width: "{gutter_width}",
@@ -434,7 +434,7 @@ fn EditorLine<'a>(
                 direction: "horizontal",
                 label {
                     width: "100%",
-                    align: "center",
+                    text_align: "center",
                     font_size: "{font_size}",
                     color: "rgb(200, 200, 200)",
                     "{line_index + 1} "

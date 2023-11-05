@@ -39,8 +39,8 @@ pub struct ExpandedIconProps<'a> {
 pub fn ExpandedIcon<'a>(cx: Scope<'a, ExpandedIconProps<'a>>) -> Element<'a> {
     render!(
         rect {
-            direction: "both",
-            display: "center",
+            main_align: "center",
+            cross_align: "center",
             width: "100%",
             height: "100%",
             &cx.props.children

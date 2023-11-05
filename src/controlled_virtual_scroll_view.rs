@@ -161,7 +161,9 @@ pub fn ControlledVirtualScrollView<'a, T>(
 
     // Drag the scrollbars
     let onmouseover = move |e: MouseEvent| {
-        if let Some((Axis::Y, y)) = clicking_scrollbar.read().as_ref() {
+        let clicking_scrollbar = clicking_scrollbar.read();
+
+        if let Some((Axis::Y, y)) = *clicking_scrollbar {
             let coordinates = e.get_element_coordinates();
             let cursor_y = coordinates.y - y - size.area.min_y() as f64;
 
@@ -169,7 +171,7 @@ pub fn ControlledVirtualScrollView<'a, T>(
                 get_scroll_position_from_cursor(cursor_y as f32, inner_size, size.area.height());
 
             onscroll.call((Axis::Y, scroll_position))
-        } else if let Some((Axis::X, x)) = clicking_scrollbar.read().as_ref() {
+        } else if let Some((Axis::X, x)) = *clicking_scrollbar {
             let coordinates = e.get_element_coordinates();
             let cursor_x = coordinates.x - x - size.area.min_x() as f64;
 
@@ -182,7 +184,7 @@ pub fn ControlledVirtualScrollView<'a, T>(
             onscroll.call((Axis::X, scroll_position))
         }
 
-        if clicking_scrollbar.read().is_some() {
+        if clicking_scrollbar.is_some() {
             focus.focus();
         }
     };
@@ -212,18 +214,20 @@ pub fn ControlledVirtualScrollView<'a, T>(
     // Mark the Y axis scrollbar as the one being dragged
     let onmousedown_y = |e: MouseEvent| {
         let coordinates = e.get_element_coordinates();
-        *clicking_scrollbar.write_silent() = Some((Axis::Y, coordinates.y));
+        *clicking_scrollbar.write() = Some((Axis::Y, coordinates.y));
     };
 
     // Mark the X axis scrollbar as the one being dragged
     let onmousedown_x = |e: MouseEvent| {
         let coordinates = e.get_element_coordinates();
-        *clicking_scrollbar.write_silent() = Some((Axis::X, coordinates.x));
+        *clicking_scrollbar.write() = Some((Axis::X, coordinates.x));
     };
 
     // Unmark any scrollbar
     let onclick = |_: MouseEvent| {
-        *clicking_scrollbar.write_silent() = None;
+        if clicking_scrollbar.read().is_some() {
+            *clicking_scrollbar.write() = None;
+        }
     };
 
     let horizontal_scrollbar_size = if horizontal_scrollbar_is_visible {
@@ -251,6 +255,17 @@ pub fn ControlledVirtualScrollView<'a, T>(
         key_index += 1;
         (cx.props.builder)((key_index, i, cx, &cx.props.builder_values))
     });
+
+    let is_scrolling_x = clicking_scrollbar
+        .read()
+        .as_ref()
+        .map(|f| f.0 == Axis::X)
+        .unwrap_or_default();
+    let is_scrolling_y = clicking_scrollbar
+        .read()
+        .as_ref()
+        .map(|f| f.0 == Axis::Y)
+        .unwrap_or_default();
 
     render!(
         rect {
@@ -282,6 +297,7 @@ pub fn ControlledVirtualScrollView<'a, T>(
                     height: "{horizontal_scrollbar_size}",
                     offset_x: "{scrollbar_x}",
                     ScrollThumb {
+                        clicking_scrollbar: is_scrolling_x,
                         onmousedown: onmousedown_x,
                         width: "{scrollbar_width}",
                         height: "100%",
@@ -293,6 +309,7 @@ pub fn ControlledVirtualScrollView<'a, T>(
                 height: "100%",
                 offset_y: "{scrollbar_y}",
                 ScrollThumb {
+                    clicking_scrollbar: is_scrolling_y,
                     onmousedown: onmousedown_y,
                     width: "100%",
                     height: "{scrollbar_height}",
