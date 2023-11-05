@@ -26,6 +26,7 @@ pub fn Tab<'a>(
         ButtonStatus::Idle => "transparent",
     };
     let color = theme.button.font_theme.color;
+    let show_close_button = *is_selected || *status.get() == ButtonStatus::Hovering;
 
     render!(
         rect {
@@ -41,30 +42,31 @@ pub fn Tab<'a>(
             width: "130",
             main_align: "center",
             cross_align: "center",
+            direction: "horizontal",
+            label {
+                font_family: "jetbrains mono",
+                width: "calc(100% - 15)",
+                max_lines: "1",
+                text_overflow: "ellipsis",
+                font_size: "14",
+                "{value}"
+            }
             rect {
-                width: "100%",
-                direction: "horizontal",
-                label {
-                    font_family: "jetbrains mono",
-                    width: "calc(100% - 15)",
-                    max_lines: "1",
-                    text_overflow: "ellipsis",
-                    font_size: "14",
-                    "{value}"
-                }
-                rect {
-                    width: "15",
-                    height: "20",
-                    onclick: move |_| onclickclose.call(()),
-                    main_align: "center",
-                    cross_align: "center",
-                    corner_radius: "100",
-                    padding: "4",
-                    background: "{background}",
-                    label {
-                        font_size: "13",
-                        "X"
-                    }
+                width: "15",
+                height: "20",
+                onclick: move |_| onclickclose.call(()),
+                main_align: "center",
+                cross_align: "center",
+                corner_radius: "100",
+                padding: "4",
+                background: "{background}",
+                if show_close_button {
+                    rsx!(
+                        label {
+                            font_size: "13",
+                            "X"
+                        }
+                    )
                 }
             }
         }

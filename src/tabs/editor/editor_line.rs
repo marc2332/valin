@@ -105,10 +105,10 @@ pub fn EditorLine<'a>(
     };
 
     // Only highlight the active line
-    let line_background = if is_line_selected {
-        "rgb(37, 37, 37)"
+    let (line_background, gutter_color) = if is_line_selected {
+        ("rgb(37, 37, 37)", "rgb(200, 200, 200)")
     } else {
-        ""
+        ("", "rgb(150, 150, 150)")
     };
 
     render!(
@@ -149,7 +149,7 @@ pub fn EditorLine<'a>(
                     width: "100%",
                     text_align: "center",
                     font_size: "{font_size}",
-                    color: "rgb(200, 200, 200)",
+                    color: "{gutter_color}",
                     "{line_index + 1} "
                 }
             }
