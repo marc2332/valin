@@ -72,6 +72,7 @@ pub fn EditorPanel(cx: Scope<EditorPanelProps>) -> Element {
                         direction: "horizontal",
                         width: "calc(100% - {tabsbar_tools_width})",
                         padding: "3 0 3 1",
+                        show_scrollbar: false,
                         panel.tabs().iter().enumerate().map(|(i, tab)| {
                             let is_selected = active_tab_index == Some(i);
                             let (tab_id, tab_title) = tab.get_data();

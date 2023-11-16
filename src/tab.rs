@@ -1,4 +1,5 @@
 use freya::prelude::*;
+use winit::window::CursorIcon;
 
 #[allow(non_snake_case)]
 #[inline_props]
@@ -11,12 +12,27 @@ pub fn Tab<'a>(
 ) -> Element {
     let status = use_state(cx, ButtonStatus::default);
     let theme = use_get_theme(cx);
+    let platform = use_platform(cx);
 
-    let onmouseenter = move |_| {
-        status.set(ButtonStatus::Hovering);
+    use_on_unmount(cx, {
+        to_owned![status, platform];
+        move || {
+            if *status.current() == ButtonStatus::Hovering {
+                platform.set_cursor(CursorIcon::default());
+            }
+        }
+    });
+
+    let onmouseenter = {
+        to_owned![status, platform];
+        move |_| {
+            platform.set_cursor(CursorIcon::Hand);
+            status.set(ButtonStatus::Hovering);
+        }
     };
 
     let onmouseleave = move |_| {
+        platform.set_cursor(CursorIcon::default());
         status.set(ButtonStatus::default());
     };
 
@@ -26,6 +42,11 @@ pub fn Tab<'a>(
         ButtonStatus::Idle => "transparent",
     };
     let color = theme.button.font_theme.color;
+    let border = if *is_selected {
+        "rgb(60, 60, 60)"
+    } else {
+        "transparent"
+    };
     let show_close_button = *is_selected || *status.get() == ButtonStatus::Hovering;
 
     render!(
@@ -43,6 +64,7 @@ pub fn Tab<'a>(
             main_align: "center",
             cross_align: "center",
             direction: "horizontal",
+            border: "2 solid {border}",
             label {
                 font_family: "jetbrains mono",
                 width: "calc(100% - 15)",

@@ -175,7 +175,7 @@ pub fn EditorLine<'a>(
                         text {
                             key: "{i}",
                             color: "{syntax_type.color()}",
-                            word
+                            "{word}"
                         }
                     )
                 })
