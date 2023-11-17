@@ -119,8 +119,8 @@ fn Body(cx: Scope) -> Element {
     };
 
     let onglobalmousedown = |_| {
-        let mut manager = manager.global_write();
-        if manager.focused_view == EditorView::Commander {
+        if *manager.current().focused_view() == EditorView::Commander {
+            let mut manager = manager.global_write();
             manager.set_focused_view_to_previous();
         }
     };
