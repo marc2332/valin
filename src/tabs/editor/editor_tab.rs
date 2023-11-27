@@ -35,15 +35,8 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
     let manager = use_manager(cx);
     let debouncer = use_debouncer(cx, Duration::from_millis(300));
     let hover_location = use_ref(cx, || None);
-    let (metrics, metrics_coroutine) =
-        use_metrics(cx, &manager, cx.props.panel_index, cx.props.editor);
-    let editable = use_edit(
-        cx,
-        &manager,
-        cx.props.panel_index,
-        cx.props.editor,
-        metrics_coroutine,
-    );
+    let metrics = use_metrics(cx, &manager, cx.props.panel_index, cx.props.editor);
+    let editable = use_edit(cx, &manager, cx.props.panel_index, cx.props.editor, metrics);
     let cursor_coords = use_ref(cx, CursorPoint::default);
     let scroll_offsets = use_ref(cx, || (0, 0));
     let lsp = use_lsp(
@@ -131,7 +124,7 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
             if is_panel_focused && is_editor_focused {
                 let current_scroll = scroll_offsets.read().1;
                 let lines_jump = (manual_line_height * LINES_JUMP_ALT as f32).ceil() as i32;
-                let min_height = -(metrics.read().0.len() as f32 * manual_line_height) as i32;
+                let min_height = -(metrics.get().0.len() as f32 * manual_line_height) as i32;
                 let max_height = 0; // TODO, this should be the height of the viewport
 
                 let events = match &e.key {
@@ -186,7 +179,7 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
                 offset_y: scroll_offsets.read().1,
                 onscroll: onscroll,
                 builder_values: (cursor, metrics.clone(), editable, lsp.clone(), file_uri, editor.rope().clone(), hover_location.clone(), cursor_coords.clone(), debouncer.clone()),
-                length: metrics.read().0.len(),
+                length: metrics.get().0.len(),
                 item_size: manual_line_height,
                 builder: Box::new(move |(k, line_index, _cx, options)| {
                     rsx!(
