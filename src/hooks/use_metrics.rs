@@ -10,7 +10,7 @@ use skia_safe::textlayout::TextStyle;
 use skia_safe::FontMgr;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 
-use crate::manager::UseManager;
+use crate::hooks::UseManager;
 use crate::parser::*;
 
 pub fn use_metrics<'a>(

@@ -10,10 +10,10 @@ use tokio::{
     io,
 };
 
-use crate::manager::use_manager;
-use crate::manager::EditorView;
-use crate::manager::PanelTab;
-use crate::use_editable::EditorData;
+use crate::hooks::use_manager;
+use crate::hooks::EditorData;
+use crate::hooks::EditorView;
+use crate::hooks::PanelTab;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FolderState {

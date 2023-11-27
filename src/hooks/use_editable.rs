@@ -20,8 +20,8 @@ use winit::event_loop::EventLoopProxy;
 
 use crate::{
     history::{History, HistoryChange},
+    hooks::UseManager,
     lsp::LanguageId,
-    manager::UseManager,
 };
 
 /// Iterator over text lines.
