@@ -2,16 +2,14 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use crate::components::*;
+use crate::hooks::use_manager;
+use crate::hooks::EditorView;
 use crate::lsp::LanguageId;
 use crate::lsp::LspConfig;
-use crate::manager::use_manager;
-use crate::manager::EditorView;
 use crate::tabs::editor::editor_line::EditorLine;
 use crate::tabs::editor::hooks::use_lsp;
-use crate::use_debouncer::use_debouncer;
 
-use crate::use_editable::*;
-use crate::use_metrics::*;
+use crate::hooks::*;
 
 use freya::prelude::events::KeyboardEvent;
 use freya::prelude::keyboard::Key;

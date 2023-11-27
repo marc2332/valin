@@ -1,12 +1,10 @@
-use crate::icons::*;
-use crate::manager::*;
-use crate::tab::*;
+use super::icons::*;
+use super::tab::*;
+use crate::hooks::*;
 use crate::tabs::config::*;
 use crate::tabs::editor::*;
 use crate::utils::*;
 use freya::prelude::*;
-
-use crate::manager::Panel;
 
 #[derive(Props, PartialEq)]
 pub struct EditorPanelProps {

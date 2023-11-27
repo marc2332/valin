@@ -10,10 +10,9 @@ use dioxus::prelude::{
     use_context, use_context_provider, Coroutine, Ref, RefCell, RefMut, ScopeId, ScopeState,
 };
 
-use crate::{
-    lsp::{create_lsp, LSPBridge, LspConfig},
-    use_editable::EditorData,
-};
+use crate::lsp::{create_lsp, LSPBridge, LspConfig};
+
+use super::use_editable::EditorData;
 
 #[derive(Clone)]
 pub enum PanelTab {

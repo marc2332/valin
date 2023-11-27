@@ -4,8 +4,8 @@ use lsp_types::{DidOpenTextDocumentParams, Hover, HoverParams, TextDocumentItem,
 use tokio_stream::StreamExt;
 
 use crate::{
+    hooks::{EditorManager, UseManager},
     lsp::{LanguageId, LspConfig},
-    manager::{EditorManager, UseManager},
 };
 
 pub enum LspAction {

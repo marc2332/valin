@@ -17,7 +17,7 @@ use lsp_types::{
 };
 use tower::ServiceBuilder;
 
-use crate::manager::EditorManager;
+use crate::hooks::EditorManager;
 
 struct ClientState {
     indexed: Arc<Mutex<bool>>,

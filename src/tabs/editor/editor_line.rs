@@ -4,19 +4,18 @@ use lsp_types::{
     WorkDoneProgressParams,
 };
 
+use crate::hooks;
 use crate::tabs::editor::hooks::LspAction;
 use crate::tabs::editor::hover_box::HoverBox;
 use crate::tabs::editor::lsp::HoverToText;
-use crate::{
-    parser::SyntaxBlocks, use_debouncer::UseDebouncer, use_editable, utils::create_paragraph,
-};
+use crate::{hooks::UseDebouncer, parser::SyntaxBlocks, utils::create_paragraph};
 
 use super::hooks::UseLsp;
 
 type BuilderProps = (
     TextCursor,
     UseRef<(SyntaxBlocks, f32)>,
-    use_editable::UseEdit,
+    hooks::UseEdit,
     UseLsp,
     Url,
     Rope,

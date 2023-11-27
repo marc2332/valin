@@ -1,30 +1,17 @@
 mod components;
-mod file_explorer;
 mod history;
-mod icons;
+mod hooks;
 mod lsp;
-mod manager;
 mod parser;
-mod sidebar;
-mod sidepanel;
-mod tab;
 mod tabs;
-mod text_area;
-mod use_debouncer;
-mod use_editable;
-mod use_metrics;
 mod utils;
 
 use components::*;
-use file_explorer::*;
 use freya::prelude::keyboard::{Key, Modifiers};
 use freya::prelude::*;
 use futures::StreamExt;
-use manager::*;
-use sidebar::*;
-use sidepanel::*;
+use hooks::*;
 use std::collections::HashMap;
-use text_area::*;
 use utils::*;
 
 static BASE_FONT_SIZE: f32 = 5.0;

@@ -1,6 +1,6 @@
 use freya::prelude::*;
 
-use crate::manager::{use_manager, PanelTab};
+use crate::hooks::{use_manager, PanelTab};
 
 #[allow(non_snake_case)]
 pub fn Sidebar(cx: Scope) -> Element {
