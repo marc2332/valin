@@ -272,7 +272,7 @@ pub struct UseEdit {
     pub(crate) event_loop_proxy: Option<EventLoopProxy<EventMessage>>,
     pub(crate) pane_index: usize,
     pub(crate) editor_index: usize,
-    pub(crate) coroutine_coroutine: UnboundedSender<()>,
+    pub(crate) metrics_coroutine: UnboundedSender<()>,
 }
 
 impl UseEdit {
@@ -351,18 +351,18 @@ impl UseEdit {
                 if e.modifiers.contains(Modifiers::CONTROL) {
                     if e.code == Code::KeyZ {
                         editor.undo();
-                        self.coroutine_coroutine.send(()).unwrap();
+                        self.metrics_coroutine.send(()).unwrap();
                         return;
                     } else if e.code == Code::KeyY {
                         editor.redo();
-                        self.coroutine_coroutine.send(()).unwrap();
+                        self.metrics_coroutine.send(()).unwrap();
                         return;
                     }
                 }
 
                 let event = editor.process_key(&e.key, &e.code, &e.modifiers);
                 if event == TextEvent::TextChanged {
-                    self.coroutine_coroutine.send(()).unwrap();
+                    self.metrics_coroutine.send(()).unwrap();
                     *self.selecting_text_with_mouse.write_silent() = None;
                 }
             }
@@ -385,7 +385,7 @@ pub fn use_edit(
     manager: &UseManager,
     pane_index: usize,
     editor_index: usize,
-    coroutine_coroutine: &UnboundedSender<()>,
+    metrics_coroutine: &UnboundedSender<()>,
 ) -> UseEdit {
     let event_loop_proxy = cx.consume_context::<EventLoopProxy<EventMessage>>();
     let selecting_text_with_mouse = use_ref(cx, || None);
@@ -466,6 +466,6 @@ pub fn use_edit(
         event_loop_proxy,
         pane_index,
         editor_index,
-        coroutine_coroutine: coroutine_coroutine.clone(),
+        metrics_coroutine: metrics_coroutine.clone(),
     }
 }

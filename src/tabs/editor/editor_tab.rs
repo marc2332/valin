@@ -35,14 +35,14 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
     let manager = use_manager(cx);
     let debouncer = use_debouncer(cx, Duration::from_millis(300));
     let hover_location = use_ref(cx, || None);
-    let (metrics, coroutine_coroutine) =
+    let (metrics, metrics_coroutine) =
         use_metrics(cx, &manager, cx.props.panel_index, cx.props.editor);
     let editable = use_edit(
         cx,
         &manager,
         cx.props.panel_index,
         cx.props.editor,
-        coroutine_coroutine,
+        metrics_coroutine,
     );
     let cursor_coords = use_ref(cx, CursorPoint::default);
     let scroll_offsets = use_ref(cx, || (0, 0));
