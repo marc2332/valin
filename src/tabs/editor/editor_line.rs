@@ -91,7 +91,7 @@ pub fn EditorLine<'a>(
 
     let gutter_width = font_size * 3.0;
     let (syntax_blocks, width) = &*metrics.get();
-    let line = syntax_blocks.get(*line_index).unwrap();
+    let line = syntax_blocks.get_line(*line_index);
     let highlights_attr = editable.highlights_attr(cx, *line_index);
 
     let is_line_selected = cursor.row() == *line_index;
