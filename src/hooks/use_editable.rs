@@ -343,7 +343,7 @@ impl UseEdit {
                     return;
                 }
 
-                let event = {
+                let event = 'key_matcher: {
                     let mut manager = self.manager.write();
                     let editor = manager
                         .panel_mut(self.pane_index)
@@ -354,12 +354,10 @@ impl UseEdit {
                     if e.modifiers.contains(Modifiers::CONTROL) {
                         if e.code == Code::KeyZ {
                             editor.undo();
-                            self.metrics.run_metrics();
-                            return;
+                            break 'key_matcher TextEvent::TextChanged;
                         } else if e.code == Code::KeyY {
                             editor.redo();
-                            self.metrics.run_metrics();
-                            return;
+                            break 'key_matcher TextEvent::TextChanged;
                         }
                     }
                     editor.process_key(&e.key, &e.code, &e.modifiers)
