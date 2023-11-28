@@ -24,15 +24,32 @@ type BuilderProps = (
     UseDebouncer,
 );
 
-#[allow(non_snake_case)]
-#[inline_props]
-pub fn EditorLine<'a>(
-    cx: Scope<'a>,
-    options: &'a BuilderProps,
+#[derive(Props)]
+pub struct EditorLineProps {
+    options: BuilderProps,
     line_index: usize,
     font_size: f32,
     line_height: f32,
-) -> Element<'a> {
+}
+
+impl PartialEq for EditorLineProps {
+    fn eq(&self, other: &Self) -> bool {
+        self.options.0 == other.options.0
+            && self.options.4 == other.options.4
+            && self.line_index == other.line_index
+            && self.font_size == other.font_size
+            && self.line_height == other.line_height
+    }
+}
+
+#[allow(non_snake_case)]
+pub fn EditorLine(cx: Scope<EditorLineProps>) -> Element {
+    let EditorLineProps {
+        options,
+        line_index,
+        font_size,
+        line_height,
+    } = cx.props;
     let (cursor, metrics, editable, lsp, file_uri, rope, hover_location, cursor_coords, debouncer) =
         options;
     let line_str = rope.line(*line_index).to_string();

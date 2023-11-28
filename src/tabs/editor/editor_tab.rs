@@ -186,7 +186,7 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
                         EditorLine {
                             key: "{k}",
                             line_index: line_index,
-                            options: options,
+                            options: options.clone(),
                             font_size: font_size,
                             line_height: manual_line_height
                         }
