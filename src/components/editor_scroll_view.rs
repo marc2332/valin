@@ -3,6 +3,7 @@ use std::ops::Range;
 use freya::prelude::*;
 use freya::prelude::{dioxus_elements, keyboard::Key};
 
+use crate::tabs::editor::{BuilderProps, EditorLine};
 use crate::{
     get_container_size, get_corrected_scroll_position, get_scroll_position_from_cursor,
     get_scrollbar_pos_and_size, is_scrollbar_visible, Axis, SCROLLBAR_SIZE,
@@ -31,22 +32,11 @@ pub fn get_scroll_position_from_wheel(
     new_position as i32
 }
 
-type BuilderFunction<'a, T> = dyn Fn(
-    (
-        usize,
-        usize,
-        Scope<'a, ControlledVirtualScrollViewProps<T>>,
-        &'a T,
-    ),
-) -> LazyNodes<'a, 'a>;
-
-/// Properties for the ControlledVirtualScrollView component.
+/// Properties for the EditorScrollView component.
 #[derive(Props)]
-pub struct ControlledVirtualScrollViewProps<'a, T: 'a> {
+pub struct EditorScrollViewProps<'a> {
     length: usize,
     item_size: f32,
-    builder: Box<BuilderFunction<'a, T>>,
-    pub builder_values: T,
     #[props(default = "100%".to_string(), into)]
     pub height: String,
     #[props(default = "100%".to_string(), into)]
@@ -58,6 +48,10 @@ pub struct ControlledVirtualScrollViewProps<'a, T: 'a> {
     pub offset_y: i32,
     pub offset_x: i32,
     pub onscroll: Option<EventHandler<'a, (Axis, i32)>>,
+
+    options: BuilderProps,
+    font_size: f32,
+    line_height: f32,
 }
 
 fn get_render_range(
@@ -81,9 +75,7 @@ fn get_render_range(
 
 /// A controlled ScrollView with virtual scrolling.
 #[allow(non_snake_case)]
-pub fn ControlledVirtualScrollView<'a, T>(
-    cx: Scope<'a, ControlledVirtualScrollViewProps<'a, T>>,
-) -> Element {
+pub fn EditorScrollView<'a>(cx: Scope<'a, EditorScrollViewProps<'a>>) -> Element {
     let clicking_shift = use_ref(cx, || false);
     let clicking_alt = use_ref(cx, || false);
     let clicking_scrollbar = use_ref::<Option<(Axis, f64)>>(cx, || None);
@@ -250,12 +242,6 @@ pub fn ControlledVirtualScrollView<'a, T>(
         items_length as f32,
     );
 
-    let mut key_index = 0;
-    let children = render_range.map(|i| {
-        key_index += 1;
-        (cx.props.builder)((key_index, i, cx, &cx.props.builder_values))
-    });
-
     let is_scrolling_x = clicking_scrollbar
         .read()
         .as_ref()
@@ -290,7 +276,17 @@ pub fn ControlledVirtualScrollView<'a, T>(
                     offset_x: "{corrected_scrolled_x}",
                     reference: node_ref,
                     onwheel: onwheel,
-                    children
+                    render_range.map(|i| {
+                        rsx!(
+                            EditorLine {
+                                key: "{i}",
+                                line_index: i,
+                                options: cx.props.options.clone(),
+                                font_size: cx.props.font_size,
+                                line_height: cx.props.line_height,
+                            }
+                        )
+                    })
                 }
                 ScrollBar {
                     width: "100%",

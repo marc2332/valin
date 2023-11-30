@@ -12,7 +12,7 @@ use crate::{hooks::UseDebouncer, utils::create_paragraph};
 
 use super::hooks::UseLsp;
 
-type BuilderProps = (
+pub type BuilderProps = (
     TextCursor,
     hooks::UseMetrics,
     hooks::UseEdit,

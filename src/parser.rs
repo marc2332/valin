@@ -66,32 +66,24 @@ pub type SyntaxLine = SmallVec<[(SyntaxType, TextType); 8]>;
 
 #[derive(Default)]
 pub struct SyntaxBlocks {
-    blocks: Vec<(SyntaxType, TextType)>,
-    lines: Vec<(usize, usize)>,
+    blocks: Vec<SmallVec<[(SyntaxType, TextType); 8]>>,
 }
 
 impl SyntaxBlocks {
     pub fn push_line(&mut self, line: SmallVec<[(SyntaxType, TextType); 8]>) {
-        let len = line.len();
-        self.blocks.extend(line);
-
-        let start = self.blocks.len() - len;
-        let end = self.blocks.len();
-        self.lines.push((start, end))
+        self.blocks.push(line);
     }
 
     pub fn get_line(&self, line: usize) -> &[(SyntaxType, TextType)] {
-        let (start, end) = self.lines.get(line).unwrap();
-        &self.blocks[*start..*end]
+        &self.blocks[line]
     }
 
     pub fn len(&self) -> usize {
-        self.lines.len()
+        self.blocks.len()
     }
 
     pub fn clear(&mut self) {
         self.blocks.clear();
-        self.lines.clear();
     }
 }
 

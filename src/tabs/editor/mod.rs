@@ -4,4 +4,5 @@ mod hooks;
 mod hover_box;
 mod lsp;
 
+pub use editor_line::*;
 pub use editor_tab::*;
