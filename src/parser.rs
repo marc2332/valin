@@ -62,8 +62,30 @@ impl TextType {
     }
 }
 
-pub type SyntaxLine = SmallVec<[(SyntaxType, TextType); 5]>;
-pub type SyntaxBlocks = Vec<SyntaxLine>;
+pub type SyntaxLine = SmallVec<[(SyntaxType, TextType); 8]>;
+
+#[derive(Default)]
+pub struct SyntaxBlocks {
+    blocks: Vec<SmallVec<[(SyntaxType, TextType); 8]>>,
+}
+
+impl SyntaxBlocks {
+    pub fn push_line(&mut self, line: SmallVec<[(SyntaxType, TextType); 8]>) {
+        self.blocks.push(line);
+    }
+
+    pub fn get_line(&self, line: usize) -> &[(SyntaxType, TextType)] {
+        &self.blocks[line]
+    }
+
+    pub fn len(&self) -> usize {
+        self.blocks.len()
+    }
+
+    pub fn clear(&mut self) {
+        self.blocks.clear();
+    }
+}
 
 const GENERIC_KEYWORDS: &[&str] = &[
     "use", "impl", "if", "let", "fn", "struct", "enum", "const", "pub", "crate", "else", "mut",
@@ -143,7 +165,7 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
             let start = rope.line_to_char(n);
             let end = line.len_chars();
             line_blocks.push((SyntaxType::Unknown, TextType::String(start..start + end)));
-            syntax_blocks.push(line_blocks);
+            syntax_blocks.push_line(line_blocks);
         }
         return;
     }
@@ -284,11 +306,11 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
                 line.push((SyntaxType::String, TextType::String(st)));
             }
 
-            syntax_blocks.push(line.drain(0..).collect());
+            syntax_blocks.push_line(line.drain(0..).collect());
 
             // Leave an empty line at the end
             if ch == '\n' && is_last_character {
-                syntax_blocks.push(SmallVec::default());
+                syntax_blocks.push_line(SmallVec::default());
             }
         }
     }

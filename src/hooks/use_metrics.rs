@@ -102,7 +102,7 @@ pub fn use_metrics<'a>(
     pane_index: usize,
     editor_index: usize,
 ) -> &'a UseMetrics {
-    let metrics_ref = use_ref::<(SyntaxBlocks, f32)>(cx, || (Vec::new(), 0.0));
+    let metrics_ref = use_ref::<(SyntaxBlocks, f32)>(cx, || (SyntaxBlocks::default(), 0.0));
 
     cx.use_hook(|| {
         let metrics = UseMetrics::new(

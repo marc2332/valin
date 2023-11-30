@@ -1,6 +1,6 @@
 mod commander;
-mod controlled_virtual_scroll_view;
 mod editor_panel;
+mod editor_scroll_view;
 mod file_explorer;
 mod icons;
 mod sidebar;
@@ -10,8 +10,8 @@ mod tab;
 mod text_area;
 
 pub use commander::*;
-pub use controlled_virtual_scroll_view::*;
 pub use editor_panel::*;
+pub use editor_scroll_view::*;
 pub use file_explorer::*;
 pub use sidebar::*;
 pub use sidepanel::*;

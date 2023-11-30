@@ -6,7 +6,6 @@ use crate::hooks::use_manager;
 use crate::hooks::EditorView;
 use crate::lsp::LanguageId;
 use crate::lsp::LspConfig;
-use crate::tabs::editor::editor_line::EditorLine;
 use crate::tabs::editor::hooks::use_lsp;
 
 use crate::hooks::*;
@@ -59,8 +58,16 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
     });
 
     let onscroll = move |(axis, scroll): (Axis, i32)| match axis {
-        Axis::X => scroll_offsets.write().0 = scroll,
-        Axis::Y => scroll_offsets.write().1 = scroll,
+        Axis::X => {
+            if scroll_offsets.read().0 != scroll {
+                scroll_offsets.write().0 = scroll
+            }
+        }
+        Axis::Y => {
+            if scroll_offsets.read().1 != scroll {
+                scroll_offsets.write().1 = scroll
+            }
+        }
     };
 
     let onglobalclick = {
@@ -174,24 +181,15 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
             direction: "horizontal",
             background: "rgb(40, 40, 40)",
             padding: "5 0 0 5",
-            ControlledVirtualScrollView {
+            EditorScrollView {
                 offset_x: scroll_offsets.read().0,
                 offset_y: scroll_offsets.read().1,
                 onscroll: onscroll,
-                builder_values: (cursor, metrics.clone(), editable, lsp.clone(), file_uri, editor.rope().clone(), hover_location.clone(), cursor_coords.clone(), debouncer.clone()),
                 length: metrics.get().0.len(),
                 item_size: manual_line_height,
-                builder: Box::new(move |(k, line_index, _cx, options)| {
-                    rsx!(
-                        EditorLine {
-                            key: "{k}",
-                            line_index: line_index,
-                            options: options,
-                            font_size: font_size,
-                            line_height: manual_line_height
-                        }
-                    )
-                })
+                options: (cursor, metrics.clone(), editable, lsp.clone(), file_uri, editor.rope().clone(), hover_location.clone(), cursor_coords.clone(), debouncer.clone()),
+                font_size: font_size,
+                line_height: manual_line_height
             }
         }
     )
