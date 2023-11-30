@@ -8,13 +8,13 @@ use crate::hooks;
 use crate::tabs::editor::hooks::LspAction;
 use crate::tabs::editor::hover_box::HoverBox;
 use crate::tabs::editor::lsp::HoverToText;
-use crate::{hooks::UseDebouncer, parser::SyntaxBlocks, utils::create_paragraph};
+use crate::{hooks::UseDebouncer, utils::create_paragraph};
 
 use super::hooks::UseLsp;
 
 type BuilderProps = (
     TextCursor,
-    UseRef<(SyntaxBlocks, f32)>,
+    hooks::UseMetrics,
     hooks::UseEdit,
     UseLsp,
     Url,
@@ -90,7 +90,7 @@ pub fn EditorLine<'a>(
     };
 
     let gutter_width = font_size * 3.0;
-    let (syntax_blocks, width) = &*metrics.read();
+    let (syntax_blocks, width) = &*metrics.get();
     let line = syntax_blocks.get(*line_index).unwrap();
     let highlights_attr = editable.highlights_attr(cx, *line_index);
 

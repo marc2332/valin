@@ -13,7 +13,7 @@ use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
 };
-use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
+use tokio::sync::mpsc::unbounded_channel;
 use torin::geometry::CursorPoint;
 use uuid::Uuid;
 use winit::event_loop::EventLoopProxy;
@@ -23,6 +23,8 @@ use crate::{
     hooks::UseManager,
     lsp::LanguageId,
 };
+
+use super::UseMetrics;
 
 /// Iterator over text lines.
 pub struct LinesIterator<'a> {
@@ -272,7 +274,7 @@ pub struct UseEdit {
     pub(crate) event_loop_proxy: Option<EventLoopProxy<EventMessage>>,
     pub(crate) pane_index: usize,
     pub(crate) editor_index: usize,
-    pub(crate) metrics_coroutine: UnboundedSender<()>,
+    pub(crate) metrics: UseMetrics,
 }
 
 impl UseEdit {
@@ -341,28 +343,27 @@ impl UseEdit {
                     return;
                 }
 
-                let mut manager = self.manager.write();
-                let editor = manager
-                    .panel_mut(self.pane_index)
-                    .tab_mut(self.editor_index)
-                    .as_text_editor_mut()
-                    .unwrap();
+                let event = 'key_matcher: {
+                    let mut manager = self.manager.write();
+                    let editor = manager
+                        .panel_mut(self.pane_index)
+                        .tab_mut(self.editor_index)
+                        .as_text_editor_mut()
+                        .unwrap();
 
-                if e.modifiers.contains(Modifiers::CONTROL) {
-                    if e.code == Code::KeyZ {
-                        editor.undo();
-                        self.metrics_coroutine.send(()).unwrap();
-                        return;
-                    } else if e.code == Code::KeyY {
-                        editor.redo();
-                        self.metrics_coroutine.send(()).unwrap();
-                        return;
+                    if e.modifiers.contains(Modifiers::CONTROL) {
+                        if e.code == Code::KeyZ {
+                            editor.undo();
+                            break 'key_matcher TextEvent::TextChanged;
+                        } else if e.code == Code::KeyY {
+                            editor.redo();
+                            break 'key_matcher TextEvent::TextChanged;
+                        }
                     }
-                }
-
-                let event = editor.process_key(&e.key, &e.code, &e.modifiers);
+                    editor.process_key(&e.key, &e.code, &e.modifiers)
+                };
                 if event == TextEvent::TextChanged {
-                    self.metrics_coroutine.send(()).unwrap();
+                    self.metrics.run_metrics();
                     *self.selecting_text_with_mouse.write_silent() = None;
                 }
             }
@@ -385,7 +386,7 @@ pub fn use_edit(
     manager: &UseManager,
     pane_index: usize,
     editor_index: usize,
-    metrics_coroutine: &UnboundedSender<()>,
+    metrics: &UseMetrics,
 ) -> UseEdit {
     let event_loop_proxy = cx.consume_context::<EventLoopProxy<EventMessage>>();
     let selecting_text_with_mouse = use_ref(cx, || None);
@@ -466,6 +467,6 @@ pub fn use_edit(
         event_loop_proxy,
         pane_index,
         editor_index,
-        metrics_coroutine: metrics_coroutine.clone(),
+        metrics: metrics.clone(),
     }
 }
