@@ -73,7 +73,7 @@ pub fn EditorPanel(cx: Scope<EditorPanelProps>) -> Element {
                         show_scrollbar: false,
                         panel.tabs().iter().enumerate().map(|(i, tab)| {
                             let is_selected = active_tab_index == Some(i);
-                            let (tab_id, tab_title) = tab.get_data();
+                            let tab_data = tab.get_data();
 
                             let onclick = {
                                 to_owned![manager];
@@ -84,19 +84,25 @@ pub fn EditorPanel(cx: Scope<EditorPanelProps>) -> Element {
                                 }
                             };
 
-                            let onclickclose = {
+                            let onclickaction = {
                                 to_owned![manager];
                                 move |_| {
-                                    manager.global_write().close_editor(*panel_index, i);
+                                    if tab_data.edited {
+                                        println!("save...")
+                                    } else {
+                                        manager.global_write().close_editor(*panel_index, i);
+                                    }
+                                    
                                 }
                             };
 
                             rsx!(
                                 Tab {
-                                    key: "{tab_id}",
+                                    key: "{tab_data.id}",
                                     onclick: onclick,
-                                    onclickclose: onclickclose,
-                                    value: "{tab_title}",
+                                    onclickaction: onclickaction,
+                                    value: "{tab_data.title}",
+                                    is_edited: tab_data.edited,
                                     is_selected: is_selected
                                 }
                             )
@@ -135,12 +141,12 @@ pub fn EditorPanel(cx: Scope<EditorPanelProps>) -> Element {
                     onclick: onclickpanel,
                     if let Some(active_tab_index) = active_tab_index {
                         let active_tab = panel.tab(active_tab_index);
-                        let (tab_id, _) = active_tab.get_data();
+                        let tab_data = active_tab.get_data();
                         match active_tab {
                             PanelTab::TextEditor(editor) => {
                                 rsx!(
                                     EditorTab {
-                                        key: "{tab_id}",
+                                        key: "{tab_data.id}",
                                         panel_index: *panel_index,
                                         editor: active_tab_index,
                                         language_id: editor.language_id,
@@ -151,7 +157,7 @@ pub fn EditorPanel(cx: Scope<EditorPanelProps>) -> Element {
                             PanelTab::Config => {
                                 rsx!(
                                     ConfigTab {
-                                        key: "{tab_id}",
+                                        key: "{tab_data.id}",
                                     }
                                 )
                             }

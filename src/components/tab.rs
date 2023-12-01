@@ -7,8 +7,9 @@ pub fn Tab<'a>(
     cx: Scope<'a>,
     value: &'a str,
     onclick: EventHandler<(), 'a>,
-    onclickclose: EventHandler<(), 'a>,
+    onclickaction: EventHandler<(), 'a>,
     is_selected: bool,
+    is_edited: bool
 ) -> Element {
     let status = use_state(cx, ButtonStatus::default);
     let theme = use_get_theme(cx);
@@ -47,7 +48,7 @@ pub fn Tab<'a>(
     } else {
         "transparent"
     };
-    let show_close_button = *is_selected || *status.get() == ButtonStatus::Hovering;
+    let is_hovering =  *status.get() == ButtonStatus::Hovering;
 
     render!(
         rect {
@@ -76,20 +77,29 @@ pub fn Tab<'a>(
             rect {
                 width: "15",
                 height: "20",
-                onclick: move |_| onclickclose.call(()),
+                onclick: move |_| onclickaction.call(()),
                 main_align: "center",
                 cross_align: "center",
                 corner_radius: "100",
                 padding: "4",
                 background: "{background}",
-                if show_close_button {
+                if *is_edited {
+                    rsx!(
+                        rect {
+                            background: "white",
+                            width: "15",
+                            height: "15",
+                            corner_radius: "100",
+                        }
+                    )
+                } else if is_hovering || *is_selected {
                     rsx!(
                         label {
                             font_size: "13",
                             "X"
                         }
                     )
-                }
+                } 
             }
         }
     )
