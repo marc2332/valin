@@ -7,6 +7,8 @@ use crate::hooks::EditorView;
 use crate::lsp::LanguageId;
 use crate::lsp::LspConfig;
 use crate::tabs::editor::hooks::use_lsp;
+use crate::tabs::editor::BuilderProps;
+use crate::tabs::editor::EditorLine;
 
 use crate::hooks::*;
 
@@ -187,9 +189,16 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
                 onscroll: onscroll,
                 length: metrics.get().0.len(),
                 item_size: manual_line_height,
-                options: (cursor, metrics.clone(), editable, lsp.clone(), file_uri, editor.rope().clone(), hover_location.clone(), cursor_coords.clone(), debouncer.clone()),
-                font_size: font_size,
-                line_height: manual_line_height
+                builder_args: (cursor, metrics.clone(), editable, lsp.clone(), file_uri, editor.rope().clone(), hover_location.clone(), cursor_coords.clone(), debouncer.clone()),
+                builder: move |i, options: BuilderProps| rsx!(
+                    EditorLine {
+                        key: "{i}",
+                        line_index: i,
+                        options: options,
+                        font_size: font_size,
+                        line_height: manual_line_height,
+                    }
+                )
             }
         }
     )
