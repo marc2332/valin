@@ -16,7 +16,7 @@ pub struct EditorPanelProps {
 #[allow(non_snake_case)]
 pub fn EditorPanel(cx: Scope<EditorPanelProps>) -> Element {
     let EditorPanelProps { panel_index, width } = cx.props;
-    let manager = use_manager(cx);
+    let manager = use_manager(cx, SubscriptionModel::All);
 
     let panels_len = manager.current().panels().len();
     let is_last_panel = manager.current().panels().len() - 1 == *panel_index;
@@ -71,39 +71,13 @@ pub fn EditorPanel(cx: Scope<EditorPanelProps>) -> Element {
                         width: "calc(100% - {tabsbar_tools_width})",
                         padding: "3 0 3 1",
                         show_scrollbar: false,
-                        panel.tabs().iter().enumerate().map(|(i, tab)| {
-                            let is_selected = active_tab_index == Some(i);
-                            let tab_data = tab.get_data();
-
-                            let onclick = {
-                                to_owned![manager];
-                                move |_| {
-                                    let mut manager = manager.global_write();
-                                    manager.set_focused_panel(*panel_index);
-                                    manager.panel_mut(*panel_index).set_active_tab(i);
-                                }
-                            };
-
-                            let onclickaction = {
-                                to_owned![manager];
-                                move |_| {
-                                    if tab_data.edited {
-                                        println!("save...")
-                                    } else {
-                                        manager.global_write().close_editor(*panel_index, i);
-                                    }
-                                    
-                                }
-                            };
-
+                        panel.tabs().iter().enumerate().map(|(editor_index, _)| {
+                            let is_selected = active_tab_index == Some(editor_index);
                             rsx!(
-                                Tab {
-                                    key: "{tab_data.id}",
-                                    onclick: onclick,
-                                    onclickaction: onclickaction,
-                                    value: "{tab_data.title}",
-                                    is_edited: tab_data.edited,
-                                    is_selected: is_selected
+                                PanelTab {
+                                    panel_index: *panel_index,
+                                    editor_index: editor_index,
+                                    is_selected: is_selected,
                                 }
                             )
                         })
@@ -148,7 +122,7 @@ pub fn EditorPanel(cx: Scope<EditorPanelProps>) -> Element {
                                     EditorTab {
                                         key: "{tab_data.id}",
                                         panel_index: *panel_index,
-                                        editor: active_tab_index,
+                                        editor_index: active_tab_index,
                                         language_id: editor.language_id,
                                         root_path: editor.root_path.clone()
                                     }
@@ -191,4 +165,62 @@ pub fn EditorPanel(cx: Scope<EditorPanelProps>) -> Element {
             }
         }
     )
+}
+
+#[derive(Props, PartialEq)]
+pub struct PanelTabProps {
+    panel_index: usize,
+    editor_index: usize,
+    is_selected: bool,
+}
+
+#[allow(non_snake_case)]
+fn PanelTab(cx: Scope<PanelTabProps>) -> Element {
+    let manager = use_manager(
+        cx,
+        SubscriptionModel::Tab {
+            panel_index: cx.props.panel_index,
+            editor_index: cx.props.editor_index,
+        },
+    );
+
+    let manager_ref = manager.current();
+    let tab = manager_ref
+        .panel(cx.props.panel_index)
+        .tab(cx.props.editor_index);
+    let tab_data = tab.get_data();
+    let is_selected = cx.props.is_selected;
+
+    let onclick = {
+        to_owned![manager];
+        move |_| {
+            let mut manager = manager.global_write();
+            manager.set_focused_panel(cx.props.panel_index);
+            manager
+                .panel_mut(cx.props.panel_index)
+                .set_active_tab(cx.props.editor_index);
+        }
+    };
+
+    let onclickaction = {
+        to_owned![manager];
+        move |_| {
+            if tab_data.edited {
+                println!("save...")
+            } else {
+                manager
+                    .global_write()
+                    .close_editor(cx.props.panel_index, cx.props.editor_index);
+            }
+        }
+    };
+
+    render!(Tab {
+        key: "{tab_data.id}",
+        onclick: onclick,
+        onclickaction: onclickaction,
+        value: "{tab_data.title}",
+        is_edited: tab_data.edited,
+        is_selected: is_selected
+    })
 }

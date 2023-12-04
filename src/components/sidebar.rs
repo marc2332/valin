@@ -1,10 +1,10 @@
 use freya::prelude::*;
 
-use crate::hooks::{use_manager, PanelTab};
+use crate::hooks::{use_manager, PanelTab, SubscriptionModel};
 
 #[allow(non_snake_case)]
 pub fn Sidebar(cx: Scope) -> Element {
-    let manager = use_manager(cx);
+    let manager = use_manager(cx, SubscriptionModel::All);
 
     let open_settings = move |_| {
         let focused_panel = manager.current().focused_panel();

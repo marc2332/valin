@@ -10,10 +10,10 @@ use tokio::{
     io,
 };
 
-use crate::hooks::use_manager;
 use crate::hooks::EditorData;
 use crate::hooks::EditorView;
 use crate::hooks::PanelTab;
+use crate::hooks::{use_manager, SubscriptionModel};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FolderState {
@@ -124,7 +124,7 @@ enum TreeTask {
 
 #[allow(non_snake_case)]
 pub fn FileExplorer(cx: Scope) -> Element {
-    let manager = use_manager(cx);
+    let manager = use_manager(cx, SubscriptionModel::All); // TODO Use specific
     let is_focused_files_explorer = *manager.current().focused_view() == EditorView::FilesExplorer;
     let tree = use_ref::<Option<TreeItem>>(cx, || None);
     let focused_item = use_state(cx, || 0);

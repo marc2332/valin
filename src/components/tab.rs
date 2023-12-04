@@ -9,7 +9,7 @@ pub fn Tab<'a>(
     onclick: EventHandler<(), 'a>,
     onclickaction: EventHandler<(), 'a>,
     is_selected: bool,
-    is_edited: bool
+    is_edited: bool,
 ) -> Element {
     let status = use_state(cx, ButtonStatus::default);
     let theme = use_get_theme(cx);
@@ -48,7 +48,7 @@ pub fn Tab<'a>(
     } else {
         "transparent"
     };
-    let is_hovering =  *status.get() == ButtonStatus::Hovering;
+    let is_hovering = *status.get() == ButtonStatus::Hovering;
 
     render!(
         rect {
@@ -87,8 +87,8 @@ pub fn Tab<'a>(
                     rsx!(
                         rect {
                             background: "white",
-                            width: "15",
-                            height: "15",
+                            width: "10",
+                            height: "10",
                             corner_radius: "100",
                         }
                     )
@@ -99,7 +99,7 @@ pub fn Tab<'a>(
                             "X"
                         }
                     )
-                } 
+                }
             }
         }
     )

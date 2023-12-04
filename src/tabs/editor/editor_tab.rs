@@ -23,7 +23,7 @@ static LINES_JUMP_CONTROL: usize = 3;
 #[derive(Props, PartialEq)]
 pub struct EditorTabProps {
     pub panel_index: usize,
-    pub editor: usize,
+    pub editor_index: usize,
     pub language_id: LanguageId,
     pub root_path: PathBuf,
 }
@@ -31,30 +31,45 @@ pub struct EditorTabProps {
 #[allow(non_snake_case)]
 pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
     let lsp_config = LspConfig::new(cx.props.root_path.clone(), cx.props.language_id);
-    let manager = use_manager(cx);
+    let manager = use_manager(
+        cx,
+        SubscriptionModel::Tab {
+            panel_index: cx.props.panel_index,
+            editor_index: cx.props.editor_index,
+        },
+    );
     let debouncer = use_debouncer(cx, Duration::from_millis(300));
     let hover_location = use_ref(cx, || None);
-    let metrics = use_metrics(cx, &manager, cx.props.panel_index, cx.props.editor);
-    let editable = use_edit(cx, &manager, cx.props.panel_index, cx.props.editor, metrics);
+    let metrics = use_metrics(cx, manager, cx.props.panel_index, cx.props.editor_index);
+    let editable = use_edit(
+        cx,
+        manager,
+        cx.props.panel_index,
+        cx.props.editor_index,
+        metrics,
+    );
     let cursor_coords = use_ref(cx, CursorPoint::default);
     let scroll_offsets = use_ref(cx, || (0, 0));
     let lsp = use_lsp(
         cx,
         cx.props.language_id,
         cx.props.panel_index,
-        cx.props.editor,
+        cx.props.editor_index,
         &lsp_config,
-        &manager,
+        manager,
         hover_location,
     );
 
     // Focus editor when created
     cx.use_hook(|| {
-        let mut manager = manager.write();
+        let mut manager = manager.write(SubscriptionModel::new_tab(
+            cx.props.panel_index,
+            cx.props.editor_index,
+        ));
         manager.set_focused_panel(cx.props.panel_index);
         manager
             .panel_mut(cx.props.panel_index)
-            .set_active_tab(cx.props.editor);
+            .set_active_tab(cx.props.editor_index);
     });
 
     let onscroll = move |(axis, scroll): (Axis, i32)| match axis {
@@ -90,7 +105,7 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
                 let is_code_editor_view_focused =
                     *manager_ref.focused_view() == EditorView::CodeEditor;
                 let is_editor_focused = manager_ref.focused_panel() == cx.props.panel_index
-                    && panel.active_tab() == Some(cx.props.editor);
+                    && panel.active_tab() == Some(cx.props.editor_index);
                 (is_code_editor_view_focused, is_editor_focused)
             };
 
@@ -104,7 +119,7 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
                 manager.set_focused_panel(cx.props.panel_index);
                 manager
                     .panel_mut(cx.props.panel_index)
-                    .set_active_tab(cx.props.editor);
+                    .set_active_tab(cx.props.editor_index);
             }
         }
     };
@@ -124,7 +139,7 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
                 let panel = manager_ref.panel(cx.props.panel_index);
                 let is_panel_focused = manager_ref.focused_panel() == cx.props.panel_index;
                 let is_editor_focused = *manager_ref.focused_view() == EditorView::CodeEditor
-                    && panel.active_tab() == Some(cx.props.editor);
+                    && panel.active_tab() == Some(cx.props.editor_index);
                 (is_panel_focused, is_editor_focused)
             };
 
@@ -165,7 +180,7 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
         }
     };
 
-    let editor = panel.tab(cx.props.editor).as_text_editor().unwrap();
+    let editor = panel.tab(cx.props.editor_index).as_text_editor().unwrap();
     let path = editor.path();
     let cursor = editor.cursor();
     let file_uri = Url::from_file_path(path).unwrap();
