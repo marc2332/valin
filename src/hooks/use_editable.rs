@@ -52,6 +52,8 @@ pub struct EditorData {
 
     /// Selected text range
     selected: Option<(usize, usize)>,
+
+    last_saved_history_change: usize
 }
 
 impl EditorData {
@@ -69,6 +71,7 @@ impl EditorData {
             language_id,
             root_path,
             history: History::new(),
+            last_saved_history_change: 0
         }
     }
 
@@ -95,6 +98,10 @@ impl EditorData {
                 self.move_cursor_to_idx(cursor_idx);
             }
         }
+    }
+
+    pub fn is_edited(&self) -> bool {
+        self.history.current_change() > self.last_saved_history_change
     }
 
     pub fn path(&self) -> &PathBuf {
