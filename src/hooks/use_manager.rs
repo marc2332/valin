@@ -20,20 +20,31 @@ pub enum PanelTab {
     Config,
 }
 
+pub struct PanelTabData {
+    pub edited: bool,
+    pub title: String,
+    pub id: String,
+}
+
 impl PanelTab {
-    pub fn get_data(&self) -> (String, String) {
+    pub fn get_data(&self) -> PanelTabData {
         match self {
-            PanelTab::Config => ("config".to_string(), "Config".to_string()),
-            PanelTab::TextEditor(editor) => (
-                editor.path().to_str().unwrap().to_owned(),
-                editor
+            PanelTab::Config => PanelTabData {
+                id: "config".to_string(),
+                title: "Config".to_string(),
+                edited: false,
+            },
+            PanelTab::TextEditor(editor) => PanelTabData {
+                id: editor.path().to_str().unwrap().to_owned(),
+                title: editor
                     .path()
                     .file_name()
                     .unwrap()
                     .to_str()
                     .unwrap()
                     .to_owned(),
-            ),
+                edited: editor.is_edited(),
+            },
         }
     }
 
@@ -299,7 +310,7 @@ impl EditorManager {
             .tabs
             .iter()
             .enumerate()
-            .find(|(_, t)| t.get_data().0 == tab.get_data().0);
+            .find(|(_, t)| t.get_data().id == tab.get_data().id);
 
         if let Some((tab_index, _)) = opened_tab {
             if focus {

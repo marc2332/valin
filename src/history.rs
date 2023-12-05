@@ -29,6 +29,10 @@ impl History {
         self.current_change = self.changes.len();
     }
 
+    pub fn current_change(&self) -> usize {
+        self.current_change
+    }
+
     pub fn any_pending_changes(&self) -> usize {
         self.changes.len() - self.current_change
     }
