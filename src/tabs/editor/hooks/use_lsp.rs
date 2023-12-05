@@ -56,7 +56,13 @@ pub fn use_lsp(
 
             // Notify language server the file has been opened
             cx.spawn(async move {
-                let mut lsp = EditorManager::get_or_insert_lsp(manager, &lsp_config).await;
+                let mut lsp = EditorManager::get_or_insert_lsp(
+                    manager,
+                    &lsp_config,
+                    panel_index,
+                    editor_index,
+                )
+                .await;
 
                 lsp.server_socket
                     .did_open(DidOpenTextDocumentParams {
