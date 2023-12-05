@@ -52,7 +52,6 @@ pub fn EditorLine(cx: Scope<EditorLineProps>) -> Element {
     } = cx.props;
     let (cursor, metrics, editable, lsp, file_uri, rope, hover_location, cursor_coords, debouncer) =
         options;
-    let line_str = rope.line(*line_index).to_string();
 
     let onmousedown = {
         to_owned![editable];
@@ -68,6 +67,7 @@ pub fn EditorLine(cx: Scope<EditorLineProps>) -> Element {
     let onmouseover = {
         to_owned![editable, file_uri, lsp, cursor_coords, hover_location];
         move |e: MouseEvent| {
+            let line_str = rope.line(*line_index).to_string();
             let coords = e.get_element_coordinates();
             let data = e.data;
 

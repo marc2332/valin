@@ -48,6 +48,7 @@ fn Body(cx: Scope) -> Element {
             }
         }
     });
+
     let manager = use_init_manager(cx, lsp_status_coroutine);
     let focused_view = manager.current().focused_view.clone();
 
@@ -71,12 +72,12 @@ fn Body(cx: Scope) -> Element {
         }
     };
 
-    let onkeydown = {
-        to_owned![manager];
-        move |e: KeyboardEvent| {
-            let mut manager = manager.global_write();
-            match &e.key {
+    let onkeydown =
+        {
+            to_owned![manager];
+            move |e: KeyboardEvent| match &e.key {
                 Key::Escape => {
+                    let mut manager = manager.global_write();
                     if manager.focused_view == EditorView::Commander {
                         manager.set_focused_view_to_previous();
                     } else {
@@ -84,6 +85,7 @@ fn Body(cx: Scope) -> Element {
                     }
                 }
                 Key::Character(ch) if e.modifiers.contains(Modifiers::ALT) => {
+                    let mut manager = manager.global_write();
                     let font_size = manager.font_size;
                     match ch.as_str() {
                         "+" => manager
@@ -102,8 +104,7 @@ fn Body(cx: Scope) -> Element {
                 }
                 _ => {}
             }
-        }
-    };
+        };
 
     let onglobalmousedown = |_| {
         if *manager.current().focused_view() == EditorView::Commander {

@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, HashSet},
+    collections::HashMap,
     fmt::Display,
     ops::{Deref, DerefMut},
     rc::Rc,
@@ -14,12 +14,31 @@ use crate::lsp::{create_lsp, LSPBridge, LspConfig};
 
 use super::use_editable::EditorData;
 
+#[derive(PartialEq, Eq, Debug)]
+pub enum SubscriptionModel {
+    All,
+    Tab {
+        panel_index: usize,
+        editor_index: usize,
+    },
+}
+
+impl SubscriptionModel {
+    pub fn new_tab(panel: usize, editor: usize) -> Self {
+        Self::Tab {
+            panel_index: panel,
+            editor_index: editor,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub enum PanelTab {
     TextEditor(EditorData),
     Config,
 }
 
+#[derive(PartialEq, Eq)]
 pub struct PanelTabData {
     pub edited: bool,
     pub title: String,
@@ -97,103 +116,105 @@ impl Panel {
     }
 }
 
+pub type SharedEditorManager = Rc<EditorManagerInner>;
+
 pub fn use_init_manager<'a>(
     cx: &'a ScopeState,
     lsp_status_coroutine: &'a Coroutine<(String, String)>,
-) -> &'a EditorManagerWrapper {
+) -> &'a SharedEditorManager {
     use_context_provider(cx, || {
-        EditorManagerWrapper::new(cx, EditorManager::new(lsp_status_coroutine.clone()))
+        Rc::new(EditorManagerInner::new(
+            cx,
+            EditorManager::new(lsp_status_coroutine.clone()),
+        ))
     })
 }
 
-pub fn use_manager(cx: &ScopeState) -> UseManager {
-    let mut manager = use_context::<EditorManagerWrapper>(cx).unwrap().clone();
+pub fn use_manager(cx: &ScopeState, model: SubscriptionModel) -> &UseManager {
+    let manager = use_context::<SharedEditorManager>(cx).unwrap();
 
-    manager.scope = cx.scope_id();
-
-    UseManager::new(cx, manager)
+    cx.use_hook(|| {
+        let mut manager = manager.as_ref().clone();
+        manager.scope = cx.scope_id();
+        UseManager::new(manager, model)
+    })
 }
 
 #[derive(Clone)]
-pub struct EditorManagerWrapper {
-    pub subscribers: Rc<RefCell<HashSet<ScopeId>>>,
+pub struct EditorManagerInner {
+    pub subscribers: Rc<RefCell<HashMap<ScopeId, SubscriptionModel>>>,
     value: Rc<RefCell<EditorManager>>,
     scheduler: Arc<dyn Fn(ScopeId) + Send + Sync>,
     scope: ScopeId,
 }
 
-impl PartialEq for EditorManagerWrapper {
-    fn eq(&self, _other: &Self) -> bool {
-        true
-    }
-}
-
-pub struct EditorManagerInner(EditorManagerWrapper);
-
 impl Drop for EditorManagerInner {
     fn drop(&mut self) {
-        self.0.subscribers.borrow_mut().remove(&self.0.scope);
+        self.subscribers.borrow_mut().remove(&self.scope);
     }
 }
 
 #[derive(Clone)]
 pub struct UseManager {
-    inner: Rc<EditorManagerInner>,
+    inner: SharedEditorManager,
 }
 
 impl UseManager {
-    pub fn new(cx: &ScopeState, inner: EditorManagerWrapper) -> Self {
-        inner.subscribers.borrow_mut().insert(cx.scope_id());
+    pub fn new(inner: EditorManagerInner, model: SubscriptionModel) -> Self {
+        inner.subscribers.borrow_mut().insert(inner.scope, model);
         Self {
-            inner: Rc::new(EditorManagerInner(inner)),
+            inner: Rc::new(inner),
         }
     }
 
-    pub fn global_write(&self) -> EditorManagerWrapperGuard {
-        self.inner.0.global_write()
+    pub fn global_write(&self) -> EditorManagerInnerGuard {
+        self.inner.global_write()
     }
 
-    pub fn write(&self) -> EditorManagerWrapperGuard {
-        self.inner.0.write()
+    pub fn write(&self, model: SubscriptionModel) -> EditorManagerInnerGuard {
+        self.inner.write(model)
     }
 
     pub fn current(&self) -> Ref<EditorManager> {
-        self.inner.0.current()
+        self.inner.current()
     }
 }
 
-pub struct EditorManagerWrapperGuard<'a> {
-    pub subscribers: Rc<RefCell<HashSet<ScopeId>>>,
+pub struct EditorManagerInnerGuard<'a> {
+    model: SubscriptionModel,
+    pub subscribers: Rc<RefCell<HashMap<ScopeId, SubscriptionModel>>>,
     value: RefMut<'a, EditorManager>,
     scheduler: Arc<dyn Fn(ScopeId) + Send + Sync>,
-    scope: Option<ScopeId>,
 }
 
-impl EditorManagerWrapper {
+impl EditorManagerInner {
     pub fn new(cx: &ScopeState, value: EditorManager) -> Self {
         Self {
-            subscribers: Rc::new(RefCell::new(HashSet::from([cx.scope_id()]))),
+            subscribers: Rc::new(RefCell::new(HashMap::from([(
+                cx.scope_id(),
+                SubscriptionModel::All,
+            )]))),
             value: Rc::new(RefCell::new(value.clone())),
             scheduler: cx.schedule_update_any(),
             scope: cx.scope_id(),
         }
     }
 
-    pub fn global_write(&self) -> EditorManagerWrapperGuard {
-        EditorManagerWrapperGuard {
+    pub fn global_write(&self) -> EditorManagerInnerGuard {
+        EditorManagerInnerGuard {
+            model: SubscriptionModel::All,
             subscribers: self.subscribers.clone(),
             value: self.value.borrow_mut(),
             scheduler: self.scheduler.clone(),
-            scope: None,
         }
     }
 
-    pub fn write(&self) -> EditorManagerWrapperGuard {
-        EditorManagerWrapperGuard {
+    pub fn write(&self, model: SubscriptionModel) -> EditorManagerInnerGuard {
+        EditorManagerInnerGuard {
+            model,
             subscribers: self.subscribers.clone(),
             value: self.value.borrow_mut(),
             scheduler: self.scheduler.clone(),
-            scope: Some(self.scope),
         }
     }
 
@@ -202,19 +223,17 @@ impl EditorManagerWrapper {
     }
 }
 
-impl Drop for EditorManagerWrapperGuard<'_> {
+impl Drop for EditorManagerInnerGuard<'_> {
     fn drop(&mut self) {
-        if let Some(id) = self.scope {
-            (self.scheduler)(id)
-        } else {
-            for scope_id in self.subscribers.borrow().iter() {
+        for (scope_id, scope_model) in self.subscribers.borrow().iter() {
+            if scope_model == &self.model {
                 (self.scheduler)(*scope_id)
             }
         }
     }
 }
 
-impl<'a> Deref for EditorManagerWrapperGuard<'a> {
+impl<'a> Deref for EditorManagerInnerGuard<'a> {
     type Target = RefMut<'a, EditorManager>;
 
     fn deref(&self) -> &RefMut<'a, EditorManager> {
@@ -222,7 +241,7 @@ impl<'a> Deref for EditorManagerWrapperGuard<'a> {
     }
 }
 
-impl<'a> DerefMut for EditorManagerWrapperGuard<'a> {
+impl<'a> DerefMut for EditorManagerInnerGuard<'a> {
     fn deref_mut(&mut self) -> &mut RefMut<'a, EditorManager> {
         &mut self.value
     }
@@ -384,14 +403,19 @@ impl EditorManager {
         self.language_servers.insert(language_server, server);
     }
 
-    pub async fn get_or_insert_lsp(manager: UseManager, lsp_config: &LspConfig) -> LSPBridge {
+    pub async fn get_or_insert_lsp(
+        manager: UseManager,
+        lsp_config: &LspConfig,
+        panel_index: usize,
+        editor_index: usize,
+    ) -> LSPBridge {
         let server = manager.current().lsp(lsp_config).cloned();
         match server {
             Some(server) => server,
             None => {
                 let server = create_lsp(lsp_config.clone(), &manager.current()).await;
                 manager
-                    .write()
+                    .write(SubscriptionModel::new_tab(panel_index, editor_index))
                     .insert_lsp(lsp_config.language_server.clone(), server.clone());
                 server
             }
