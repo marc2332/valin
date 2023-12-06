@@ -1,5 +1,6 @@
 mod commands;
 mod components;
+mod editor_manager;
 mod history;
 mod hooks;
 mod lsp;
@@ -16,6 +17,7 @@ use std::collections::HashMap;
 use utils::*;
 
 use crate::commands::{EditorCommand, FontSizeCommand, SplitCommand};
+use crate::editor_manager::EditorView;
 
 static BASE_FONT_SIZE: f32 = 5.0;
 static MAX_FONT_SIZE: f32 = 150.0;
