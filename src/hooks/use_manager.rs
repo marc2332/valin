@@ -192,8 +192,8 @@ impl UseManager {
         self.inner.global_write()
     }
 
-    pub fn write(&self, model: SubscriptionModel) -> EditorManagerInnerGuard {
-        self.inner.write(model)
+    pub fn write(&self) -> EditorManagerInnerGuard {
+        self.inner.write()
     }
 
     pub fn current(&self) -> Ref<EditorManager> {
@@ -230,7 +230,11 @@ impl EditorManagerInner {
         }
     }
 
-    pub fn write(&self, model: SubscriptionModel) -> EditorManagerInnerGuard {
+    pub fn write(&self) -> EditorManagerInnerGuard {
+        let model = {
+            let subscribers = self.subscribers.borrow();
+            subscribers.get(&self.scope).unwrap().clone()
+        };
         EditorManagerInnerGuard {
             model,
             subscribers: self.subscribers.clone(),
@@ -424,19 +428,14 @@ impl EditorManager {
         self.language_servers.insert(language_server, server);
     }
 
-    pub async fn get_or_insert_lsp(
-        manager: UseManager,
-        lsp_config: &LspConfig,
-        panel_index: usize,
-        editor_index: usize,
-    ) -> LSPBridge {
+    pub async fn get_or_insert_lsp(manager: UseManager, lsp_config: &LspConfig) -> LSPBridge {
         let server = manager.current().lsp(lsp_config).cloned();
         match server {
             Some(server) => server,
             None => {
                 let server = create_lsp(lsp_config.clone(), &manager.current()).await;
                 manager
-                    .write(SubscriptionModel::new_tab(panel_index, editor_index))
+                    .write()
                     .insert_lsp(lsp_config.language_server.clone(), server.clone());
                 server
             }
