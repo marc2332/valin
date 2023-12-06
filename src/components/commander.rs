@@ -1,39 +1,25 @@
-use crate::TextArea;
+use crate::{commands::EditorCommand, TextArea};
 use freya::prelude::*;
 
-pub struct Command {
-    name: String,
-    run: Box<dyn Fn(&str)>,
-}
-
-impl Command {
-    pub fn new(name: String, run: Box<dyn Fn(&str)>) -> Self {
-        Self { name, run }
-    }
-
-    pub fn run(&self, args: &str) {
-        (self.run)(args);
-    }
+#[derive(Props)]
+pub struct CommanderProps<'a> {
+    commands: &'a Vec<Box<dyn EditorCommand>>,
+    onsubmit: EventHandler<'a>,
 }
 
 #[allow(non_snake_case)]
-#[inline_props]
-pub fn Commander<'a>(
-    cx: Scope<'a>,
-    commands: &'a Vec<Command>,
-    onsubmit: EventHandler<'a>,
-) -> Element<'a> {
+pub fn Commander<'a>(cx: Scope<'a, CommanderProps<'a>>) -> Element<'a> {
     let value = use_state(cx, String::new);
 
     let onsubmit = |new_value: String| {
         let sep = new_value.find(' ');
         if let Some(sep) = sep {
             let (name, args) = new_value.split_at(sep);
-            let command = commands.iter().find(|c| c.name == name);
+            let command = cx.props.commands.iter().find(|c| c.name() == name);
             if let Some(command) = command {
-                command.run(args.trim());
+                command.run_with_args(args.trim());
                 value.set("".to_string());
-                onsubmit.call(());
+                cx.props.onsubmit.call(());
             }
         }
     };
@@ -43,10 +29,8 @@ pub fn Commander<'a>(
             width: "100%",
             height: "0",
             layer: "-100",
-            offset_y: "50",
             rect {
                 width: "100%",
-                height: "75",
                 main_align: "center",
                 cross_align: "center",
                 padding: "10",

@@ -36,7 +36,6 @@ pub fn TextArea<'a>(cx: Scope<'a, TextAreaProps<'a>>) -> Element {
             overflow: "clip",
             onkeydown: onkeydown,
             width: "100%",
-            height: "100%",
             color: "{button_theme.font_theme.color}",
             corner_radius: "5",
             padding: "12 10",
