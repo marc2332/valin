@@ -1,3 +1,4 @@
+mod commands;
 mod components;
 mod history;
 mod hooks;
@@ -13,6 +14,8 @@ use futures::StreamExt;
 use hooks::*;
 use std::collections::HashMap;
 use utils::*;
+
+use crate::commands::{EditorCommand, FontSizeCommand, SplitCommand};
 
 static BASE_FONT_SIZE: f32 = 5.0;
 static MAX_FONT_SIZE: f32 = 150.0;
@@ -53,15 +56,11 @@ fn Body(cx: Scope) -> Element {
     let focused_view = manager.current().focused_view.clone();
 
     // Commands
-    let commands = cx.use_hook(|| {
-        vec![Command::new("fs".to_string(), {
-            to_owned![manager];
-            Box::new(move |size: &str| {
-                if let Ok(size) = size.parse::<f32>() {
-                    manager.global_write().set_fontsize(size);
-                }
-            })
-        })]
+    let commands = cx.use_hook::<Vec<Box<dyn EditorCommand>>>(|| {
+        vec![
+            Box::new(FontSizeCommand(manager.clone())),
+            Box::new(SplitCommand(manager.clone())),
+        ]
     });
 
     let onsubmitcommander = {
