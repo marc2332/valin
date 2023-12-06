@@ -24,7 +24,7 @@ use crate::{
     lsp::LanguageId,
 };
 
-use super::{SubscriptionModel, UseMetrics};
+use super::UseMetrics;
 
 /// Iterator over text lines.
 pub struct LinesIterator<'a> {
@@ -327,10 +327,7 @@ impl UseEdit {
 
                 self.cursor_reference.set_id(Some(*id));
                 self.cursor_reference.set_cursor_position(Some(coords));
-                let mut manager = self.manager.write(SubscriptionModel::new_tab(
-                    self.pane_index,
-                    self.editor_index,
-                ));
+                let mut manager = self.manager.write();
 
                 let editor = manager
                     .panel_mut(self.pane_index)
@@ -365,10 +362,7 @@ impl UseEdit {
                 }
 
                 let event = 'key_matcher: {
-                    let mut manager = self.manager.write(SubscriptionModel::new_tab(
-                        self.pane_index,
-                        self.editor_index,
-                    ));
+                    let mut manager = self.manager.write();
                     let editor = manager
                         .panel_mut(self.pane_index)
                         .tab_mut(self.editor_index)
@@ -435,8 +429,7 @@ pub fn use_edit(
                     match message {
                         // Update the cursor position calculated by the layout
                         CursorLayoutResponse::CursorPosition { position, id } => {
-                            let mut manager =
-                                manager.write(SubscriptionModel::new_tab(pane_index, editor_index));
+                            let mut manager = manager.write();
                             let editor = manager
                                 .panel(pane_index)
                                 .tab(editor_index)
@@ -469,8 +462,7 @@ pub fn use_edit(
                         }
                         // Update the text selections calculated by the layout
                         CursorLayoutResponse::TextSelection { from, to, id } => {
-                            let mut manager =
-                                manager.write(SubscriptionModel::new_tab(pane_index, editor_index));
+                            let mut manager = manager.write();
                             let editor = manager
                                 .panel_mut(pane_index)
                                 .tab_mut(editor_index)

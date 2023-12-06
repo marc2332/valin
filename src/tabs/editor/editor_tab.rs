@@ -35,10 +35,7 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
     let lsp_config = LspConfig::new(cx.props.root_path.clone(), cx.props.language_id);
     let manager = use_manager(
         cx,
-        SubscriptionModel::Tab {
-            panel_index: cx.props.panel_index,
-            editor_index: cx.props.editor_index,
-        },
+        SubscriptionModel::new_tab(cx.props.panel_index, cx.props.editor_index),
     );
     let debouncer = use_debouncer(cx, Duration::from_millis(300));
     let hover_location = use_ref(cx, || None);
@@ -64,10 +61,7 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
 
     // Focus editor when created
     cx.use_hook(|| {
-        let mut manager = manager.write(SubscriptionModel::new_tab(
-            cx.props.panel_index,
-            cx.props.editor_index,
-        ));
+        let mut manager = manager.write();
         manager.set_focused_panel(cx.props.panel_index);
         manager
             .panel_mut(cx.props.panel_index)
