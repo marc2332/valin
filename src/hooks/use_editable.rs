@@ -284,6 +284,16 @@ pub struct UseEdit {
     pub(crate) metrics: UseMetrics,
 }
 
+impl PartialEq for UseEdit {
+    fn eq(&self, other: &Self) -> bool {
+        self.manager == other.manager
+            && self.cursor_reference == other.cursor_reference
+            && self.selecting_text_with_mouse == other.selecting_text_with_mouse
+            && self.pane_index == other.pane_index
+            && self.editor_index == other.editor_index
+    }
+}
+
 impl UseEdit {
     /// Create a cursor attribute.
     pub fn cursor_attr<'a, T>(&self, cx: Scope<'a, T>) -> AttributeValue<'a> {
@@ -321,6 +331,7 @@ impl UseEdit {
                     self.pane_index,
                     self.editor_index,
                 ));
+
                 let editor = manager
                     .panel_mut(self.pane_index)
                     .tab_mut(self.editor_index)

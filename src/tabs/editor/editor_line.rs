@@ -35,6 +35,7 @@ pub struct EditorLineProps {
 impl PartialEq for EditorLineProps {
     fn eq(&self, other: &Self) -> bool {
         self.options.0 == other.options.0
+            && self.options.2 == other.options.2
             && self.options.4 == other.options.4
             && self.line_index == other.line_index
             && self.font_size == other.font_size

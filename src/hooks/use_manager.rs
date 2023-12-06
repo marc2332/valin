@@ -14,7 +14,7 @@ use crate::lsp::{create_lsp, LSPBridge, LspConfig};
 
 use super::use_editable::EditorData;
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum SubscriptionModel {
     All,
     Tab {
@@ -133,11 +133,15 @@ pub fn use_init_manager<'a>(
 pub fn use_manager(cx: &ScopeState, model: SubscriptionModel) -> &UseManager {
     let manager = use_context::<SharedEditorManager>(cx).unwrap();
 
-    cx.use_hook(|| {
+    let manager = cx.use_hook(|| {
         let mut manager = manager.as_ref().clone();
         manager.scope = cx.scope_id();
-        UseManager::new(manager, model)
-    })
+        UseManager::new(manager, model.clone())
+    });
+
+    manager.update_model_if_necessary(model);
+
+    manager
 }
 
 #[derive(Clone)]
@@ -159,11 +163,28 @@ pub struct UseManager {
     inner: SharedEditorManager,
 }
 
+impl PartialEq for UseManager {
+    fn eq(&self, other: &Self) -> bool {
+        Rc::ptr_eq(&self.inner, &other.inner)
+    }
+}
+
 impl UseManager {
     pub fn new(inner: EditorManagerInner, model: SubscriptionModel) -> Self {
         inner.subscribers.borrow_mut().insert(inner.scope, model);
         Self {
             inner: Rc::new(inner),
+        }
+    }
+
+    fn update_model_if_necessary(&self, model: SubscriptionModel) {
+        let mut subs = self.inner.subscribers.borrow_mut();
+        let entry = subs.get_mut(&self.inner.scope);
+
+        if let Some(entry) = entry {
+            if entry != &model {
+                *entry = model
+            }
         }
     }
 
