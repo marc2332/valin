@@ -186,13 +186,13 @@ pub fn EditorLine(cx: Scope<EditorLineProps>) -> Element {
                 direction: "horizontal",
                 font_size: "{font_size}",
                 font_family: "Jetbrains Mono",
-                line.iter().enumerate().map(|(i, (syntax_type, word))| {
-                    let word = word.to_string(rope);
+                line.iter().enumerate().map(|(i, (syntax_type, text))| {
+                    let text = rope.slice(text.clone());
                     rsx!(
                         text {
                             key: "{i}",
                             color: "{syntax_type.color()}",
-                            "{word}"
+                            "{text}"
                         }
                     )
                 })

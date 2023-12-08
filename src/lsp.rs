@@ -165,7 +165,7 @@ impl ToString for LanguageId {
 impl LanguageId {
     pub fn parse(id: &str) -> Self {
         match id {
-            "rs" => LanguageId::Rust,
+            "ars" => LanguageId::Rust,
             "py" => LanguageId::Python,
             "js" => LanguageId::JavaScript,
             "ts" => LanguageId::TypeScript,
