@@ -1,6 +1,6 @@
 use freya::prelude::*;
 
-#[inline_props]
+#[component]
 #[allow(non_snake_case)]
 pub fn Sidepanel<'a>(cx: Scope<'a>, children: Element<'a>) -> Element<'a> {
     render!(rect {

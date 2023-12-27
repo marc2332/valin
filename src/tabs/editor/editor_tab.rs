@@ -10,7 +10,7 @@ use crate::tabs::editor::hooks::use_lsp;
 use crate::tabs::editor::BuilderProps;
 use crate::tabs::editor::EditorLine;
 
-use freya::prelude::events::KeyboardEvent;
+use freya::events::KeyboardEvent;
 use freya::prelude::keyboard::Key;
 use freya::prelude::keyboard::Modifiers;
 use freya::prelude::*;

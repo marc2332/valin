@@ -23,8 +23,10 @@ pub fn Sidebar(cx: Scope) -> Element {
             cross_align: "center",
             SideBarButton {
                 Button {
-                    width: "100%",
-                    padding: "10 8",
+                    theme: theme_with!(ButtonTheme {
+                        width: "100%".into(),
+                        padding: "10 8".into(),
+                    }),
                     label {
                         "Files"
                     }
@@ -32,8 +34,10 @@ pub fn Sidebar(cx: Scope) -> Element {
             }
             SideBarButton {
                 Button {
-                    width: "100%",
-                    padding: "10 8",
+                    theme: theme_with!(ButtonTheme {
+                        width: "100%".into(),
+                        padding: "10 8".into(),
+                    }),
                     onclick: open_settings,
                     label {
                         "Conf"

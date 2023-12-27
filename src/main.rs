@@ -29,6 +29,7 @@ fn main() {
             .with_width(900.0)
             .with_height(600.0)
             .with_title("Editor")
+            .with_plugin(PerformanceOverlayPlugin::default())
             .build(),
     );
 }

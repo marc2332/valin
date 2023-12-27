@@ -1,7 +1,7 @@
 use freya::prelude::*;
 
 #[allow(non_snake_case)]
-#[inline_props]
+#[component]
 pub fn HoverBox(cx: Scope, content: String) -> Element {
     let height = match content.trim().lines().count() {
         x if x < 2 => 65,
