@@ -72,11 +72,17 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
 
     // Focus editor when created
     cx.use_hook(|| {
-        let mut manager = manager.write();
-        manager.set_focused_panel(cx.props.panel_index);
-        manager
-            .panel_mut(cx.props.panel_index)
-            .set_active_tab(cx.props.editor_index);
+        {
+            let mut manager = manager.write();
+            manager.set_focused_panel(cx.props.panel_index);
+            manager
+                .panel_mut(cx.props.panel_index)
+                .set_active_tab(cx.props.editor_index);
+        }
+        {
+            let mut manager = manager.global_write();
+            manager.set_focused_view(EditorView::CodeEditor);
+        }
     });
 
     use_on_destroy(cx, {

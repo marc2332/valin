@@ -67,7 +67,7 @@ impl UseMetrics {
             .unwrap();
 
         for line in editor.lines() {
-            let current_longest_width = longest_line.get(0).map(|l| l.len()).unwrap_or_default();
+            let current_longest_width = longest_line.first().map(|l| l.len()).unwrap_or_default();
 
             let line_len = line.len_chars();
 
