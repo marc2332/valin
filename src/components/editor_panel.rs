@@ -70,7 +70,6 @@ pub fn EditorPanel(cx: Scope<EditorPanelProps>) -> Element {
                         direction: "horizontal",
                         theme: theme_with!(ScrollViewTheme {
                             width: "calc(100% - {tabsbar_tools_width})".into(),
-                            padding: "3 0 3 1".into(),
                         }),
                         show_scrollbar: false,
                         panel.tabs().iter().enumerate().map(|(editor_index, _)| {
