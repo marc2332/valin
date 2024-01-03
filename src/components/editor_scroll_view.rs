@@ -284,9 +284,7 @@ where
                 ScrollBar {
                     width: "100%",
                     height: "{horizontal_scrollbar_size}",
-                    theme: theme_with!(ScrollBarTheme {
-                        offset_x: format!("{scrollbar_x}").into(),
-                    }),
+                    offset_x: "{scrollbar_x}",
                     clicking_scrollbar: is_scrolling_x,
                     ScrollThumb {
                         clicking_scrollbar: is_scrolling_x,
@@ -299,9 +297,7 @@ where
             ScrollBar {
                 width: "{vertical_scrollbar_size}",
                 height: "100%",
-                theme: theme_with!(ScrollBarTheme {
-                    offset_y: format!("{scrollbar_y}").into(),
-                }),
+                offset_y: "{scrollbar_y}",
                 clicking_scrollbar: is_scrolling_y,
                 ScrollThumb {
                     clicking_scrollbar: is_scrolling_y,

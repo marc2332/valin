@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-freya-node-state = { git = "https://github.com/marc2332/freya", rev = "84bac49d08568c8ba09ca034768204c4eed90c3e" }
-freya = { git = "https://github.com/marc2332/freya", rev = "84bac49d08568c8ba09ca034768204c4eed90c3e" }
-freya-common = { git = "https://github.com/marc2332/freya", rev = "84bac49d08568c8ba09ca034768204c4eed90c3e" }
-torin = { git = "https://github.com/marc2332/freya", rev = "84bac49d08568c8ba09ca034768204c4eed90c3e" }
+freya-node-state = { git = "https://github.com/marc2332/freya", rev = "db97ed1dc85bb1fbab20f0af6a1698e10a239a99" }
+freya = { git = "https://github.com/marc2332/freya", rev = "db97ed1dc85bb1fbab20f0af6a1698e10a239a99" }
+freya-common = { git = "https://github.com/marc2332/freya", rev = "db97ed1dc85bb1fbab20f0af6a1698e10a239a99" }
+torin = { git = "https://github.com/marc2332/freya", rev = "db97ed1dc85bb1fbab20f0af6a1698e10a239a99" }
 
 dioxus = { version = "0.4", features = ["macro", "hooks"] }
 

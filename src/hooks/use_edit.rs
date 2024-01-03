@@ -372,16 +372,16 @@ impl UseEdit {
                     if e.modifiers.contains(Modifiers::CONTROL) {
                         if e.code == Code::KeyZ {
                             editor.undo();
-                            break 'key_matcher TextEvent::TextChanged;
+                            break 'key_matcher TextEvent::TEXT_CHANGED;
                         } else if e.code == Code::KeyY {
                             editor.redo();
-                            break 'key_matcher TextEvent::TextChanged;
+                            break 'key_matcher TextEvent::TEXT_CHANGED;
                         }
                     }
 
                     editor.process_key(&e.key, &e.code, &e.modifiers)
                 };
-                if event == TextEvent::TextChanged {
+                if event.contains(TextEvent::TEXT_CHANGED) {
                     self.metrics.run_metrics();
                     *self.selecting_text_with_mouse.write_silent() = None;
                 }
