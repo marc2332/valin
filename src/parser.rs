@@ -51,7 +51,7 @@ pub type SyntaxLine = SmallVec<[(SyntaxType, Range<usize>); 8]>;
 
 #[derive(Default)]
 pub struct SyntaxBlocks {
-    blocks: Vec<SmallVec<[(SyntaxType, Range<usize>); 8]>>,
+    blocks: Vec<SyntaxLine>,
 }
 
 impl SyntaxBlocks {

@@ -16,5 +16,4 @@ pub use file_explorer::*;
 pub use sidebar::*;
 pub use sidepanel::*;
 pub use status_bar::*;
-pub use tab::*;
 pub use text_area::*;

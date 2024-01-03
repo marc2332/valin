@@ -250,8 +250,10 @@ pub fn FileExplorer(cx: Scope) -> Element {
             padding: "10",
             onkeydown: onkeydown,
             VirtualScrollView {
-                width: "100%",
-                height: "100%",
+                theme: theme_with!(ScrollViewTheme {
+                    width: "100%".into(),
+                    height: "100%".into(),
+                }),
                 length: items.len(),
                 item_size: 25.0,
                 builder_values: (items, channel.clone(), focused_item.clone(), is_focused_files_explorer),
@@ -346,7 +348,7 @@ fn file_explorer_item_builder<'a>(
 }
 
 #[allow(non_snake_case)]
-#[inline_props]
+#[component]
 fn FileExplorerItem<'a>(
     cx: Scope<'a>,
     children: Element<'a>,

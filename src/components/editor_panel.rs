@@ -68,8 +68,10 @@ pub fn EditorPanel(cx: Scope<EditorPanelProps>) -> Element {
                     cross_align: "center",
                     ScrollView {
                         direction: "horizontal",
-                        width: "calc(100% - {tabsbar_tools_width})",
-                        padding: "3 0 3 1",
+                        theme: theme_with!(ScrollViewTheme {
+                            width: "calc(100% - {tabsbar_tools_width})".into(),
+                            padding: "3 0 3 1".into(),
+                        }),
                         show_scrollbar: false,
                         panel.tabs().iter().enumerate().map(|(editor_index, _)| {
                             let is_selected = active_tab_index == Some(editor_index);
@@ -90,8 +92,10 @@ pub fn EditorPanel(cx: Scope<EditorPanelProps>) -> Element {
                         if show_close_panel {
                             rsx!(
                                 Button {
-                                    height: "100%",
-                                    padding: "10 8",
+                                    theme: theme_with!(ButtonTheme {
+                                        height: "100%".into(),
+                                        padding: "10 8".into(),
+                                    }),
                                     onclick: close_panel,
                                     label {
                                         "Close"
@@ -100,8 +104,10 @@ pub fn EditorPanel(cx: Scope<EditorPanelProps>) -> Element {
                             )
                         }
                         Button {
-                            height: "100%",
-                            padding: "10 8",
+                            theme: theme_with!(ButtonTheme {
+                                height: "100%".into(),
+                                padding: "10 8".into(),
+                            }),
                             onclick: split_panel,
                             label {
                                 "Split"

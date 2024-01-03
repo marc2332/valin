@@ -2,7 +2,7 @@ use freya::prelude::*;
 use winit::window::CursorIcon;
 
 #[allow(non_snake_case)]
-#[inline_props]
+#[component]
 pub fn Tab<'a>(
     cx: Scope<'a>,
     value: &'a str,
@@ -15,7 +15,7 @@ pub fn Tab<'a>(
     let theme = use_get_theme(cx);
     let platform = use_platform(cx);
 
-    use_on_unmount(cx, {
+    use_on_destroy(cx, {
         to_owned![status, platform];
         move || {
             if *status.current() == ButtonStatus::Hovering {
