@@ -16,9 +16,20 @@ use freya::prelude::keyboard::Modifiers;
 use freya::prelude::*;
 
 use lsp_types::Url;
+use winit::window::CursorIcon;
 
 static LINES_JUMP_ALT: usize = 5;
 static LINES_JUMP_CONTROL: usize = 3;
+
+/// Indicates the current focus status of the Editor.
+#[derive(Debug, Default, PartialEq, Clone, Copy)]
+pub enum EditorStatus {
+    /// Default state.
+    #[default]
+    Idle,
+    /// Mouse is hovering the editor.
+    Hovering,
+}
 
 #[derive(Props, PartialEq)]
 pub struct EditorTabProps {
@@ -56,15 +67,45 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
         manager,
         hover_location,
     );
+    let platform = use_platform(cx);
+    let status = use_state(cx, EditorStatus::default);
 
     // Focus editor when created
     cx.use_hook(|| {
-        let mut manager = manager.write();
-        manager.set_focused_panel(cx.props.panel_index);
-        manager
-            .panel_mut(cx.props.panel_index)
-            .set_active_tab(cx.props.editor_index);
+        {
+            let mut manager = manager.write();
+            manager.set_focused_panel(cx.props.panel_index);
+            manager
+                .panel_mut(cx.props.panel_index)
+                .set_active_tab(cx.props.editor_index);
+        }
+        {
+            let mut manager = manager.global_write();
+            manager.set_focused_view(EditorView::CodeEditor);
+        }
     });
+
+    use_on_destroy(cx, {
+        to_owned![status, platform];
+        move || {
+            if *status.current() == EditorStatus::Hovering {
+                platform.set_cursor(CursorIcon::default());
+            }
+        }
+    });
+
+    let onmouseenter = {
+        to_owned![status, platform];
+        move |_| {
+            platform.set_cursor(CursorIcon::Text);
+            status.set(EditorStatus::Hovering);
+        }
+    };
+
+    let onmouseleave = move |_| {
+        platform.set_cursor(CursorIcon::default());
+        status.set(EditorStatus::default());
+    };
 
     let onscroll = move |(axis, scroll): (Axis, i32)| match axis {
         Axis::X => {
@@ -183,6 +224,8 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
         rect {
             width: "100%",
             height: "100%",
+            onmouseenter: onmouseenter,
+            onmouseleave: onmouseleave,
             onkeydown: onkeydown,
             onglobalclick: onglobalclick,
             onclick: onclick,
