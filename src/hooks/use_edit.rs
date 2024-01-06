@@ -193,6 +193,10 @@ impl TextEditor for EditorData {
         }
     }
 
+    fn has_any_highlight(&self) -> bool {
+        self.selected.is_some()
+    }
+
     fn highlights(&self, editor_id: usize) -> Option<(usize, usize)> {
         let (selected_from, selected_to) = self.selected?;
 
@@ -384,6 +388,8 @@ impl UseEdit {
                 if event.contains(TextEvent::TEXT_CHANGED) {
                     self.metrics.run_metrics();
                     *self.selecting_text_with_mouse.write_silent() = None;
+                } else if event.contains(TextEvent::SELECTION_CHANGED) {
+                    self.selecting_text_with_mouse.needs_update()
                 }
             }
         }
