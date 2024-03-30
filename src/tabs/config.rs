@@ -1,8 +1,8 @@
 use freya::prelude::*;
 
 #[allow(non_snake_case)]
-pub fn ConfigTab(cx: Scope) -> Element {
-    render!(
+pub fn ConfigTab() -> Element {
+    rsx!(
         rect {
             height: "100%",
             width: "100%",

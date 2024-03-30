@@ -1,5 +1,4 @@
-use std::borrow::Cow;
-use std::cell;
+use std::{borrow::Cow, sync::Arc};
 use std::cmp::Ordering;
 
 use freya::prelude::*;
@@ -16,17 +15,23 @@ use crate::parser::*;
 #[derive(Clone)]
 pub struct UseMetrics {
     paragraph_style: ParagraphStyle,
-    font_collection: FontCollection,
-    metrics: UseRef<(SyntaxBlocks, f32)>,
+    font_collection: Arc<FontCollection>,
+    metrics: Signal<(SyntaxBlocks, f32)>,
     manager: UseManager,
     pane_index: usize,
     editor_index: usize,
 }
 
+impl PartialEq for UseMetrics {
+    fn eq(&self, other: &Self) -> bool {
+        self.paragraph_style == other.paragraph_style && Arc::ptr_eq(&self.font_collection, &other.font_collection) && self.metrics == other.metrics && self.manager == other.manager && self.pane_index == other.pane_index && self.editor_index == other.editor_index
+    }
+}
+
 impl UseMetrics {
     pub fn new(
         manager: UseManager,
-        metrics: UseRef<(SyntaxBlocks, f32)>,
+        metrics: Signal<(SyntaxBlocks, f32)>,
         pane_index: usize,
         editor_index: usize,
     ) -> Self {
@@ -40,7 +45,7 @@ impl UseMetrics {
 
         Self {
             paragraph_style,
-            font_collection,
+            font_collection: Arc::new(font_collection),
             metrics,
             manager,
             pane_index,
@@ -48,13 +53,15 @@ impl UseMetrics {
         }
     }
 
-    pub fn get(&self) -> cell::Ref<(SyntaxBlocks, f32)> {
+    pub fn get(&self) -> ReadableRef<Signal<(SyntaxBlocks, f32)>> {
         self.metrics.read()
     }
 
-    pub fn run_metrics(&self) {
+    pub fn run_metrics(&mut self) {
+        let mut font_collection = FontCollection::new();
+        font_collection.set_default_font_manager(FontMgr::default(), "Jetbrains Mono");
         let mut paragraph_builder =
-            ParagraphBuilder::new(&self.paragraph_style, &self.font_collection);
+            ParagraphBuilder::new(&self.paragraph_style, font_collection);
 
         let mut longest_line: Vec<Cow<str>> = vec![];
 
@@ -96,16 +103,15 @@ impl UseMetrics {
     }
 }
 
-pub fn use_metrics<'a>(
-    cx: &'a ScopeState,
+pub fn use_metrics(
     manager: &UseManager,
     pane_index: usize,
     editor_index: usize,
-) -> &'a UseMetrics {
-    let metrics_ref = use_ref::<(SyntaxBlocks, f32)>(cx, || (SyntaxBlocks::default(), 0.0));
+) -> UseMetrics {
+    let metrics_ref = use_signal::<(SyntaxBlocks, f32)>(|| (SyntaxBlocks::default(), 0.0));
 
-    cx.use_hook(|| {
-        let metrics = UseMetrics::new(
+    use_hook(|| {
+        let mut metrics = UseMetrics::new(
             manager.clone(),
             metrics_ref.clone(),
             pane_index,

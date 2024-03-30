@@ -1,30 +1,38 @@
+use std::sync::Arc;
+
 use crate::{commands::EditorCommand, TextArea};
 use freya::prelude::*;
 
-#[derive(Props)]
-pub struct CommanderProps<'a> {
-    commands: &'a Vec<Box<dyn EditorCommand>>,
-    onsubmit: EventHandler<'a>,
+#[derive(Props, Clone)]
+pub struct CommanderProps {
+    commands: Arc<Vec<Box<dyn EditorCommand>>>,
+    onsubmit: EventHandler,
+}
+
+impl PartialEq for CommanderProps {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.commands, &other.commands) && self.onsubmit == other.onsubmit
+    }
 }
 
 #[allow(non_snake_case)]
-pub fn Commander<'a>(cx: Scope<'a, CommanderProps<'a>>) -> Element<'a> {
-    let value = use_state(cx, String::new);
+pub fn Commander(props: CommanderProps) -> Element {
+    let mut value = use_signal(String::new);
 
-    let onsubmit = |new_value: String| {
+    let onsubmit = move |new_value: String| {
         let sep = new_value.find(' ');
         if let Some(sep) = sep {
             let (name, args) = new_value.split_at(sep);
-            let command = cx.props.commands.iter().find(|c| c.name() == name);
+            let command = props.commands.iter().find(|c| c.name() == name);
             if let Some(command) = command {
                 command.run_with_args(args.trim());
                 value.set("".to_string());
-                cx.props.onsubmit.call(());
+                props.onsubmit.call(());
             }
         }
     };
 
-    render!(
+    rsx!(
         rect {
             width: "100%",
             height: "0",
@@ -43,8 +51,8 @@ pub fn Commander<'a>(cx: Scope<'a, CommanderProps<'a>>) -> Element<'a> {
                     padding: "5",
                     TextArea {
                         value: "{value}",
-                        onchange: |v| value.set(v),
-                        onsubmit: onsubmit,
+                        onchange: move |v| value.set(v),
+                        onsubmit,
                     }
                 }
             }

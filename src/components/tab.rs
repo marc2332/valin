@@ -3,31 +3,27 @@ use winit::window::CursorIcon;
 
 #[allow(non_snake_case)]
 #[component]
-pub fn Tab<'a>(
-    cx: Scope<'a>,
-    value: &'a str,
-    onclick: EventHandler<(), 'a>,
-    onclickaction: EventHandler<(), 'a>,
+pub fn Tab(
+    value: String,
+    onclick: EventHandler<()>,
+    onclickaction: EventHandler<()>,
     is_selected: bool,
     is_edited: bool,
 ) -> Element {
-    let status = use_state(cx, ButtonStatus::default);
-    let theme = use_get_theme(cx);
-    let platform = use_platform(cx);
+    let mut status = use_signal(ButtonStatus::default);
+    let theme = use_get_theme();
+    let platform = use_platform();
 
-    use_on_destroy(cx, {
-        to_owned![status, platform];
-        move || {
-            if *status.current() == ButtonStatus::Hovering {
-                platform.set_cursor(CursorIcon::default());
-            }
+    use_drop(move || {
+        if *status.read() == ButtonStatus::Hovering {
+            platform.set_cursor(CursorIcon::default());
         }
     });
 
     let onmouseenter = {
         to_owned![status, platform];
         move |_| {
-            platform.set_cursor(CursorIcon::Hand);
+            platform.set_cursor(CursorIcon::Pointer);
             status.set(ButtonStatus::Hovering);
         }
     };
@@ -37,20 +33,20 @@ pub fn Tab<'a>(
         status.set(ButtonStatus::default());
     };
 
-    let background = match *status.get() {
-        _ if *is_selected => "rgb(37, 37, 37)",
+    let background = match *status.read() {
+        _ if is_selected => "rgb(37, 37, 37)",
         ButtonStatus::Hovering => "rgb(30, 30, 30)",
         ButtonStatus::Idle => "transparent",
     };
     let color = theme.button.font_theme.color;
-    let selected_color = if *is_selected {
+    let selected_color = if is_selected {
         "rgb(60, 60, 60)"
     } else {
         background
     };
-    let is_hovering = *status.get() == ButtonStatus::Hovering;
+    let is_hovering = *status.read() == ButtonStatus::Hovering;
 
-    render!(
+    rsx!(
         rect {
             width: "130",
             height: "100%",
@@ -88,22 +84,18 @@ pub fn Tab<'a>(
                     corner_radius: "100",
                     padding: "4",
                     background: "{background}",
-                    if *is_edited {
-                        rsx!(
-                            rect {
-                                background: "white",
-                                width: "10",
-                                height: "10",
-                                corner_radius: "100",
-                            }
-                        )
-                    } else if is_hovering || *is_selected {
-                        rsx!(
-                            label {
-                                font_size: "13",
-                                "X"
-                            }
-                        )
+                    if is_edited {
+                        rect {
+                            background: "white",
+                            width: "10",
+                            height: "10",
+                            corner_radius: "100",
+                        }
+                    } else if is_hovering || is_selected {
+                        label {
+                            font_size: "13",
+                            "X"
+                        }
                     }
                 }
             }

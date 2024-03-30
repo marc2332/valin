@@ -112,7 +112,7 @@ pub async fn create_lsp(config: LspConfig, manager: &EditorManager) -> LSPBridge
     let stdin = child.stdin.unwrap();
 
     let _mainloop_fut = tokio::spawn(async move {
-        mainloop.run_bufferred(stdout, stdin).await.unwrap();
+        //mainloop.run_bufferred(stdout, stdin).await.unwrap();
     });
 
     // Initialize.

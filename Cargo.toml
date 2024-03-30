@@ -3,18 +3,30 @@ name = "freya-editor"
 version = "0.1.0"
 edition = "2021"
 
+[patch.crates-io]
+dioxus = { git = "https://github.com/DioxusLabs/dioxus", rev = "f266213618b9715e9df8c28fb51ca81e38b28055" }
+dioxus-rsx = { git = "https://github.com/DioxusLabs/dioxus", rev = "f266213618b9715e9df8c28fb51ca81e38b28055" }
+dioxus-core-macro = { git = "https://github.com/DioxusLabs/dioxus", rev = "f266213618b9715e9df8c28fb51ca81e38b28055" }
+dioxus-hooks = { git = "https://github.com/DioxusLabs/dioxus", rev = "f266213618b9715e9df8c28fb51ca81e38b28055" }
+dioxus-signals = { git = "https://github.com/DioxusLabs/dioxus", rev = "f266213618b9715e9df8c28fb51ca81e38b28055" }
+dioxus-core = { git = "https://github.com/DioxusLabs/dioxus", rev = "f266213618b9715e9df8c28fb51ca81e38b28055" }
+dioxus-hot-reload = { git = "https://github.com/DioxusLabs/dioxus", rev = "f266213618b9715e9df8c28fb51ca81e38b28055" }
+dioxus-router = { git = "https://github.com/DioxusLabs/dioxus", rev = "f266213618b9715e9df8c28fb51ca81e38b28055" }
+
+
 [dependencies]
-freya-node-state = { git = "https://github.com/marc2332/freya", rev = "1cd0d3751be00c80a5335b6e0320e7a3ff241f52" }
-freya = { git = "https://github.com/marc2332/freya", rev = "1cd0d3751be00c80a5335b6e0320e7a3ff241f52" }
-freya-common = { git = "https://github.com/marc2332/freya", rev = "1cd0d3751be00c80a5335b6e0320e7a3ff241f52" }
-torin = { git = "https://github.com/marc2332/freya", rev = "1cd0d3751be00c80a5335b6e0320e7a3ff241f52" }
+freya-node-state = { git = "https://github.com/marc2332/freya", rev = "750c33b8d23cc5fe2f8b953e4ebcae76f7116caa" }
+freya = { git = "https://github.com/marc2332/freya", rev = "750c33b8d23cc5fe2f8b953e4ebcae76f7116caa" }
+freya-common = { git = "https://github.com/marc2332/freya", rev = "750c33b8d23cc5fe2f8b953e4ebcae76f7116caa" }
+torin = { git = "https://github.com/marc2332/freya", rev = "750c33b8d23cc5fe2f8b953e4ebcae76f7116caa" }
 
-dioxus = { version = "0.4", features = ["macro", "hooks"] }
+dioxus = "*"
+dioxus-std = { git = "https://github.com/marc2332/dioxus-std", rev = "4d8ae33b94537d54471cd924c32f03c1d949430f", features = ["clipboard"]}
 
-tokio = { version = "1.23.0", features = ["fs", "process"]}
-glutin = { version = "0.30.6"}
-winit = "0.28.2"
-skia-safe = { version = "0.67.0", features = ["gl", "textlayout", "svg"] }
+tokio = { version = "1.33.0", features = ["fs", "process"]}
+glutin = { version = "0.31.2"}
+winit = "0.29.9"
+skia-safe = { version = "0.72.0", features = ["gl", "textlayout", "svg"] }
 
 ropey = "1.6.0"
 smallvec = "1.10.0"

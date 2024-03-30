@@ -19,12 +19,12 @@ pub type BuilderProps = (
     UseLsp,
     Url,
     Rope,
-    UseRef<Option<(u32, Hover)>>,
-    UseRef<CursorPoint>,
+    Signal<Option<(u32, Hover)>>,
+    Signal<CursorPoint>,
     UseDebouncer,
 );
 
-#[derive(Props)]
+#[derive(Props, Clone)]
 pub struct EditorLineProps {
     options: BuilderProps,
     line_index: usize,
@@ -44,35 +44,35 @@ impl PartialEq for EditorLineProps {
 }
 
 #[allow(non_snake_case)]
-pub fn EditorLine(cx: Scope<EditorLineProps>) -> Element {
-    let EditorLineProps {
-        options,
-        line_index,
-        font_size,
-        line_height,
-    } = cx.props;
+pub fn EditorLine(EditorLineProps {
+    options,
+    line_index,
+    font_size,
+    line_height,
+}: EditorLineProps) -> Element {
+
     let (cursor, metrics, editable, lsp, file_uri, rope, hover_location, cursor_coords, debouncer) =
         options;
 
     let onmousedown = {
         to_owned![editable];
         move |e: MouseEvent| {
-            editable.process_event(&EditableEvent::MouseDown(e.data, *line_index));
+            editable.process_event(&EditableEvent::MouseDown(e.data, line_index));
         }
     };
 
     let onmouseleave = |_| {
-        lsp.send(LspAction::Clear);
+       // lsp.send(LspAction::Clear);
     };
 
     let onmouseover = {
-        to_owned![editable, file_uri, lsp, cursor_coords, hover_location];
+        to_owned![editable, file_uri, lsp, cursor_coords, hover_location, rope];
         move |e: MouseEvent| {
-            let line_str = rope.line(*line_index).to_string();
+            let line_str = rope.line(line_index).to_string();
             let coords = e.get_element_coordinates();
             let data = e.data;
 
-            editable.process_event(&EditableEvent::MouseOver(data, *line_index));
+            editable.process_event(&EditableEvent::MouseOver(data, line_index));
 
             // Optimization: Re run the component only when the hover box is shown
             // otherwise just update the coordinates silently
@@ -82,7 +82,7 @@ pub fn EditorLine(cx: Scope<EditorLineProps>) -> Element {
                 *cursor_coords.write_silent() = coords;
             }
 
-            let paragraph = create_paragraph(&line_str, *font_size);
+            let paragraph = create_paragraph(&line_str, font_size);
 
             if (coords.x as f32) < paragraph.max_intrinsic_width() {
                 to_owned![cursor_coords, file_uri, lsp, line_index];
@@ -109,10 +109,10 @@ pub fn EditorLine(cx: Scope<EditorLineProps>) -> Element {
 
     let gutter_width = font_size * 3.0;
     let (syntax_blocks, width) = &*metrics.get();
-    let line = syntax_blocks.get_line(*line_index);
-    let highlights_attr = editable.highlights_attr(cx, *line_index);
+    let line = syntax_blocks.get_line(line_index);
+    let highlights = editable.highlights_attr(line_index);
 
-    let is_line_selected = cursor.row() == *line_index;
+    let is_line_selected = cursor.row() == line_index;
 
     // Only show the cursor in the active line
     let character_index = if is_line_selected {
@@ -128,35 +128,37 @@ pub fn EditorLine(cx: Scope<EditorLineProps>) -> Element {
         ("", "rgb(150, 150, 150)")
     };
 
-    render!(
+    rsx!(
         rect {
             height: "{line_height}",
             direction: "horizontal",
             background: "{line_background}",
-            if let Some((line, hover)) = hover_location.read().as_ref() {
-                if *line == *line_index as u32 {
-                    if let Some(content) = hover.hover_to_text() {
-                        let cursor_coords = cursor_coords.read();
-                        let offset_x = cursor_coords.x  as f32 + gutter_width;
-                        Some(rsx!(
-                            rect {
-                                width: "0",
-                                height: "0",
-                                offset_y: "{line_height}",
-                                offset_x: "{offset_x}",
-                                HoverBox {
-                                    content: content
+            {
+                if let Some((line, hover)) = hover_location.read().as_ref() {
+                    if *line == line_index as u32 {
+                        if let Some(content) = hover.hover_to_text() {
+                            let cursor_coords = cursor_coords.read();
+                            let offset_x = cursor_coords.x  as f32 + gutter_width;
+                            Some(rsx!(
+                                rect {
+                                    width: "0",
+                                    height: "0",
+                                    offset_y: "{line_height}",
+                                    offset_x: "{offset_x}",
+                                    HoverBox {
+                                        content: content
+                                    }
                                 }
-                            }
-                        ))
+                            ))
+                        } else {
+                            None
+                        }
                     } else {
                         None
                     }
                 } else {
                     None
                 }
-            } else {
-                None
             }
             rect {
                 width: "{gutter_width}",
@@ -181,12 +183,12 @@ pub fn EditorLine(cx: Scope<EditorLineProps>) -> Element {
                 onmousedown: onmousedown,
                 onmouseover: onmouseover,
                 onmouseleave: onmouseleave,
-                highlights: highlights_attr,
+                highlights,
                 highlight_color: "rgb(65, 65, 65)",
                 direction: "horizontal",
                 font_size: "{font_size}",
                 font_family: "Jetbrains Mono",
-                line.iter().enumerate().map(|(i, (syntax_type, text))| {
+                {line.iter().enumerate().map(|(i, (syntax_type, text))| {
                     let text = rope.slice(text.clone());
                     rsx!(
                         text {
@@ -195,7 +197,7 @@ pub fn EditorLine(cx: Scope<EditorLineProps>) -> Element {
                             "{text}"
                         }
                     )
-                })
+                })}
             }
         }
     )

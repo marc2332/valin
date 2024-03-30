@@ -31,7 +31,7 @@ pub enum EditorStatus {
     Hovering,
 }
 
-#[derive(Props, PartialEq)]
+#[derive(Props, Clone, PartialEq)]
 pub struct EditorTabProps {
     pub panel_index: usize,
     pub editor_index: usize,
@@ -40,44 +40,41 @@ pub struct EditorTabProps {
 }
 
 #[allow(non_snake_case)]
-pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
-    let lsp_config = LspConfig::new(cx.props.root_path.clone(), cx.props.language_id);
+pub fn EditorTab(props: EditorTabProps) -> Element {
+    let lsp_config = LspConfig::new(props.root_path.clone(), props.language_id);
     let manager = use_manager(
-        cx,
-        SubscriptionModel::follow_tab(cx.props.panel_index, cx.props.editor_index),
+        SubscriptionModel::follow_tab(props.panel_index, props.editor_index),
     );
-    let debouncer = use_debouncer(cx, Duration::from_millis(300));
-    let hover_location = use_ref(cx, || None);
-    let metrics = use_metrics(cx, manager, cx.props.panel_index, cx.props.editor_index);
+    let debouncer = use_debouncer(Duration::from_millis(300));
+    let mut hover_location = use_signal(|| None);
+    let metrics = use_metrics(&manager, props.panel_index, props.editor_index);
     let editable = use_edit(
-        cx,
-        manager,
-        cx.props.panel_index,
-        cx.props.editor_index,
-        metrics,
+        &manager,
+        props.panel_index,
+        props.editor_index,
+        &metrics,
     );
-    let cursor_coords = use_ref(cx, CursorPoint::default);
-    let scroll_offsets = use_ref(cx, || (0, 0));
+    let mut cursor_coords = use_signal(CursorPoint::default);
+    let mut scroll_offsets = use_signal(|| (0, 0));
     let lsp = use_lsp(
-        cx,
-        cx.props.language_id,
-        cx.props.panel_index,
-        cx.props.editor_index,
+        props.language_id,
+        props.panel_index,
+        props.editor_index,
         &lsp_config,
-        manager,
-        hover_location,
+        &manager,
+        &hover_location,
     );
-    let platform = use_platform(cx);
-    let status = use_state(cx, EditorStatus::default);
+    let platform = use_platform();
+    let mut status = use_signal(EditorStatus::default);
 
     // Focus editor when created
-    cx.use_hook(|| {
+    use_hook(|| {
         {
             let mut manager = manager.write();
-            manager.set_focused_panel(cx.props.panel_index);
+            manager.set_focused_panel(props.panel_index);
             manager
-                .panel_mut(cx.props.panel_index)
-                .set_active_tab(cx.props.editor_index);
+                .panel_mut(props.panel_index)
+                .set_active_tab(props.editor_index);
         }
         {
             let mut manager = manager.global_write();
@@ -85,10 +82,10 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
         }
     });
 
-    use_on_destroy(cx, {
+    use_drop({
         to_owned![status, platform];
         move || {
-            if *status.current() == EditorStatus::Hovering {
+            if *status.read() == EditorStatus::Hovering {
                 platform.set_cursor(CursorIcon::default());
             }
         }
@@ -123,7 +120,7 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
     let onglobalclick = {
         to_owned![editable, manager];
         move |_: MouseEvent| {
-            let is_panel_focused = manager.current().focused_panel() == cx.props.panel_index;
+            let is_panel_focused = manager.current().focused_panel() == props.panel_index;
 
             if is_panel_focused {
                 editable.process_event(&EditableEvent::Click);
@@ -136,11 +133,11 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
         move |_: MouseEvent| {
             let (is_code_editor_view_focused, is_editor_focused) = {
                 let manager_ref = manager.current();
-                let panel = manager_ref.panel(cx.props.panel_index);
+                let panel = manager_ref.panel(props.panel_index);
                 let is_code_editor_view_focused =
                     *manager_ref.focused_view() == EditorView::CodeEditor;
-                let is_editor_focused = manager_ref.focused_panel() == cx.props.panel_index
-                    && panel.active_tab() == Some(cx.props.editor_index);
+                let is_editor_focused = manager_ref.focused_panel() == props.panel_index
+                    && panel.active_tab() == Some(props.editor_index);
                 (is_code_editor_view_focused, is_editor_focused)
             };
 
@@ -151,30 +148,30 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
 
             if !is_editor_focused {
                 let mut manager = manager.global_write();
-                manager.set_focused_panel(cx.props.panel_index);
+                manager.set_focused_panel(props.panel_index);
                 manager
-                    .panel_mut(cx.props.panel_index)
-                    .set_active_tab(cx.props.editor_index);
+                    .panel_mut(props.panel_index)
+                    .set_active_tab(props.editor_index);
             }
         }
     };
 
     let manager_ref = manager.current();
-    let cursor_attr = editable.cursor_attr(cx);
+    let cursor_reference = editable.cursor_attr();
     let font_size = manager_ref.font_size();
     let line_height = manager_ref.line_height();
     let manual_line_height = (font_size * line_height).floor();
-    let panel = manager_ref.panel(cx.props.panel_index);
+    let panel = manager_ref.panel(props.panel_index);
 
     let onkeydown = {
-        to_owned![editable, manager];
+        to_owned![editable, manager,metrics];
         move |e: KeyboardEvent| {
             let (is_panel_focused, is_editor_focused) = {
                 let manager_ref = manager.current();
-                let panel = manager_ref.panel(cx.props.panel_index);
-                let is_panel_focused = manager_ref.focused_panel() == cx.props.panel_index;
+                let panel = manager_ref.panel(props.panel_index);
+                let is_panel_focused = manager_ref.focused_panel() == props.panel_index;
                 let is_editor_focused = *manager_ref.focused_view() == EditorView::CodeEditor
-                    && panel.active_tab() == Some(cx.props.editor_index);
+                    && panel.active_tab() == Some(props.editor_index);
                 (is_panel_focused, is_editor_focused)
             };
 
@@ -215,12 +212,12 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
         }
     };
 
-    let editor = panel.tab(cx.props.editor_index).as_text_editor().unwrap();
+    let editor = panel.tab(props.editor_index).as_text_editor().unwrap();
     let path = editor.path();
     let cursor = editor.cursor();
     let file_uri = Url::from_file_path(path).unwrap();
 
-    render!(
+    rsx!(
         rect {
             width: "100%",
             height: "100%",
@@ -229,7 +226,7 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
             onkeydown: onkeydown,
             onglobalclick: onglobalclick,
             onclick: onclick,
-            cursor_reference: cursor_attr,
+            cursor_reference,
             direction: "horizontal",
             background: "rgb(40, 40, 40)",
             padding: "5 0 0 5",
@@ -240,11 +237,11 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
                 length: metrics.get().0.len(),
                 item_size: manual_line_height,
                 builder_args: (cursor, metrics.clone(), editable, lsp.clone(), file_uri, editor.rope().clone(), hover_location.clone(), cursor_coords.clone(), debouncer.clone()),
-                builder: move |i, options: BuilderProps| rsx!(
+                builder: move |i: usize, options: &BuilderProps| rsx!(
                     EditorLine {
                         key: "{i}",
                         line_index: i,
-                        options: options,
+                        options: options.clone(),
                         font_size: font_size,
                         line_height: manual_line_height,
                     }

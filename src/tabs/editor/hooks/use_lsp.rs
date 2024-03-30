@@ -8,12 +8,13 @@ use crate::{
     lsp::{LanguageId, LspConfig},
 };
 
+#[derive(Clone, PartialEq)]
 pub enum LspAction {
     Hover(HoverParams),
     Clear,
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct UseLsp {
     lsp_coroutine: Coroutine<LspAction>,
 }
@@ -25,15 +26,14 @@ impl UseLsp {
 }
 
 pub fn use_lsp(
-    cx: &ScopeState,
     language_id: LanguageId,
     panel_index: usize,
     editor_index: usize,
     lsp_config: &Option<LspConfig>,
     manager: &UseManager,
-    hover_location: &UseRef<Option<(u32, Hover)>>,
+    hover_location: &Signal<Option<(u32, Hover)>>,
 ) -> UseLsp {
-    cx.use_hook(|| {
+    use_hook(|| {
         to_owned![lsp_config, manager];
         let language_id = language_id.to_string();
 
@@ -55,7 +55,7 @@ pub fn use_lsp(
             };
 
             // Notify language server the file has been opened
-            cx.spawn(async move {
+            spawn(async move {
                 let mut lsp = EditorManager::get_or_insert_lsp(manager, &lsp_config).await;
 
                 lsp.server_socket
@@ -72,7 +72,7 @@ pub fn use_lsp(
         }
     });
 
-    let lsp_coroutine = use_coroutine(cx, |mut rx: UnboundedReceiver<LspAction>| {
+    let lsp_coroutine = use_coroutine(|mut rx: UnboundedReceiver<LspAction>| {
         to_owned![lsp_config, hover_location, manager];
         async move {
             if let Some(lsp_config) = lsp_config {

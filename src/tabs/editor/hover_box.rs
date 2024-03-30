@@ -2,7 +2,7 @@ use freya::prelude::*;
 
 #[allow(non_snake_case)]
 #[component]
-pub fn HoverBox(cx: Scope, content: String) -> Element {
+pub fn HoverBox(content: String) -> Element {
     let height = match content.trim().lines().count() {
         x if x < 2 => 65,
         x if x < 5 => 100,
@@ -10,7 +10,7 @@ pub fn HoverBox(cx: Scope, content: String) -> Element {
         _ => 170,
     };
 
-    render!( rect {
+    rsx!( rect {
         width: "300",
         height: "{height}",
         background: "rgb(60, 60, 60)",

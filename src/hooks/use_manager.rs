@@ -1,13 +1,10 @@
 use std::{
-    collections::HashMap,
-    ops::{Deref, DerefMut},
-    rc::Rc,
-    sync::Arc,
+    cell::{Ref, RefCell, RefMut}, collections::HashMap, ops::{Deref, DerefMut}, rc::Rc, sync::Arc
 };
 
-use dioxus::prelude::{
-    use_context, use_context_provider, Coroutine, Ref, RefCell, RefMut, ScopeId, ScopeState,
-};
+use dioxus::{dioxus_core::{schedule_update_any, use_hook}, prelude::{
+    current_scope_id, use_context, use_context_provider, Coroutine, ScopeId
+}};
 
 pub use crate::editor_manager::*;
 
@@ -31,24 +28,22 @@ impl SubscriptionModel {
 
 pub type SharedEditorManager = Rc<EditorManagerInner>;
 
-pub fn use_init_manager<'a>(
-    cx: &'a ScopeState,
-    lsp_status_coroutine: &'a Coroutine<(String, String)>,
-) -> &'a SharedEditorManager {
-    use_context_provider(cx, || {
+pub fn use_init_manager(
+    lsp_status_coroutine: &Coroutine<(String, String)>,
+) -> SharedEditorManager {
+    use_context_provider(|| {
         Rc::new(EditorManagerInner::new(
-            cx,
             EditorManager::new(lsp_status_coroutine.clone()),
         ))
     })
 }
 
-pub fn use_manager(cx: &ScopeState, model: SubscriptionModel) -> &UseManager {
-    let manager = use_context::<SharedEditorManager>(cx).unwrap();
+pub fn use_manager(model: SubscriptionModel) -> UseManager {
+    let manager = use_context::<SharedEditorManager>();
 
-    let manager = cx.use_hook(|| {
+    let manager = use_hook(|| {
         let mut manager = manager.as_ref().clone();
-        manager.scope = cx.scope_id();
+        manager.scope = current_scope_id().unwrap();
         UseManager::new(manager, model.clone())
     });
 
@@ -122,15 +117,15 @@ pub struct EditorManagerInnerGuard<'a> {
 }
 
 impl EditorManagerInner {
-    pub fn new(cx: &ScopeState, value: EditorManager) -> Self {
+    pub fn new(value: EditorManager) -> Self {
         Self {
             subscribers: Rc::new(RefCell::new(HashMap::from([(
-                cx.scope_id(),
+                current_scope_id().unwrap(),
                 SubscriptionModel::All,
             )]))),
             value: Rc::new(RefCell::new(value.clone())),
-            scheduler: cx.schedule_update_any(),
-            scope: cx.scope_id(),
+            scheduler: schedule_update_any(),
+            scope: current_scope_id().unwrap(),
         }
     }
 

@@ -6,8 +6,8 @@ use skia_safe::{
 };
 
 #[allow(non_snake_case)]
-pub fn Divider(cx: Scope) -> Element {
-    render!(rect {
+pub fn Divider() -> Element {
+    rsx!(rect {
         background: "rgb(60, 60, 60)",
         height: "100%",
         width: "2",
@@ -15,8 +15,8 @@ pub fn Divider(cx: Scope) -> Element {
 }
 
 #[allow(non_snake_case)]
-pub fn VerticalDivider(cx: Scope) -> Element {
-    render!(rect {
+pub fn VerticalDivider() -> Element {
+    rsx!(rect {
         background: "rgb(60, 60, 60)",
         height: "2",
         width: "100%",

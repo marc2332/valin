@@ -1,4 +1,5 @@
-use dioxus::core::AttributeValue;
+use dioxus::{dioxus_core::AttributeValue, prelude::use_memo};
+use dioxus_std::clipboard::UseClipboard;
 use freya::prelude::{
     keyboard::{Code, Key, Modifiers},
     *,
@@ -274,15 +275,35 @@ impl TextEditor for EditorData {
 
         self.cursor_mut().move_to(editor_id, to);
     }
+
+    fn get_clipboard(&mut self) -> &mut UseClipboard {
+        todo!()
+    }
+
+    fn get_selected_text(&self) -> Option<String> {
+        todo!()
+    }
+
+    fn undo(&mut self) -> Option<usize> {
+        todo!()
+    }
+
+    fn redo(&mut self) -> Option<usize> {
+        todo!()
+    }
+
+    fn get_selection(&self) -> Option<(usize, usize)> {
+        todo!()
+    }
 }
 
 /// Manage an editable content.
 #[derive(Clone)]
 pub struct UseEdit {
     pub(crate) manager: UseManager,
-    pub(crate) cursor_reference: CursorReference,
-    pub(crate) selecting_text_with_mouse: UseRef<Option<CursorPoint>>,
-    pub(crate) event_loop_proxy: Option<EventLoopProxy<EventMessage>>,
+    pub(crate) cursor_reference: Memo<CursorReference>,
+    pub(crate) selecting_text_with_mouse: Signal<Option<CursorPoint>>,
+    pub(crate) event_loop_proxy: EventLoopProxy<EventMessage>,
     pub(crate) pane_index: usize,
     pub(crate) editor_index: usize,
     pub(crate) metrics: UseMetrics,
@@ -300,21 +321,21 @@ impl PartialEq for UseEdit {
 
 impl UseEdit {
     /// Create a cursor attribute.
-    pub fn cursor_attr<'a, T>(&self, cx: Scope<'a, T>) -> AttributeValue<'a> {
-        cx.any_value(CustomAttributeValues::CursorReference(
-            self.cursor_reference.clone(),
+    pub fn cursor_attr(&self) -> AttributeValue {
+        AttributeValue::any_value(CustomAttributeValues::CursorReference(
+            self.cursor_reference.peek().clone(),
         ))
     }
 
     /// Create a highlights attribute.
-    pub fn highlights_attr<'a, T>(&self, cx: Scope<'a, T>, editor_id: usize) -> AttributeValue<'a> {
+    pub fn highlights_attr(&self, editor_id: usize) -> AttributeValue {
         let manager = self.manager.current();
         let editor = manager
             .panel(self.pane_index)
             .tab(self.editor_index)
             .as_text_editor()
             .unwrap();
-        cx.any_value(CustomAttributeValues::TextHighlights(
+        AttributeValue::any_value(CustomAttributeValues::TextHighlights(
             editor
                 .highlights(editor_id)
                 .map(|v| vec![v])
@@ -323,14 +344,14 @@ impl UseEdit {
     }
 
     /// Process a [`EditableEvent`] event.
-    pub fn process_event(&self, edit_event: &EditableEvent) {
+    pub fn process_event(&mut self, edit_event: &EditableEvent) {
         match edit_event {
             EditableEvent::MouseDown(e, id) => {
                 let coords = e.get_element_coordinates();
                 *self.selecting_text_with_mouse.write_silent() = Some(coords);
 
-                self.cursor_reference.set_id(Some(*id));
-                self.cursor_reference.set_cursor_position(Some(coords));
+                self.cursor_reference.read().set_id(Some(*id));
+                self.cursor_reference.read().set_cursor_position(Some(coords));
                 let mut manager = self.manager.write();
 
                 let editor = manager
@@ -345,8 +366,8 @@ impl UseEdit {
                     if let Some(current_dragging) = selecting_text {
                         let coords = e.get_element_coordinates();
 
-                        self.cursor_reference.set_id(Some(*id));
-                        self.cursor_reference
+                        self.cursor_reference.read().set_id(Some(*id));
+                        self.cursor_reference.read()
                             .set_cursor_selections(Some((*current_dragging, coords)));
                     }
                 });
@@ -389,105 +410,105 @@ impl UseEdit {
                     self.metrics.run_metrics();
                     *self.selecting_text_with_mouse.write_silent() = None;
                 } else if event.contains(TextEvent::SELECTION_CHANGED) {
-                    self.selecting_text_with_mouse.needs_update()
+                    self.selecting_text_with_mouse.write();
                 }
             }
         }
 
         if self.selecting_text_with_mouse.read().is_some() {
-            if let Some(event_loop_proxy) = &self.event_loop_proxy {
-                event_loop_proxy
-                    .send_event(EventMessage::RemeasureTextGroup(
-                        self.cursor_reference.text_id,
-                    ))
-                    .unwrap();
-            }
+            self.event_loop_proxy
+                .send_event(EventMessage::RemeasureTextGroup(
+                    self.cursor_reference.read().text_id,
+                ))
+                .unwrap();
         }
     }
 }
 
 pub fn use_edit(
-    cx: &ScopeState,
     manager: &UseManager,
     pane_index: usize,
     editor_index: usize,
     metrics: &UseMetrics,
 ) -> UseEdit {
-    let event_loop_proxy = cx.consume_context::<EventLoopProxy<EventMessage>>();
-    let selecting_text_with_mouse = use_ref(cx, || None);
+    let event_loop_proxy = consume_context::<EventLoopProxy<EventMessage>>();
+    let selecting_text_with_mouse = use_signal(|| None);
 
-    let cursor_reference = use_memo(cx, &(pane_index, editor_index), |_| {
-        let text_id = Uuid::new_v4();
-        let (cursor_sender, mut cursor_receiver) = unbounded_channel::<CursorLayoutResponse>();
-
-        let cursor_reference = CursorReference {
-            text_id,
-            agent: cursor_sender.clone(),
-            cursor_position: Arc::new(Mutex::new(None)),
-            cursor_id: Arc::new(Mutex::new(None)),
-            cursor_selections: Arc::new(Mutex::new(None)),
-        };
-
-        cx.spawn({
-            to_owned![manager, cursor_reference];
-            async move {
-                while let Some(message) = cursor_receiver.recv().await {
-                    match message {
-                        // Update the cursor position calculated by the layout
-                        CursorLayoutResponse::CursorPosition { position, id } => {
-                            let mut manager = manager.write();
-                            let editor = manager
-                                .panel(pane_index)
-                                .tab(editor_index)
-                                .as_text_editor()
-                                .unwrap();
-
-                            let new_current_line = editor.rope.line(id);
-
-                            // Use the line lenght as new column if the clicked column surpases the length
-                            let new_cursor = if position >= new_current_line.chars().len() {
-                                (new_current_line.chars().len(), id)
-                            } else {
-                                (position, id)
-                            };
-
-                            // Only update if it's actually different
-                            if editor.cursor.as_tuple() != new_cursor {
+    let cursor_reference = use_memo(use_reactive(&(pane_index, editor_index), {
+        to_owned![manager];
+        move |_| {
+            let text_id = Uuid::new_v4();
+            let (cursor_sender, mut cursor_receiver) = unbounded_channel::<CursorLayoutResponse>();
+    
+            let cursor_reference = CursorReference {
+                text_id,
+                cursor_sender: cursor_sender.clone(),
+                cursor_position: Arc::new(Mutex::new(None)),
+                cursor_id: Arc::new(Mutex::new(None)),
+                cursor_selections: Arc::new(Mutex::new(None)),
+            };
+    
+            spawn({
+                to_owned![manager, cursor_reference];
+                async move {
+                    while let Some(message) = cursor_receiver.recv().await {
+                        match message {
+                            // Update the cursor position calculated by the layout
+                            CursorLayoutResponse::CursorPosition { position, id } => {
+                                let mut manager = manager.write();
+                                let editor = manager
+                                    .panel(pane_index)
+                                    .tab(editor_index)
+                                    .as_text_editor()
+                                    .unwrap();
+    
+                                let new_current_line = editor.rope.line(id);
+    
+                                // Use the line lenght as new column if the clicked column surpases the length
+                                let new_cursor = if position >= new_current_line.chars().len() {
+                                    (new_current_line.chars().len(), id)
+                                } else {
+                                    (position, id)
+                                };
+    
+                                // Only update if it's actually different
+                                if editor.cursor.as_tuple() != new_cursor {
+                                    let editor = manager
+                                        .panel_mut(pane_index)
+                                        .tab_mut(editor_index)
+                                        .as_text_editor_mut()
+                                        .unwrap();
+                                    editor.cursor.set_col(new_cursor.0);
+                                    editor.cursor.set_row(new_cursor.1);
+                                    editor.unhighlight();
+                                }
+    
+                                // Remove the current calcutions so the layout engine doesn't try to calculate again
+                                cursor_reference.set_cursor_position(None);
+                            }
+                            // Update the text selections calculated by the layout
+                            CursorLayoutResponse::TextSelection { from, to, id } => {
+                                let mut manager = manager.write();
                                 let editor = manager
                                     .panel_mut(pane_index)
                                     .tab_mut(editor_index)
                                     .as_text_editor_mut()
                                     .unwrap();
-                                editor.cursor.set_col(new_cursor.0);
-                                editor.cursor.set_row(new_cursor.1);
-                                editor.unhighlight();
+                                editor.highlight_text(from, to, id);
+                                cursor_reference.set_cursor_selections(None);
                             }
-
-                            // Remove the current calcutions so the layout engine doesn't try to calculate again
-                            cursor_reference.set_cursor_position(None);
-                        }
-                        // Update the text selections calculated by the layout
-                        CursorLayoutResponse::TextSelection { from, to, id } => {
-                            let mut manager = manager.write();
-                            let editor = manager
-                                .panel_mut(pane_index)
-                                .tab_mut(editor_index)
-                                .as_text_editor_mut()
-                                .unwrap();
-                            editor.highlight_text(from, to, id);
-                            cursor_reference.set_cursor_selections(None);
                         }
                     }
                 }
-            }
-        });
-
-        cursor_reference
-    });
-
+            });
+    
+            cursor_reference
+        }
+    }));
+    
     UseEdit {
         manager: manager.clone(),
-        cursor_reference: cursor_reference.clone(),
+        cursor_reference: cursor_reference,
         selecting_text_with_mouse: selecting_text_with_mouse.clone(),
         event_loop_proxy,
         pane_index,

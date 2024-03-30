@@ -13,7 +13,7 @@ use freya::prelude::keyboard::{Key, Modifiers};
 use freya::prelude::*;
 use futures::StreamExt;
 use hooks::*;
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 use utils::*;
 
 use crate::commands::{EditorCommand, FontSizeCommand, SplitCommand};
@@ -33,18 +33,16 @@ fn main() {
     );
 }
 
-fn app(cx: Scope) -> Element {
-    use_init_focus(cx);
-    render!(
+fn app() -> Element {
+    rsx!(
         ThemeProvider { theme: DARK_THEME, Body {} }
     )
 }
 
 #[allow(non_snake_case)]
-fn Body(cx: Scope) -> Element {
-    let lsp_messages = use_state::<HashMap<String, String>>(cx, HashMap::default);
-    let lsp_status_coroutine = use_coroutine(cx, |mut rx: UnboundedReceiver<(String, String)>| {
-        to_owned![lsp_messages];
+fn Body() -> Element {
+    let mut lsp_messages = use_signal::<HashMap<String, String>>(HashMap::default);
+    let lsp_status_coroutine = use_coroutine(move |mut rx: UnboundedReceiver<(String, String)>| {
         async move {
             while let Some((name, val)) = rx.next().await {
                 lsp_messages.with_mut(|msgs| {
@@ -54,15 +52,15 @@ fn Body(cx: Scope) -> Element {
         }
     });
 
-    let manager = use_init_manager(cx, lsp_status_coroutine);
+    let manager = use_init_manager(&lsp_status_coroutine);
     let focused_view = manager.current().focused_view.clone();
 
     // Commands
-    let commands = cx.use_hook::<Vec<Box<dyn EditorCommand>>>(|| {
-        vec![
+    let commands = use_hook::<Arc<Vec<Box<dyn EditorCommand>>>>(|| {
+        Arc::new(vec![
             Box::new(FontSizeCommand(manager.clone())),
             Box::new(SplitCommand(manager.clone())),
-        ]
+        ])
     });
 
     let onsubmitcommander = {
@@ -108,10 +106,10 @@ fn Body(cx: Scope) -> Element {
         };
 
     let onglobalmousedown = |_| {
-        if *manager.current().focused_view() == EditorView::Commander {
-            let mut manager = manager.global_write();
-            manager.set_focused_view_to_previous();
-        }
+        // if *manager.current().focused_view() == EditorView::Commander {
+        //     let mut manager = manager.global_write();
+        //     manager.set_focused_view_to_previous();
+        // }
     };
 
     let panels_len = manager.current().panels().len();
@@ -130,7 +128,7 @@ fn Body(cx: Scope) -> Element {
         }
     };
 
-    render!(
+    rsx!(
         rect {
             color: "white",
             background: "rgb(20, 20, 20)",
@@ -139,17 +137,15 @@ fn Body(cx: Scope) -> Element {
             onkeydown: onkeydown,
             onglobalmousedown: onglobalmousedown,
             if focused_view == EditorView::Commander {
-                rsx!(
-                    Commander {
-                        onsubmit: onsubmitcommander,
-                        commands: commands
-                    }
-                )
+                Commander {
+                    onsubmit: onsubmitcommander,
+                    commands: commands
+                }
             }
             rect {
                 height: "calc(100% - 25)",
                 direction: "horizontal",
-                Sidebar {}
+                EditorSidebar {}
                 Divider {}
                 Sidepanel {
                     FileExplorer {}
@@ -163,15 +159,15 @@ fn Body(cx: Scope) -> Element {
                         height: "100%",
                         width: "100%",
                         direction: "horizontal",
-                        manager.current().panels().iter().enumerate().map(|(panel_index, _)| {
+                        {manager.current().panels().iter().enumerate().map(|(panel_index, _)| {
                             rsx!(
                                 EditorPanel {
                                     key: "{panel_index}",
                                     panel_index: panel_index,
-                                    width: "{panes_width}%"
+                                    width: "{panes_width}%".to_string()
                                 }
                             )
-                        })
+                        })}
                     }
                 }
             }
