@@ -15,10 +15,10 @@ dioxus-router = { git = "https://github.com/DioxusLabs/dioxus", rev = "f26621361
 
 
 [dependencies]
-freya-node-state = { git = "https://github.com/marc2332/freya", rev = "750c33b8d23cc5fe2f8b953e4ebcae76f7116caa" }
-freya = { git = "https://github.com/marc2332/freya", rev = "750c33b8d23cc5fe2f8b953e4ebcae76f7116caa" }
-freya-common = { git = "https://github.com/marc2332/freya", rev = "750c33b8d23cc5fe2f8b953e4ebcae76f7116caa" }
-torin = { git = "https://github.com/marc2332/freya", rev = "750c33b8d23cc5fe2f8b953e4ebcae76f7116caa" }
+freya-node-state = { git = "https://github.com/marc2332/freya", rev = "2cd4b006f64f1b16973763fd884e2245da0d2405" }
+freya = { git = "https://github.com/marc2332/freya", rev = "2cd4b006f64f1b16973763fd884e2245da0d2405" }
+freya-common = { git = "https://github.com/marc2332/freya", rev = "2cd4b006f64f1b16973763fd884e2245da0d2405" }
+torin = { git = "https://github.com/marc2332/freya", rev = "2cd4b006f64f1b16973763fd884e2245da0d2405" }
 
 dioxus = "*"
 dioxus-std = { git = "https://github.com/marc2332/dioxus-std", rev = "4d8ae33b94537d54471cd924c32f03c1d949430f", features = ["clipboard"]}
