@@ -78,21 +78,15 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
         }
     });
 
-    use_drop({
-        to_owned![status, platform];
-        move || {
-            if *status.read() == EditorStatus::Hovering {
-                platform.set_cursor(CursorIcon::default());
-            }
+    use_drop(move || {
+        if *status.read() == EditorStatus::Hovering {
+            platform.set_cursor(CursorIcon::default());
         }
     });
 
-    let onmouseenter = {
-        to_owned![status, platform];
-        move |_| {
-            platform.set_cursor(CursorIcon::Text);
-            status.set(EditorStatus::Hovering);
-        }
+    let onmouseenter = move |_| {
+        platform.set_cursor(CursorIcon::Text);
+        status.set(EditorStatus::Hovering);
     };
 
     let onmouseleave = move |_| {

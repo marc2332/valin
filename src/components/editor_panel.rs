@@ -50,6 +50,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
 
     let show_close_panel = panels_len > 1;
     let tabsbar_tools_width = if show_close_panel { 125 } else { 60 };
+    let extra_container_width = if is_last_panel { 0 } else { 2 };
 
     rsx!(
         rect {
@@ -57,7 +58,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
             height: "100%",
             width: "{width}",
             rect {
-                width: "calc(100% - 2)",
+                width: "calc(100% - {extra_container_width})",
                 height: "100%",
                 overflow: "clip",
                 rect {
@@ -68,7 +69,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                     ScrollView {
                         direction: "horizontal",
                         theme: theme_with!(ScrollViewTheme {
-                            width: "calc(100% - {tabsbar_tools_width})".into(),
+                            width: format!("calc(100% - {tabsbar_tools_width})").into(),
                         }),
                         show_scrollbar: false,
                         {panel.tabs().iter().enumerate().map(|(editor_index, _)| {

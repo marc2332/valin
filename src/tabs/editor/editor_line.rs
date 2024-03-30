@@ -89,7 +89,7 @@ pub fn EditorLine(
             let paragraph = create_paragraph(&line_str, font_size);
 
             if (coords.x as f32) < paragraph.max_intrinsic_width() {
-                to_owned![cursor_coords, file_uri, lsp, line_index];
+                to_owned![file_uri, lsp];
                 debouncer.action(move || {
                     let coords = cursor_coords.read();
                     let glyph = paragraph
