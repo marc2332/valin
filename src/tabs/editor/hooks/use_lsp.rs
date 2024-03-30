@@ -31,7 +31,7 @@ pub fn use_lsp(
     editor_index: usize,
     lsp_config: &Option<LspConfig>,
     manager: &UseManager,
-    hover_location: &Signal<Option<(u32, Hover)>>,
+    mut hover_location: Signal<Option<(u32, Hover)>>,
 ) -> UseLsp {
     use_hook(|| {
         to_owned![lsp_config, manager];
@@ -73,7 +73,7 @@ pub fn use_lsp(
     });
 
     let lsp_coroutine = use_coroutine(|mut rx: UnboundedReceiver<LspAction>| {
-        to_owned![lsp_config, hover_location, manager];
+        to_owned![lsp_config, manager];
         async move {
             if let Some(lsp_config) = lsp_config {
                 while let Some(action) = rx.next().await {

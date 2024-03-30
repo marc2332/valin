@@ -42,19 +42,15 @@ pub struct EditorTabProps {
 #[allow(non_snake_case)]
 pub fn EditorTab(props: EditorTabProps) -> Element {
     let lsp_config = LspConfig::new(props.root_path.clone(), props.language_id);
-    let manager = use_manager(
-        SubscriptionModel::follow_tab(props.panel_index, props.editor_index),
-    );
-    let debouncer = use_debouncer(Duration::from_millis(300));
-    let mut hover_location = use_signal(|| None);
-    let metrics = use_metrics(&manager, props.panel_index, props.editor_index);
-    let editable = use_edit(
-        &manager,
+    let manager = use_manager(SubscriptionModel::follow_tab(
         props.panel_index,
         props.editor_index,
-        &metrics,
-    );
-    let mut cursor_coords = use_signal(CursorPoint::default);
+    ));
+    let debouncer = use_debouncer(Duration::from_millis(300));
+    let hover_location = use_signal(|| None);
+    let metrics = use_metrics(&manager, props.panel_index, props.editor_index);
+    let editable = use_edit(&manager, props.panel_index, props.editor_index, &metrics);
+    let cursor_coords = use_signal(CursorPoint::default);
     let mut scroll_offsets = use_signal(|| (0, 0));
     let lsp = use_lsp(
         props.language_id,
@@ -62,7 +58,7 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
         props.editor_index,
         &lsp_config,
         &manager,
-        &hover_location,
+        hover_location,
     );
     let platform = use_platform();
     let mut status = use_signal(EditorStatus::default);
@@ -164,7 +160,7 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
     let panel = manager_ref.panel(props.panel_index);
 
     let onkeydown = {
-        to_owned![editable, manager,metrics];
+        to_owned![editable, manager, metrics];
         move |e: KeyboardEvent| {
             let (is_panel_focused, is_editor_focused) = {
                 let manager_ref = manager.current();
@@ -236,7 +232,7 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
                 onscroll: onscroll,
                 length: metrics.get().0.len(),
                 item_size: manual_line_height,
-                builder_args: (cursor, metrics.clone(), editable, lsp.clone(), file_uri, editor.rope().clone(), hover_location.clone(), cursor_coords.clone(), debouncer.clone()),
+                builder_args: (cursor, metrics.clone(), editable, lsp.clone(), file_uri, editor.rope().clone(), hover_location, cursor_coords, debouncer.clone()),
                 builder: move |i: usize, options: &BuilderProps| rsx!(
                     EditorLine {
                         key: "{i}",

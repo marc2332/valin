@@ -44,15 +44,25 @@ impl PartialEq for EditorLineProps {
 }
 
 #[allow(non_snake_case)]
-pub fn EditorLine(EditorLineProps {
-    options,
-    line_index,
-    font_size,
-    line_height,
-}: EditorLineProps) -> Element {
-
-    let (cursor, metrics, editable, lsp, file_uri, rope, hover_location, cursor_coords, debouncer) =
-        options;
+pub fn EditorLine(
+    EditorLineProps {
+        options,
+        line_index,
+        font_size,
+        line_height,
+    }: EditorLineProps,
+) -> Element {
+    let (
+        cursor,
+        metrics,
+        editable,
+        lsp,
+        file_uri,
+        rope,
+        hover_location,
+        mut cursor_coords,
+        debouncer,
+    ) = options;
 
     let onmousedown = {
         to_owned![editable];
@@ -62,11 +72,11 @@ pub fn EditorLine(EditorLineProps {
     };
 
     let onmouseleave = |_| {
-       // lsp.send(LspAction::Clear);
+        // lsp.send(LspAction::Clear);
     };
 
     let onmouseover = {
-        to_owned![editable, file_uri, lsp, cursor_coords, hover_location, rope];
+        to_owned![editable, file_uri, lsp, rope];
         move |e: MouseEvent| {
             let line_str = rope.line(line_index).to_string();
             let coords = e.get_element_coordinates();
@@ -74,13 +84,7 @@ pub fn EditorLine(EditorLineProps {
 
             editable.process_event(&EditableEvent::MouseOver(data, line_index));
 
-            // Optimization: Re run the component only when the hover box is shown
-            // otherwise just update the coordinates silently
-            if hover_location.read().is_some() {
-                *cursor_coords.write() = coords;
-            } else {
-                *cursor_coords.write_silent() = coords;
-            }
+            cursor_coords.set(coords);
 
             let paragraph = create_paragraph(&line_str, font_size);
 
@@ -137,7 +141,7 @@ pub fn EditorLine(EditorLineProps {
                 if let Some((line, hover)) = hover_location.read().as_ref() {
                     if *line == line_index as u32 {
                         if let Some(content) = hover.hover_to_text() {
-                            let cursor_coords = cursor_coords.read();
+                            let cursor_coords = cursor_coords.peek();
                             let offset_x = cursor_coords.x  as f32 + gutter_width;
                             Some(rsx!(
                                 rect {

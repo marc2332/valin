@@ -42,15 +42,15 @@ fn app() -> Element {
 #[allow(non_snake_case)]
 fn Body() -> Element {
     let mut lsp_messages = use_signal::<HashMap<String, String>>(HashMap::default);
-    let lsp_status_coroutine = use_coroutine(move |mut rx: UnboundedReceiver<(String, String)>| {
-        async move {
+    let lsp_status_coroutine = use_coroutine(
+        move |mut rx: UnboundedReceiver<(String, String)>| async move {
             while let Some((name, val)) = rx.next().await {
                 lsp_messages.with_mut(|msgs| {
                     msgs.insert(name, val);
                 })
             }
-        }
-    });
+        },
+    );
 
     let manager = use_init_manager(&lsp_status_coroutine);
     let focused_view = manager.current().focused_view.clone();

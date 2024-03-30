@@ -174,17 +174,13 @@ pub struct PanelTabProps {
 
 #[allow(non_snake_case)]
 fn PanelTab(props: PanelTabProps) -> Element {
-    let manager = use_manager(
-        SubscriptionModel::Tab {
-            panel_index: props.panel_index,
-            editor_index: props.editor_index,
-        },
-    );
+    let manager = use_manager(SubscriptionModel::Tab {
+        panel_index: props.panel_index,
+        editor_index: props.editor_index,
+    });
 
     let manager_ref = manager.current();
-    let tab = manager_ref
-        .panel(props.panel_index)
-        .tab(props.editor_index);
+    let tab = manager_ref.panel(props.panel_index).tab(props.editor_index);
     let tab_data = tab.get_data();
     let is_selected = props.is_selected;
 

@@ -20,12 +20,9 @@ pub fn Tab(
         }
     });
 
-    let onmouseenter = {
-        to_owned![status, platform];
-        move |_| {
-            platform.set_cursor(CursorIcon::Pointer);
-            status.set(ButtonStatus::Hovering);
-        }
+    let onmouseenter = move |_| {
+        platform.set_cursor(CursorIcon::Pointer);
+        status.set(ButtonStatus::Hovering);
     };
 
     let onmouseleave = move |_| {

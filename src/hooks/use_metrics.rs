@@ -1,5 +1,5 @@
-use std::{borrow::Cow, sync::Arc};
 use std::cmp::Ordering;
+use std::{borrow::Cow, sync::Arc};
 
 use freya::prelude::*;
 use skia_safe::scalar;
@@ -24,7 +24,12 @@ pub struct UseMetrics {
 
 impl PartialEq for UseMetrics {
     fn eq(&self, other: &Self) -> bool {
-        self.paragraph_style == other.paragraph_style && Arc::ptr_eq(&self.font_collection, &other.font_collection) && self.metrics == other.metrics && self.manager == other.manager && self.pane_index == other.pane_index && self.editor_index == other.editor_index
+        self.paragraph_style == other.paragraph_style
+            && Arc::ptr_eq(&self.font_collection, &other.font_collection)
+            && self.metrics == other.metrics
+            && self.manager == other.manager
+            && self.pane_index == other.pane_index
+            && self.editor_index == other.editor_index
     }
 }
 
@@ -58,10 +63,8 @@ impl UseMetrics {
     }
 
     pub fn run_metrics(&mut self) {
-        let mut font_collection = FontCollection::new();
-        font_collection.set_default_font_manager(FontMgr::default(), "Jetbrains Mono");
         let mut paragraph_builder =
-            ParagraphBuilder::new(&self.paragraph_style, font_collection);
+            ParagraphBuilder::new(&self.paragraph_style, &*self.font_collection);
 
         let mut longest_line: Vec<Cow<str>> = vec![];
 
@@ -103,11 +106,7 @@ impl UseMetrics {
     }
 }
 
-pub fn use_metrics(
-    manager: &UseManager,
-    pane_index: usize,
-    editor_index: usize,
-) -> UseMetrics {
+pub fn use_metrics(manager: &UseManager, pane_index: usize, editor_index: usize) -> UseMetrics {
     let metrics_ref = use_signal::<(SyntaxBlocks, f32)>(|| (SyntaxBlocks::default(), 0.0));
 
     use_hook(|| {

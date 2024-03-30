@@ -1,10 +1,15 @@
 use std::{
-    cell::{Ref, RefCell, RefMut}, collections::HashMap, ops::{Deref, DerefMut}, rc::Rc, sync::Arc
+    cell::{Ref, RefCell, RefMut},
+    collections::HashMap,
+    ops::{Deref, DerefMut},
+    rc::Rc,
+    sync::Arc,
 };
 
-use dioxus::{dioxus_core::{schedule_update_any, use_hook}, prelude::{
-    current_scope_id, use_context, use_context_provider, Coroutine, ScopeId
-}};
+use dioxus::{
+    dioxus_core::{schedule_update_any, use_hook},
+    prelude::{current_scope_id, use_context, use_context_provider, Coroutine, ScopeId},
+};
 
 pub use crate::editor_manager::*;
 
@@ -28,13 +33,11 @@ impl SubscriptionModel {
 
 pub type SharedEditorManager = Rc<EditorManagerInner>;
 
-pub fn use_init_manager(
-    lsp_status_coroutine: &Coroutine<(String, String)>,
-) -> SharedEditorManager {
+pub fn use_init_manager(lsp_status_coroutine: &Coroutine<(String, String)>) -> SharedEditorManager {
     use_context_provider(|| {
-        Rc::new(EditorManagerInner::new(
-            EditorManager::new(lsp_status_coroutine.clone()),
-        ))
+        Rc::new(EditorManagerInner::new(EditorManager::new(
+            lsp_status_coroutine.clone(),
+        )))
     })
 }
 

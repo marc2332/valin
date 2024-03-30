@@ -348,10 +348,12 @@ impl UseEdit {
         match edit_event {
             EditableEvent::MouseDown(e, id) => {
                 let coords = e.get_element_coordinates();
-                *self.selecting_text_with_mouse.write_silent() = Some(coords);
+                *self.selecting_text_with_mouse.write() = Some(coords);
 
                 self.cursor_reference.read().set_id(Some(*id));
-                self.cursor_reference.read().set_cursor_position(Some(coords));
+                self.cursor_reference
+                    .read()
+                    .set_cursor_position(Some(coords));
                 let mut manager = self.manager.write();
 
                 let editor = manager
@@ -367,13 +369,14 @@ impl UseEdit {
                         let coords = e.get_element_coordinates();
 
                         self.cursor_reference.read().set_id(Some(*id));
-                        self.cursor_reference.read()
+                        self.cursor_reference
+                            .read()
                             .set_cursor_selections(Some((*current_dragging, coords)));
                     }
                 });
             }
             EditableEvent::Click => {
-                *self.selecting_text_with_mouse.write_silent() = None;
+                *self.selecting_text_with_mouse.write() = None;
             }
             EditableEvent::KeyDown(e) => {
                 let is_plus = e.key == Key::Character("+".to_string());
@@ -408,14 +411,14 @@ impl UseEdit {
                 };
                 if event.contains(TextEvent::TEXT_CHANGED) {
                     self.metrics.run_metrics();
-                    *self.selecting_text_with_mouse.write_silent() = None;
+                    *self.selecting_text_with_mouse.write() = None;
                 } else if event.contains(TextEvent::SELECTION_CHANGED) {
                     self.selecting_text_with_mouse.write();
                 }
             }
         }
 
-        if self.selecting_text_with_mouse.read().is_some() {
+        if self.selecting_text_with_mouse.peek().is_some() {
             self.event_loop_proxy
                 .send_event(EventMessage::RemeasureTextGroup(
                     self.cursor_reference.read().text_id,
@@ -439,7 +442,7 @@ pub fn use_edit(
         move |_| {
             let text_id = Uuid::new_v4();
             let (cursor_sender, mut cursor_receiver) = unbounded_channel::<CursorLayoutResponse>();
-    
+
             let cursor_reference = CursorReference {
                 text_id,
                 cursor_sender: cursor_sender.clone(),
@@ -447,7 +450,7 @@ pub fn use_edit(
                 cursor_id: Arc::new(Mutex::new(None)),
                 cursor_selections: Arc::new(Mutex::new(None)),
             };
-    
+
             spawn({
                 to_owned![manager, cursor_reference];
                 async move {
@@ -461,16 +464,16 @@ pub fn use_edit(
                                     .tab(editor_index)
                                     .as_text_editor()
                                     .unwrap();
-    
+
                                 let new_current_line = editor.rope.line(id);
-    
+
                                 // Use the line lenght as new column if the clicked column surpases the length
                                 let new_cursor = if position >= new_current_line.chars().len() {
                                     (new_current_line.chars().len(), id)
                                 } else {
                                     (position, id)
                                 };
-    
+
                                 // Only update if it's actually different
                                 if editor.cursor.as_tuple() != new_cursor {
                                     let editor = manager
@@ -482,7 +485,7 @@ pub fn use_edit(
                                     editor.cursor.set_row(new_cursor.1);
                                     editor.unhighlight();
                                 }
-    
+
                                 // Remove the current calcutions so the layout engine doesn't try to calculate again
                                 cursor_reference.set_cursor_position(None);
                             }
@@ -501,11 +504,11 @@ pub fn use_edit(
                     }
                 }
             });
-    
+
             cursor_reference
         }
     }));
-    
+
     UseEdit {
         manager: manager.clone(),
         cursor_reference: cursor_reference,

@@ -34,8 +34,8 @@ pub fn get_scroll_position_from_wheel(
 /// Properties for the EditorScrollView component.
 #[derive(Props, Clone)]
 pub struct EditorScrollViewProps<
-Builder: 'static + Clone + Fn(usize, &BuilderArgs) -> Element,
-BuilderArgs: Clone + 'static + PartialEq = (),
+    Builder: 'static + Clone + Fn(usize, &BuilderArgs) -> Element,
+    BuilderArgs: Clone + 'static + PartialEq = (),
 > {
     length: usize,
     item_size: f32,
@@ -55,13 +55,11 @@ BuilderArgs: Clone + 'static + PartialEq = (),
     builder: Builder,
 }
 
-impl<
-        BuilderArgs: Clone + PartialEq,
-        Builder: Clone + Fn(usize, &BuilderArgs) -> Element,
-    > PartialEq for EditorScrollViewProps<Builder, BuilderArgs>
+impl<BuilderArgs: Clone + PartialEq, Builder: Clone + Fn(usize, &BuilderArgs) -> Element> PartialEq
+    for EditorScrollViewProps<Builder, BuilderArgs>
 {
     fn eq(&self, other: &Self) -> bool {
-            self.length == other.length
+        self.length == other.length
             && self.offset_x == other.offset_x
             && self.offset_y == other.offset_y
             && self.item_size == other.item_size
@@ -216,7 +214,7 @@ pub fn EditorScrollView<
         };
     };
 
-    let onkeyup =  move |e: KeyboardEvent| {
+    let onkeyup = move |e: KeyboardEvent| {
         if e.key == Key::Shift {
             clicking_shift.set(false);
         } else if e.key == Key::Alt {
@@ -231,13 +229,13 @@ pub fn EditorScrollView<
     };
 
     // Mark the X axis scrollbar as the one being dragged
-    let onmousedown_x =  move |e: MouseEvent| {
+    let onmousedown_x = move |e: MouseEvent| {
         let coordinates = e.get_element_coordinates();
         *clicking_scrollbar.write() = Some((Axis::X, coordinates.x));
     };
 
     // Unmark any scrollbar
-    let onclick =  move |_: MouseEvent| {
+    let onclick = move |_: MouseEvent| {
         if clicking_scrollbar.read().is_some() {
             *clicking_scrollbar.write() = None;
         }

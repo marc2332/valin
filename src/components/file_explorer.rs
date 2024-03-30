@@ -150,12 +150,15 @@ pub fn FileExplorer() -> Element {
                             .global_write()
                             .set_focused_view(EditorView::FilesExplorer);
                     }
-    
+
                     match task {
                         TreeTask::OpenFolder(folder_path) => {
                             if let Ok(items) = read_folder_as_items(&folder_path).await {
                                 if let Some(tree) = tree.write().as_mut() {
-                                    tree.set_folder_state(&folder_path, &FolderState::Opened(items));
+                                    tree.set_folder_state(
+                                        &folder_path,
+                                        &FolderState::Opened(items),
+                                    );
                                 }
                             }
                         }
@@ -275,9 +278,7 @@ type TreeBuilderOptions = (
     bool,
 );
 
-fn file_explorer_item_builder(index: usize,
-    values: &Option<TreeBuilderOptions>,
-) -> Element {
+fn file_explorer_item_builder(index: usize, values: &Option<TreeBuilderOptions>) -> Element {
     let (items, channel, focused_item, is_focused_files_explorer) = values.as_ref().unwrap();
     let item: &FlatItem = &items.read()[index];
 
