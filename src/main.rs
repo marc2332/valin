@@ -164,7 +164,7 @@ fn Body() -> Element {
                                 EditorPanel {
                                     key: "{panel_index}",
                                     panel_index: panel_index,
-                                    width: "{panes_width}%".to_string()
+                                    width: format!("{panes_width}%")
                                 }
                             )
                         })}

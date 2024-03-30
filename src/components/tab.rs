@@ -78,7 +78,10 @@ pub fn Tab(
                 rect {
                     width: "15",
                     height: "20",
-                    onclick: move |_| onclickaction.call(()),
+                    onclick: move |e| {
+                        e.stop_propagation();
+                        onclickaction.call(());
+                    },
                     main_align: "center",
                     cross_align: "center",
                     corner_radius: "100",
