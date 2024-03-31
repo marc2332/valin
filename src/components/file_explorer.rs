@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use dioxus_radio::hooks::use_radio;
 use freya::elements as dioxus_elements;
 use freya::prelude::keyboard::Code;
 use freya::prelude::*;
@@ -10,10 +11,10 @@ use tokio::{
     io,
 };
 
-use crate::hooks::EditorData;
-use crate::hooks::EditorView;
-use crate::hooks::PanelTab;
-use crate::hooks::{use_manager, SubscriptionModel};
+use crate::{
+    editor_manager::{EditorManager, EditorView, PanelTab, SubscriptionModel},
+    hooks::EditorData,
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FolderState {
@@ -124,8 +125,8 @@ enum TreeTask {
 
 #[allow(non_snake_case)]
 pub fn FileExplorer() -> Element {
-    let manager = use_manager(SubscriptionModel::All); // TODO Use specific
-    let is_focused_files_explorer = *manager.current().focused_view() == EditorView::FilesExplorer;
+    let mut radio = use_radio::<EditorManager, SubscriptionModel>(SubscriptionModel::All); // TODO Use specific
+    let is_focused_files_explorer = *radio.read().focused_view() == EditorView::FilesExplorer;
     let mut tree = use_signal::<Option<TreeItem>>(|| None);
     let mut focused_item = use_signal(|| 0);
 
@@ -138,16 +139,14 @@ pub fn FileExplorer() -> Element {
     }));
 
     let channel = use_coroutine({
-        to_owned![manager];
         move |mut rx| {
-            to_owned![manager];
             async move {
                 while let Some((task, item_index)) = rx.next().await {
                     // Focus the FilesExplorer view if it wasn't focused already
-                    let focused_view = manager.current().focused_view().clone();
+                    let focused_view = *radio.read().focused_view();
                     if focused_view != EditorView::FilesExplorer {
-                        manager
-                            .global_write()
+                        radio
+                            .write_channel(SubscriptionModel::All)
                             .set_focused_view(EditorView::FilesExplorer);
                     }
 
@@ -171,8 +170,8 @@ pub fn FileExplorer() -> Element {
                             let content = read_to_string(&file_path).await;
                             if let Ok(content) = content {
                                 let root_path = tree.read().as_ref().unwrap().path().clone();
-                                let focused_panel = manager.current().focused_panel();
-                                manager.global_write().push_tab(
+                                let focused_panel = radio.read().focused_panel();
+                                radio.write_channel(SubscriptionModel::All).push_tab(
                                     PanelTab::TextEditor(EditorData::new(
                                         file_path.to_path_buf(),
                                         Rope::from(content),
@@ -194,10 +193,8 @@ pub fn FileExplorer() -> Element {
     });
 
     let open_dialog = {
-        to_owned![manager];
         move |_| {
             spawn({
-                to_owned![manager];
                 async move {
                     let task = rfd::AsyncFileDialog::new().pick_folder();
                     let folder = task.await;
@@ -209,8 +206,8 @@ pub fn FileExplorer() -> Element {
                             path,
                             state: FolderState::Opened(items),
                         });
-                        manager
-                            .global_write()
+                        radio
+                            .write_channel(SubscriptionModel::All)
                             .set_focused_view(EditorView::FilesExplorer);
                     }
                 }
@@ -219,15 +216,22 @@ pub fn FileExplorer() -> Element {
     };
 
     let onkeydown = move |ev: KeyboardEvent| {
-        let is_focused_files_explorer =
-            *manager.current().focused_view() == EditorView::FilesExplorer;
+        let is_focused_files_explorer = *radio.read().focused_view() == EditorView::FilesExplorer;
         if is_focused_files_explorer {
             match ev.code {
                 Code::ArrowDown => {
-                    //focused_item.modify(|i| if *i < items.len() - 1 { i + 1 } else { *i });
+                    focused_item.with_mut(|i| {
+                        if *i < items.len() - 1 {
+                            *i += 1
+                        }
+                    });
                 }
                 Code::ArrowUp => {
-                    //focused_item.modify(|i| if *i > 0 { i - 1 } else { *i });
+                    focused_item.with_mut(|i| {
+                        if *i > 0 {
+                            *i -= 1
+                        }
+                    });
                 }
                 _ => {}
             }
@@ -262,7 +266,7 @@ pub fn FileExplorer() -> Element {
                 }),
                 length: items.len(),
                 item_size: 25.0,
-                builder_args: (items, channel.clone(), focused_item.clone(), is_focused_files_explorer),
+                builder_args: (items, channel, focused_item, is_focused_files_explorer),
                 direction: "vertical",
                 scroll_with_arrows: false,
                 builder: file_explorer_item_builder

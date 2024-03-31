@@ -1,17 +1,17 @@
-use std::sync::Arc;
+use std::rc::Rc;
 
 use crate::{commands::EditorCommand, TextArea};
 use freya::prelude::*;
 
 #[derive(Props, Clone)]
 pub struct CommanderProps {
-    commands: Arc<Vec<Box<dyn EditorCommand>>>,
+    commands: Rc<Vec<Box<dyn EditorCommand>>>,
     onsubmit: EventHandler,
 }
 
 impl PartialEq for CommanderProps {
     fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.commands, &other.commands) && self.onsubmit == other.onsubmit
+        Rc::ptr_eq(&self.commands, &other.commands) && self.onsubmit == other.onsubmit
     }
 }
 

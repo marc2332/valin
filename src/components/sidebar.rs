@@ -1,15 +1,16 @@
+use dioxus_radio::prelude::use_radio;
 use freya::prelude::*;
 
-use crate::hooks::{use_manager, PanelTab, SubscriptionModel};
+use crate::editor_manager::{EditorManager, PanelTab, SubscriptionModel};
 
 #[allow(non_snake_case)]
 pub fn EditorSidebar() -> Element {
-    let manager = use_manager(SubscriptionModel::All);
+    let mut radio = use_radio::<EditorManager, SubscriptionModel>(SubscriptionModel::All);
 
     let open_settings = move |_| {
-        let focused_panel = manager.current().focused_panel();
-        manager
-            .global_write()
+        let focused_panel = radio.read().focused_panel();
+        radio
+            .write_channel(SubscriptionModel::All)
             .push_tab(PanelTab::Config, focused_panel, true);
     };
 

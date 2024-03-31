@@ -1,9 +1,10 @@
 use super::icons::*;
 use super::tab::*;
-use crate::hooks::*;
+use crate::editor_manager::{EditorManager, Panel, PanelTab, SubscriptionModel};
 use crate::tabs::config::*;
 use crate::tabs::editor::*;
 use crate::utils::*;
+use dioxus_radio::prelude::use_radio;
 use freya::prelude::*;
 
 #[derive(Props, Clone, PartialEq)]
@@ -15,27 +16,29 @@ pub struct EditorPanelProps {
 
 #[allow(non_snake_case)]
 pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) -> Element {
-    let manager = use_manager(SubscriptionModel::All);
+    let manager = use_radio::<EditorManager, SubscriptionModel>(SubscriptionModel::All);
 
-    let panels_len = manager.current().panels().len();
-    let is_last_panel = manager.current().panels().len() - 1 == panel_index;
-    let is_focused = manager.current().focused_panel() == panel_index;
-    let current_manager = manager.current();
+    let panels_len = manager.read().panels().len();
+    let is_last_panel = manager.read().panels().len() - 1 == panel_index;
+    let is_focused = manager.read().focused_panel() == panel_index;
+    let current_manager = manager.read();
     let panel = current_manager.panel(panel_index);
     let active_tab_index = panel.active_tab();
 
     let close_panel = {
         to_owned![manager];
         move |_: Option<MouseEvent>| {
-            manager.global_write().close_panel(panel_index);
+            manager
+                .write_channel(SubscriptionModel::All)
+                .close_panel(panel_index);
         }
     };
 
     let split_panel = {
         to_owned![manager];
         move |_| {
-            let len_panels = manager.current().panels().len();
-            let mut manager = manager.global_write();
+            let len_panels = manager.read().panels().len();
+            let mut manager = manager.write_channel(SubscriptionModel::All);
             manager.push_panel(Panel::new());
             manager.set_focused_panel(len_panels - 1);
         }
@@ -44,7 +47,9 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
     let onclickpanel = {
         to_owned![manager];
         move |_| {
-            manager.global_write().set_focused_panel(panel_index);
+            manager
+                .write_channel(SubscriptionModel::All)
+                .set_focused_panel(panel_index);
         }
     };
 
@@ -175,20 +180,19 @@ pub struct PanelTabProps {
 
 #[allow(non_snake_case)]
 fn PanelTab(props: PanelTabProps) -> Element {
-    let manager = use_manager(SubscriptionModel::Tab {
+    let mut radio = use_radio::<EditorManager, SubscriptionModel>(SubscriptionModel::Tab {
         panel_index: props.panel_index,
         editor_index: props.editor_index,
     });
 
-    let manager_ref = manager.current();
+    let manager_ref = radio.read();
     let tab = manager_ref.panel(props.panel_index).tab(props.editor_index);
     let tab_data = tab.get_data();
     let is_selected = props.is_selected;
 
     let onclick = {
-        to_owned![manager];
         move |_| {
-            let mut manager = manager.global_write();
+            let mut manager = radio.write_channel(SubscriptionModel::All);
             manager.set_focused_panel(props.panel_index);
             manager
                 .panel_mut(props.panel_index)
@@ -197,13 +201,13 @@ fn PanelTab(props: PanelTabProps) -> Element {
     };
 
     let onclickaction = {
-        to_owned![manager];
+        to_owned![radio];
         move |_| {
             if tab_data.edited {
                 println!("save...")
             } else {
-                manager
-                    .global_write()
+                radio
+                    .write_channel(SubscriptionModel::All)
                     .close_editor(props.panel_index, props.editor_index);
             }
         }
@@ -211,10 +215,10 @@ fn PanelTab(props: PanelTabProps) -> Element {
 
     rsx!(Tab {
         key: "{tab_data.id}",
-        onclick: onclick,
-        onclickaction: onclickaction,
+        onclick,
+        onclickaction,
         value: "{tab_data.title}",
         is_edited: tab_data.edited,
-        is_selected: is_selected
+        is_selected
     })
 }

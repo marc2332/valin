@@ -1,11 +1,29 @@
 use std::{collections::HashMap, fmt::Display};
 
 use dioxus::prelude::Coroutine;
+use dioxus_radio::prelude::Radio;
 
-use crate::{
-    hooks::UseManager,
-    lsp::{create_lsp, LSPBridge, LspConfig},
-};
+use crate::lsp::{create_lsp, LSPBridge, LspConfig};
+
+pub type RadioManager = Radio<EditorManager, SubscriptionModel>;
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub enum SubscriptionModel {
+    All,
+    Tab {
+        panel_index: usize,
+        editor_index: usize,
+    },
+}
+
+impl SubscriptionModel {
+    pub fn follow_tab(panel: usize, editor: usize) -> Self {
+        Self::Tab {
+            panel_index: panel,
+            editor_index: editor,
+        }
+    }
+}
 
 use super::EditorData;
 
@@ -93,7 +111,7 @@ impl Panel {
     }
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Clone, Default, PartialEq, Copy)]
 pub enum EditorView {
     #[default]
     CodeEditor,
@@ -142,7 +160,7 @@ impl EditorManager {
     }
 
     pub fn set_focused_view(&mut self, focused_view: EditorView) {
-        self.previous_focused_view = Some(self.focused_view.clone());
+        self.previous_focused_view = Some(self.focused_view);
 
         self.focused_view = focused_view;
     }
@@ -152,7 +170,7 @@ impl EditorManager {
     }
 
     pub fn set_focused_view_to_previous(&mut self) {
-        if let Some(previous_focused_view) = self.previous_focused_view.clone() {
+        if let Some(previous_focused_view) = self.previous_focused_view {
             self.focused_view = previous_focused_view;
             self.previous_focused_view = None;
         }
@@ -249,14 +267,14 @@ impl EditorManager {
         self.language_servers.insert(language_server, server);
     }
 
-    pub async fn get_or_insert_lsp(manager: UseManager, lsp_config: &LspConfig) -> LSPBridge {
-        let server = manager.current().lsp(lsp_config).cloned();
+    pub async fn get_or_insert_lsp(mut manager: RadioManager, lsp_config: &LspConfig) -> LSPBridge {
+        let server = manager.read().lsp(lsp_config).cloned();
         match server {
             Some(server) => server,
             None => {
-                let server = create_lsp(lsp_config.clone(), &manager.current()).await;
+                let server = create_lsp(lsp_config.clone(), &manager.read()).await;
                 manager
-                    .write()
+                    .write_channel(SubscriptionModel::All)
                     .insert_lsp(lsp_config.language_server.clone(), server.clone());
                 server
             }

@@ -20,7 +20,8 @@ freya = { git = "https://github.com/marc2332/freya", rev = "2cd4b006f64f1b169737
 freya-common = { git = "https://github.com/marc2332/freya", rev = "2cd4b006f64f1b16973763fd884e2245da0d2405" }
 torin = { git = "https://github.com/marc2332/freya", rev = "2cd4b006f64f1b16973763fd884e2245da0d2405" }
 
-dioxus = "*"
+dioxus-radio = "0.2"
+dioxus = "0.5"
 dioxus-std = { git = "https://github.com/marc2332/dioxus-std", rev = "4d8ae33b94537d54471cd924c32f03c1d949430f", features = ["clipboard"]}
 
 tokio = { version = "1.33.0", features = ["fs", "process"]}

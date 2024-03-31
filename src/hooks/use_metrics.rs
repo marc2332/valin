@@ -1,5 +1,5 @@
+use std::borrow::Cow;
 use std::cmp::Ordering;
-use std::{borrow::Cow, sync::Arc};
 
 use freya::prelude::*;
 use skia_safe::scalar;
@@ -9,33 +9,21 @@ use skia_safe::textlayout::ParagraphStyle;
 use skia_safe::textlayout::TextStyle;
 use skia_safe::FontMgr;
 
-use crate::hooks::UseManager;
-use crate::parser::*;
+use crate::{editor_manager::RadioManager, parser::*};
 
-#[derive(Clone)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct UseMetrics {
-    paragraph_style: ParagraphStyle,
-    font_collection: Arc<FontCollection>,
+    paragraph_style: Signal<ParagraphStyle>,
+    font_collection: Signal<FontCollection>,
     metrics: Signal<(SyntaxBlocks, f32)>,
-    manager: UseManager,
+    radio: RadioManager,
     pane_index: usize,
     editor_index: usize,
 }
 
-impl PartialEq for UseMetrics {
-    fn eq(&self, other: &Self) -> bool {
-        self.paragraph_style == other.paragraph_style
-            && Arc::ptr_eq(&self.font_collection, &other.font_collection)
-            && self.metrics == other.metrics
-            && self.manager == other.manager
-            && self.pane_index == other.pane_index
-            && self.editor_index == other.editor_index
-    }
-}
-
 impl UseMetrics {
     pub fn new(
-        manager: UseManager,
+        manager: RadioManager,
         metrics: Signal<(SyntaxBlocks, f32)>,
         pane_index: usize,
         editor_index: usize,
@@ -45,14 +33,14 @@ impl UseMetrics {
 
         let mut paragraph_style = ParagraphStyle::default();
         let mut text_style = TextStyle::default();
-        text_style.set_font_size(manager.current().font_size());
+        text_style.set_font_size(manager.read().font_size());
         paragraph_style.set_text_style(&text_style);
 
         Self {
-            paragraph_style,
-            font_collection: Arc::new(font_collection),
+            paragraph_style: Signal::new(paragraph_style),
+            font_collection: Signal::new(font_collection),
             metrics,
-            manager,
+            radio: manager,
             pane_index,
             editor_index,
         }
@@ -64,11 +52,11 @@ impl UseMetrics {
 
     pub fn run_metrics(&mut self) {
         let mut paragraph_builder =
-            ParagraphBuilder::new(&self.paragraph_style, &*self.font_collection);
+            ParagraphBuilder::new(&self.paragraph_style.read(), &*self.font_collection.read());
 
         let mut longest_line: Vec<Cow<str>> = vec![];
 
-        let manager = self.manager.current();
+        let manager = self.radio.read();
 
         let editor = manager
             .panel(self.pane_index)
@@ -106,16 +94,11 @@ impl UseMetrics {
     }
 }
 
-pub fn use_metrics(manager: &UseManager, pane_index: usize, editor_index: usize) -> UseMetrics {
+pub fn use_metrics(radio: &RadioManager, pane_index: usize, editor_index: usize) -> UseMetrics {
     let metrics_ref = use_signal::<(SyntaxBlocks, f32)>(|| (SyntaxBlocks::default(), 0.0));
 
     use_hook(|| {
-        let mut metrics = UseMetrics::new(
-            manager.clone(),
-            metrics_ref.clone(),
-            pane_index,
-            editor_index,
-        );
+        let mut metrics = UseMetrics::new(*radio, metrics_ref, pane_index, editor_index);
 
         metrics.run_metrics();
 

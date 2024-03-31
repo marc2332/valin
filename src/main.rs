@@ -9,15 +9,19 @@ mod tabs;
 mod utils;
 
 use components::*;
+use dioxus_radio::prelude::*;
 use freya::prelude::keyboard::{Key, Modifiers};
 use freya::prelude::*;
 use futures::StreamExt;
 use hooks::*;
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, rc::Rc};
 use utils::*;
 
-use crate::commands::{EditorCommand, FontSizeCommand, SplitCommand};
 use crate::editor_manager::EditorView;
+use crate::{
+    commands::{EditorCommand, FontSizeCommand, SplitCommand},
+    editor_manager::{EditorManager, SubscriptionModel},
+};
 
 static BASE_FONT_SIZE: f32 = 5.0;
 static MAX_FONT_SIZE: f32 = 150.0;
@@ -52,71 +56,66 @@ fn Body() -> Element {
         },
     );
 
-    let manager = use_init_manager(&lsp_status_coroutine);
-    let focused_view = manager.current().focused_view.clone();
+    use_init_radio_station::<EditorManager, SubscriptionModel>(|| {
+        EditorManager::new(lsp_status_coroutine)
+    });
+    let mut radio = use_radio::<EditorManager, SubscriptionModel>(SubscriptionModel::All);
+
+    let focused_view = radio.read().focused_view;
 
     // Commands
-    let commands = use_hook::<Arc<Vec<Box<dyn EditorCommand>>>>(|| {
-        Arc::new(vec![
-            Box::new(FontSizeCommand(manager.clone())),
-            Box::new(SplitCommand(manager.clone())),
+    let commands = use_hook::<Rc<Vec<Box<dyn EditorCommand>>>>(|| {
+        Rc::new(vec![
+            Box::new(FontSizeCommand(radio)),
+            Box::new(SplitCommand(radio)),
         ])
     });
 
-    let onsubmitcommander = {
-        to_owned![manager];
-        move |_| {
-            let mut manager = manager.global_write();
-            manager.set_focused_view_to_previous();
-        }
+    let onsubmitcommander = move |_| {
+        let mut manager = radio.write_channel(SubscriptionModel::All);
+        manager.set_focused_view_to_previous();
     };
 
-    let onkeydown =
-        {
-            to_owned![manager];
-            move |e: KeyboardEvent| match &e.key {
-                Key::Escape => {
-                    let mut manager = manager.global_write();
-                    if manager.focused_view == EditorView::Commander {
-                        manager.set_focused_view_to_previous();
+    let onkeydown = move |e: KeyboardEvent| match &e.key {
+        Key::Escape => {
+            let mut manager = radio.write_channel(SubscriptionModel::All);
+            if manager.focused_view == EditorView::Commander {
+                manager.set_focused_view_to_previous();
+            } else {
+                manager.set_focused_view(EditorView::Commander);
+            }
+        }
+        Key::Character(ch) if e.modifiers.contains(Modifiers::ALT) => {
+            let mut manager = radio.write_channel(SubscriptionModel::All);
+            let font_size = manager.font_size;
+            match ch.as_str() {
+                "+" => manager.set_fontsize((font_size + 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE)),
+                "-" => manager.set_fontsize((font_size - 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE)),
+                "e" => {
+                    if *manager.focused_view() == EditorView::FilesExplorer {
+                        manager.set_focused_view(EditorView::CodeEditor)
                     } else {
-                        manager.set_focused_view(EditorView::Commander);
-                    }
-                }
-                Key::Character(ch) if e.modifiers.contains(Modifiers::ALT) => {
-                    let mut manager = manager.global_write();
-                    let font_size = manager.font_size;
-                    match ch.as_str() {
-                        "+" => manager
-                            .set_fontsize((font_size + 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE)),
-                        "-" => manager
-                            .set_fontsize((font_size - 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE)),
-                        "e" => {
-                            if *manager.focused_view() == EditorView::FilesExplorer {
-                                manager.set_focused_view(EditorView::CodeEditor)
-                            } else {
-                                manager.set_focused_view(EditorView::FilesExplorer)
-                            }
-                        }
-                        _ => {}
+                        manager.set_focused_view(EditorView::FilesExplorer)
                     }
                 }
                 _ => {}
             }
-        };
-
-    let onglobalmousedown = |_| {
-        // if *manager.current().focused_view() == EditorView::Commander {
-        //     let mut manager = manager.global_write();
-        //     manager.set_focused_view_to_previous();
-        // }
+        }
+        _ => {}
     };
 
-    let panels_len = manager.current().panels().len();
+    let onglobalmousedown = move |_| {
+        if *radio.read().focused_view() == EditorView::Commander {
+            let mut manager = radio.write_channel(SubscriptionModel::All);
+            manager.set_focused_view_to_previous();
+        }
+    };
+
+    let panels_len = radio.read().panels().len();
     let panes_width = 100.0 / panels_len as f32;
 
     let cursor = {
-        let manager = manager.current();
+        let manager = radio.read();
         let panel = manager.panel(manager.focused_panel);
         if let Some(active_tab) = panel.active_tab() {
             panel
@@ -159,7 +158,7 @@ fn Body() -> Element {
                         height: "100%",
                         width: "100%",
                         direction: "horizontal",
-                        {manager.current().panels().iter().enumerate().map(|(panel_index, _)| {
+                        {radio.read().panels().iter().enumerate().map(|(panel_index, _)| {
                             rsx!(
                                 EditorPanel {
                                     key: "{panel_index}",
@@ -173,9 +172,9 @@ fn Body() -> Element {
             }
             VerticalDivider {}
             StatusBar {
-                cursor: cursor.clone(),
-                lsp_messages: lsp_messages.clone(),
-                focused_view: focused_view
+                cursor,
+                lsp_messages,
+                focused_view
             }
         }
     )

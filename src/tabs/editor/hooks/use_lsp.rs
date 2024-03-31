@@ -4,7 +4,7 @@ use lsp_types::{DidOpenTextDocumentParams, Hover, HoverParams, TextDocumentItem,
 use tokio_stream::StreamExt;
 
 use crate::{
-    hooks::{EditorManager, UseManager},
+    editor_manager::{EditorManager, RadioManager},
     lsp::{LanguageId, LspConfig},
 };
 
@@ -30,16 +30,16 @@ pub fn use_lsp(
     panel_index: usize,
     editor_index: usize,
     lsp_config: &Option<LspConfig>,
-    manager: &UseManager,
+    radio: RadioManager,
     mut hover_location: Signal<Option<(u32, Hover)>>,
 ) -> UseLsp {
     use_hook(|| {
-        to_owned![lsp_config, manager];
+        to_owned![lsp_config];
         let language_id = language_id.to_string();
 
         if let Some(lsp_config) = lsp_config {
             let (file_uri, file_text) = {
-                let manager = manager.current();
+                let manager = radio.read();
 
                 let editor = manager
                     .panel(panel_index)
@@ -56,7 +56,7 @@ pub fn use_lsp(
 
             // Notify language server the file has been opened
             spawn(async move {
-                let mut lsp = EditorManager::get_or_insert_lsp(manager, &lsp_config).await;
+                let mut lsp = EditorManager::get_or_insert_lsp(radio, &lsp_config).await;
 
                 lsp.server_socket
                     .did_open(DidOpenTextDocumentParams {
@@ -73,13 +73,13 @@ pub fn use_lsp(
     });
 
     let lsp_coroutine = use_coroutine(|mut rx: UnboundedReceiver<LspAction>| {
-        to_owned![lsp_config, manager];
+        to_owned![lsp_config];
         async move {
             if let Some(lsp_config) = lsp_config {
                 while let Some(action) = rx.next().await {
                     match action {
                         LspAction::Hover(params) => {
-                            let lsp = manager.current().lsp(&lsp_config).cloned();
+                            let lsp = radio.read().lsp(&lsp_config).cloned();
 
                             if let Some(mut lsp) = lsp {
                                 let is_indexed = *lsp.indexed.lock().unwrap();
@@ -108,7 +108,5 @@ pub fn use_lsp(
         }
     });
 
-    UseLsp {
-        lsp_coroutine: lsp_coroutine.clone(),
-    }
+    UseLsp { lsp_coroutine }
 }

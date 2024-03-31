@@ -17,7 +17,7 @@ use lsp_types::{
 };
 use tower::ServiceBuilder;
 
-use crate::hooks::EditorManager;
+use crate::editor_manager::EditorManager;
 
 struct ClientState {
     indexed: Arc<Mutex<bool>>,
@@ -53,10 +53,10 @@ impl LspConfig {
 pub async fn create_lsp(config: LspConfig, manager: &EditorManager) -> LSPBridge {
     let indexed = Arc::new(Mutex::new(false));
 
-    let (mainloop, mut server) = async_lsp::MainLoop::new_client(|_server| {
+    let (_mainloop, mut server) = async_lsp::MainLoop::new_client(|_server| {
         let mut router = Router::new(ClientState {
             indexed: indexed.clone(),
-            lsp_status_coroutine: manager.lsp_status_coroutine.clone(),
+            lsp_status_coroutine: manager.lsp_status_coroutine,
             language_server: config.language_server.clone(),
         });
         router
@@ -108,12 +108,12 @@ pub async fn create_lsp(config: LspConfig, manager: &EditorManager) -> LSPBridge
         .stderr(Stdio::inherit())
         .spawn()
         .expect("Failed run rust-analyzer");
-    let stdout = child.stdout.unwrap();
-    let stdin = child.stdin.unwrap();
+    let _stdout = child.stdout.unwrap();
+    let _stdin = child.stdin.unwrap();
 
-    let _mainloop_fut = tokio::spawn(async move {
-        //mainloop.run_bufferred(stdout, stdin).await.unwrap();
-    });
+    // let _mainloop_fut = tokio::spawn(async move {
+    //     mainloop.run_bufferred(stdout, stdin).await.unwrap();
+    // });
 
     // Initialize.
     let root_uri = Url::from_file_path(&config.root_dir).unwrap();

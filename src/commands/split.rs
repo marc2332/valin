@@ -1,9 +1,9 @@
-use crate::hooks::{Panel, SharedEditorManager};
+use crate::editor_manager::{Panel, RadioManager, SubscriptionModel};
 
 use super::EditorCommand;
 
 #[derive(Clone)]
-pub struct SplitCommand(pub SharedEditorManager);
+pub struct SplitCommand(pub RadioManager);
 
 impl EditorCommand for SplitCommand {
     fn name(&self) -> &str {
@@ -14,8 +14,9 @@ impl EditorCommand for SplitCommand {
         #[allow(clippy::single_match)]
         match args {
             "panel" => {
-                let len_panels = self.0.current().panels().len();
-                let mut manager = self.0.global_write();
+                let mut radio_manager = self.0;
+                let len_panels = radio_manager.read().panels().len();
+                let mut manager = radio_manager.write_channel(SubscriptionModel::All);
                 manager.push_panel(Panel::new());
                 manager.set_focused_panel(len_panels - 1);
             }

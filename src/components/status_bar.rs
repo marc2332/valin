@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use freya::prelude::*;
 
-use crate::hooks::EditorView;
+use crate::editor_manager::EditorView;
 
 #[derive(Props, Clone, PartialEq)]
 pub struct StatusBarProps {

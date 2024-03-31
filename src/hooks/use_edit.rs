@@ -17,11 +17,10 @@ use std::{
 use tokio::sync::mpsc::unbounded_channel;
 use torin::geometry::CursorPoint;
 use uuid::Uuid;
-use winit::event_loop::EventLoopProxy;
 
 use crate::{
+    editor_manager::RadioManager,
     history::{History, HistoryChange},
-    hooks::UseManager,
     lsp::LanguageId,
 };
 
@@ -298,12 +297,12 @@ impl TextEditor for EditorData {
 }
 
 /// Manage an editable content.
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct UseEdit {
-    pub(crate) manager: UseManager,
+    pub(crate) radio: RadioManager,
     pub(crate) cursor_reference: Memo<CursorReference>,
     pub(crate) selecting_text_with_mouse: Signal<Option<CursorPoint>>,
-    pub(crate) event_loop_proxy: EventLoopProxy<EventMessage>,
+    pub(crate) platform: UsePlatform,
     pub(crate) pane_index: usize,
     pub(crate) editor_index: usize,
     pub(crate) metrics: UseMetrics,
@@ -311,7 +310,7 @@ pub struct UseEdit {
 
 impl PartialEq for UseEdit {
     fn eq(&self, other: &Self) -> bool {
-        self.manager == other.manager
+        self.radio == other.radio
             && self.cursor_reference == other.cursor_reference
             && self.selecting_text_with_mouse == other.selecting_text_with_mouse
             && self.pane_index == other.pane_index
@@ -329,7 +328,7 @@ impl UseEdit {
 
     /// Create a highlights attribute.
     pub fn highlights_attr(&self, editor_id: usize) -> AttributeValue {
-        let manager = self.manager.current();
+        let manager = self.radio.read();
         let editor = manager
             .panel(self.pane_index)
             .tab(self.editor_index)
@@ -354,7 +353,7 @@ impl UseEdit {
                 self.cursor_reference
                     .read()
                     .set_cursor_position(Some(coords));
-                let mut manager = self.manager.write();
+                let mut manager = self.radio.write();
 
                 let editor = manager
                     .panel_mut(self.pane_index)
@@ -390,7 +389,7 @@ impl UseEdit {
                 }
 
                 let event = 'key_matcher: {
-                    let mut manager = self.manager.write();
+                    let mut manager = self.radio.write();
                     let editor = manager
                         .panel_mut(self.pane_index)
                         .tab_mut(self.editor_index)
@@ -419,8 +418,8 @@ impl UseEdit {
         }
 
         if self.selecting_text_with_mouse.peek().is_some() {
-            self.event_loop_proxy
-                .send_event(EventMessage::RemeasureTextGroup(
+            self.platform
+                .send(EventMessage::RemeasureTextGroup(
                     self.cursor_reference.read().text_id,
                 ))
                 .unwrap();
@@ -429,16 +428,16 @@ impl UseEdit {
 }
 
 pub fn use_edit(
-    manager: &UseManager,
+    radio: &RadioManager,
     pane_index: usize,
     editor_index: usize,
     metrics: &UseMetrics,
 ) -> UseEdit {
-    let event_loop_proxy = consume_context::<EventLoopProxy<EventMessage>>();
     let selecting_text_with_mouse = use_signal(|| None);
+    let platform = use_platform();
 
     let cursor_reference = use_memo(use_reactive(&(pane_index, editor_index), {
-        to_owned![manager];
+        to_owned![radio];
         move |_| {
             let text_id = Uuid::new_v4();
             let (cursor_sender, mut cursor_receiver) = unbounded_channel::<CursorLayoutResponse>();
@@ -452,13 +451,13 @@ pub fn use_edit(
             };
 
             spawn({
-                to_owned![manager, cursor_reference];
+                to_owned![cursor_reference];
                 async move {
                     while let Some(message) = cursor_receiver.recv().await {
                         match message {
                             // Update the cursor position calculated by the layout
                             CursorLayoutResponse::CursorPosition { position, id } => {
-                                let mut manager = manager.write();
+                                let mut manager = radio.write();
                                 let editor = manager
                                     .panel(pane_index)
                                     .tab(editor_index)
@@ -491,7 +490,7 @@ pub fn use_edit(
                             }
                             // Update the text selections calculated by the layout
                             CursorLayoutResponse::TextSelection { from, to, id } => {
-                                let mut manager = manager.write();
+                                let mut manager = radio.write();
                                 let editor = manager
                                     .panel_mut(pane_index)
                                     .tab_mut(editor_index)
@@ -510,12 +509,12 @@ pub fn use_edit(
     }));
 
     UseEdit {
-        manager: manager.clone(),
-        cursor_reference: cursor_reference,
-        selecting_text_with_mouse: selecting_text_with_mouse.clone(),
-        event_loop_proxy,
+        radio: *radio,
+        cursor_reference,
+        selecting_text_with_mouse,
+        platform,
         pane_index,
         editor_index,
-        metrics: metrics.clone(),
+        metrics: *metrics,
     }
 }
