@@ -1,4 +1,4 @@
-use crate::editor_manager::{Panel, RadioManager, SubscriptionModel};
+use crate::editor_manager::{Channel, Panel, RadioManager};
 
 use super::EditorCommand;
 
@@ -16,7 +16,7 @@ impl EditorCommand for SplitCommand {
             "panel" => {
                 let mut radio_manager = self.0;
                 let len_panels = radio_manager.read().panels().len();
-                let mut manager = radio_manager.write_channel(SubscriptionModel::All);
+                let mut manager = radio_manager.write_channel(Channel::All);
                 manager.push_panel(Panel::new());
                 manager.set_focused_panel(len_panels - 1);
             }

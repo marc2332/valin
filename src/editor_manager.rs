@@ -5,10 +5,10 @@ use dioxus_radio::prelude::Radio;
 
 use crate::lsp::{create_lsp, LSPBridge, LspConfig};
 
-pub type RadioManager = Radio<EditorManager, SubscriptionModel>;
+pub type RadioManager = Radio<EditorManager, Channel>;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
-pub enum SubscriptionModel {
+pub enum Channel {
     All,
     Tab {
         panel_index: usize,
@@ -16,7 +16,7 @@ pub enum SubscriptionModel {
     },
 }
 
-impl SubscriptionModel {
+impl Channel {
     pub fn follow_tab(panel: usize, editor: usize) -> Self {
         Self::Tab {
             panel_index: panel,
@@ -274,7 +274,7 @@ impl EditorManager {
             None => {
                 let server = create_lsp(lsp_config.clone(), &manager.read()).await;
                 manager
-                    .write_channel(SubscriptionModel::All)
+                    .write_channel(Channel::All)
                     .insert_lsp(lsp_config.language_server.clone(), server.clone());
                 server
             }

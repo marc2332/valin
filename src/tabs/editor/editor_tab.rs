@@ -8,7 +8,7 @@ use crate::lsp::LspConfig;
 use crate::tabs::editor::hooks::use_lsp;
 use crate::tabs::editor::BuilderProps;
 use crate::tabs::editor::EditorLine;
-use crate::{components::*, editor_manager::SubscriptionModel};
+use crate::{components::*, editor_manager::Channel};
 
 use dioxus_radio::prelude::use_radio;
 use freya::events::KeyboardEvent;
@@ -43,10 +43,7 @@ pub struct EditorTabProps {
 #[allow(non_snake_case)]
 pub fn EditorTab(props: EditorTabProps) -> Element {
     let lsp_config = LspConfig::new(props.root_path.clone(), props.language_id);
-    let mut radio = use_radio(SubscriptionModel::follow_tab(
-        props.panel_index,
-        props.editor_index,
-    ));
+    let mut radio = use_radio(Channel::follow_tab(props.panel_index, props.editor_index));
     let debouncer = use_debouncer(Duration::from_millis(300));
     let hover_location = use_signal(|| None);
     let metrics = use_metrics(&radio, props.panel_index, props.editor_index);
@@ -74,7 +71,7 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
                 .set_active_tab(props.editor_index);
         }
         {
-            let mut manager = radio.write_channel(SubscriptionModel::All);
+            let mut manager = radio.write_channel(Channel::All);
             manager.set_focused_view(EditorView::CodeEditor);
         }
     });
@@ -127,12 +124,12 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
         };
 
         if !is_code_editor_view_focused {
-            let mut manager = radio.write_channel(SubscriptionModel::All);
+            let mut manager = radio.write_channel(Channel::All);
             manager.set_focused_view(EditorView::CodeEditor);
         }
 
         if !is_editor_focused {
-            let mut manager = radio.write_channel(SubscriptionModel::All);
+            let mut manager = radio.write_channel(Channel::All);
             manager.set_focused_panel(props.panel_index);
             manager
                 .panel_mut(props.panel_index)
@@ -217,7 +214,7 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
                 onscroll: onscroll,
                 length: metrics.get().0.len(),
                 item_size: manual_line_height,
-                builder_args: (cursor, metrics, editable, lsp.clone(), file_uri, editor.rope().clone(), hover_location, cursor_coords, debouncer.clone()),
+                builder_args: (cursor, metrics, editable, lsp, file_uri, editor.rope().clone(), hover_location, cursor_coords, debouncer),
                 builder: move |i: usize, options: &BuilderProps| rsx!(
                     EditorLine {
                         key: "{i}",

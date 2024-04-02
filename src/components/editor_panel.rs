@@ -1,6 +1,6 @@
 use super::icons::*;
 use super::tab::*;
-use crate::editor_manager::{EditorManager, Panel, PanelTab, SubscriptionModel};
+use crate::editor_manager::{Channel, EditorManager, Panel, PanelTab};
 use crate::tabs::config::*;
 use crate::tabs::editor::*;
 use crate::utils::*;
@@ -16,41 +16,30 @@ pub struct EditorPanelProps {
 
 #[allow(non_snake_case)]
 pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) -> Element {
-    let manager = use_radio::<EditorManager, SubscriptionModel>(SubscriptionModel::All);
+    let mut radio = use_radio::<EditorManager, Channel>(Channel::All);
 
-    let panels_len = manager.read().panels().len();
-    let is_last_panel = manager.read().panels().len() - 1 == panel_index;
-    let is_focused = manager.read().focused_panel() == panel_index;
-    let current_manager = manager.read();
+    let panels_len = radio.read().panels().len();
+    let is_last_panel = radio.read().panels().len() - 1 == panel_index;
+    let is_focused = radio.read().focused_panel() == panel_index;
+    let current_manager = radio.read();
     let panel = current_manager.panel(panel_index);
     let active_tab_index = panel.active_tab();
 
-    let close_panel = {
-        to_owned![manager];
-        move |_: Option<MouseEvent>| {
-            manager
-                .write_channel(SubscriptionModel::All)
-                .close_panel(panel_index);
-        }
+    let close_panel = move |_: Option<MouseEvent>| {
+        radio.write_channel(Channel::All).close_panel(panel_index);
     };
 
-    let split_panel = {
-        to_owned![manager];
-        move |_| {
-            let len_panels = manager.read().panels().len();
-            let mut manager = manager.write_channel(SubscriptionModel::All);
-            manager.push_panel(Panel::new());
-            manager.set_focused_panel(len_panels - 1);
-        }
+    let split_panel = move |_| {
+        let len_panels = radio.read().panels().len();
+        let mut manager = radio.write_channel(Channel::All);
+        manager.push_panel(Panel::new());
+        manager.set_focused_panel(len_panels - 1);
     };
 
-    let onclickpanel = {
-        to_owned![manager];
-        move |_| {
-            manager
-                .write_channel(SubscriptionModel::All)
-                .set_focused_panel(panel_index);
-        }
+    let onclickpanel = move |_| {
+        radio
+            .write_channel(Channel::All)
+            .set_focused_panel(panel_index);
     };
 
     let show_close_panel = panels_len > 1;
@@ -180,7 +169,7 @@ pub struct PanelTabProps {
 
 #[allow(non_snake_case)]
 fn PanelTab(props: PanelTabProps) -> Element {
-    let mut radio = use_radio::<EditorManager, SubscriptionModel>(SubscriptionModel::Tab {
+    let mut radio = use_radio::<EditorManager, Channel>(Channel::Tab {
         panel_index: props.panel_index,
         editor_index: props.editor_index,
     });
@@ -192,7 +181,7 @@ fn PanelTab(props: PanelTabProps) -> Element {
 
     let onclick = {
         move |_| {
-            let mut manager = radio.write_channel(SubscriptionModel::All);
+            let mut manager = radio.write_channel(Channel::All);
             manager.set_focused_panel(props.panel_index);
             manager
                 .panel_mut(props.panel_index)
@@ -200,16 +189,13 @@ fn PanelTab(props: PanelTabProps) -> Element {
         }
     };
 
-    let onclickaction = {
-        to_owned![radio];
-        move |_| {
-            if tab_data.edited {
-                println!("save...")
-            } else {
-                radio
-                    .write_channel(SubscriptionModel::All)
-                    .close_editor(props.panel_index, props.editor_index);
-            }
+    let onclickaction = move |_| {
+        if tab_data.edited {
+            println!("save...")
+        } else {
+            radio
+                .write_channel(Channel::All)
+                .close_editor(props.panel_index, props.editor_index);
         }
     };
 

@@ -20,7 +20,7 @@ use utils::*;
 use crate::editor_manager::EditorView;
 use crate::{
     commands::{EditorCommand, FontSizeCommand, SplitCommand},
-    editor_manager::{EditorManager, SubscriptionModel},
+    editor_manager::{Channel, EditorManager},
 };
 
 static BASE_FONT_SIZE: f32 = 5.0;
@@ -56,10 +56,8 @@ fn Body() -> Element {
         },
     );
 
-    use_init_radio_station::<EditorManager, SubscriptionModel>(|| {
-        EditorManager::new(lsp_status_coroutine)
-    });
-    let mut radio = use_radio::<EditorManager, SubscriptionModel>(SubscriptionModel::All);
+    use_init_radio_station::<EditorManager, Channel>(|| EditorManager::new(lsp_status_coroutine));
+    let mut radio = use_radio::<EditorManager, Channel>(Channel::All);
 
     let focused_view = radio.read().focused_view;
 
@@ -72,13 +70,13 @@ fn Body() -> Element {
     });
 
     let onsubmitcommander = move |_| {
-        let mut manager = radio.write_channel(SubscriptionModel::All);
+        let mut manager = radio.write_channel(Channel::All);
         manager.set_focused_view_to_previous();
     };
 
     let onkeydown = move |e: KeyboardEvent| match &e.key {
         Key::Escape => {
-            let mut manager = radio.write_channel(SubscriptionModel::All);
+            let mut manager = radio.write_channel(Channel::All);
             if manager.focused_view == EditorView::Commander {
                 manager.set_focused_view_to_previous();
             } else {
@@ -86,7 +84,7 @@ fn Body() -> Element {
             }
         }
         Key::Character(ch) if e.modifiers.contains(Modifiers::ALT) => {
-            let mut manager = radio.write_channel(SubscriptionModel::All);
+            let mut manager = radio.write_channel(Channel::All);
             let font_size = manager.font_size;
             match ch.as_str() {
                 "+" => manager.set_fontsize((font_size + 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE)),
@@ -106,7 +104,7 @@ fn Body() -> Element {
 
     let onglobalmousedown = move |_| {
         if *radio.read().focused_view() == EditorView::Commander {
-            let mut manager = radio.write_channel(SubscriptionModel::All);
+            let mut manager = radio.write_channel(Channel::All);
             manager.set_focused_view_to_previous();
         }
     };

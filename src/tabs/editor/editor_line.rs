@@ -55,28 +55,25 @@ pub fn EditorLine(
     let (
         cursor,
         metrics,
-        editable,
+        mut editable,
         lsp,
         file_uri,
         rope,
         hover_location,
         mut cursor_coords,
-        debouncer,
+        mut debouncer,
     ) = options;
 
-    let onmousedown = {
-        to_owned![editable];
-        move |e: MouseEvent| {
-            editable.process_event(&EditableEvent::MouseDown(e.data, line_index));
-        }
+    let onmousedown = move |e: MouseEvent| {
+        editable.process_event(&EditableEvent::MouseDown(e.data, line_index));
     };
 
-    let onmouseleave = |_| {
-        // lsp.send(LspAction::Clear);
+    let onmouseleave = move |_| {
+        lsp.send(LspAction::Clear);
     };
 
     let onmouseover = {
-        to_owned![editable, file_uri, lsp, rope];
+        to_owned![file_uri, rope];
         move |e: MouseEvent| {
             let line_str = rope.line(line_index).to_string();
             let coords = e.get_element_coordinates();
@@ -89,7 +86,7 @@ pub fn EditorLine(
             let paragraph = create_paragraph(&line_str, font_size);
 
             if (coords.x as f32) < paragraph.max_intrinsic_width() {
-                to_owned![file_uri, lsp];
+                to_owned![file_uri];
                 debouncer.action(move || {
                     let coords = cursor_coords.read();
                     let glyph = paragraph
@@ -184,9 +181,9 @@ pub fn EditorLine(
                 max_lines: "1",
                 cursor_mode: "editable",
                 cursor_id: "{line_index}",
-                onmousedown: onmousedown,
-                onmouseover: onmouseover,
-                onmouseleave: onmouseleave,
+                onmousedown,
+                onmouseover,
+                onmouseleave,
                 highlights,
                 highlight_color: "rgb(65, 65, 65)",
                 direction: "horizontal",

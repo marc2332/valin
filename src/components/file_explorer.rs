@@ -12,7 +12,7 @@ use tokio::{
 };
 
 use crate::{
-    editor_manager::{EditorManager, EditorView, PanelTab, SubscriptionModel},
+    editor_manager::{Channel, EditorManager, EditorView, PanelTab},
     hooks::EditorData,
 };
 
@@ -125,7 +125,7 @@ enum TreeTask {
 
 #[allow(non_snake_case)]
 pub fn FileExplorer() -> Element {
-    let mut radio = use_radio::<EditorManager, SubscriptionModel>(SubscriptionModel::All); // TODO Use specific
+    let mut radio = use_radio::<EditorManager, Channel>(Channel::All); // TODO Use specific
     let is_focused_files_explorer = *radio.read().focused_view() == EditorView::FilesExplorer;
     let mut tree = use_signal::<Option<TreeItem>>(|| None);
     let mut focused_item = use_signal(|| 0);
@@ -146,7 +146,7 @@ pub fn FileExplorer() -> Element {
                     let focused_view = *radio.read().focused_view();
                     if focused_view != EditorView::FilesExplorer {
                         radio
-                            .write_channel(SubscriptionModel::All)
+                            .write_channel(Channel::All)
                             .set_focused_view(EditorView::FilesExplorer);
                     }
 
@@ -171,7 +171,7 @@ pub fn FileExplorer() -> Element {
                             if let Ok(content) = content {
                                 let root_path = tree.read().as_ref().unwrap().path().clone();
                                 let focused_panel = radio.read().focused_panel();
-                                radio.write_channel(SubscriptionModel::All).push_tab(
+                                radio.write_channel(Channel::All).push_tab(
                                     PanelTab::TextEditor(EditorData::new(
                                         file_path.to_path_buf(),
                                         Rope::from(content),
@@ -207,7 +207,7 @@ pub fn FileExplorer() -> Element {
                             state: FolderState::Opened(items),
                         });
                         radio
-                            .write_channel(SubscriptionModel::All)
+                            .write_channel(Channel::All)
                             .set_focused_view(EditorView::FilesExplorer);
                     }
                 }

@@ -14,7 +14,7 @@ pub enum LspAction {
     Clear,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Copy)]
 pub struct UseLsp {
     lsp_coroutine: Coroutine<LspAction>,
 }
