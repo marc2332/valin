@@ -1,11 +1,11 @@
 use std::ops::Range;
 
 use freya::prelude::*;
-use freya::prelude::{dioxus_elements, keyboard::Key};
+use freya::prelude::{dioxus_elements, keyboard::Key, use_applied_theme};
 
 use crate::{
     get_container_size, get_corrected_scroll_position, get_scroll_position_from_cursor,
-    get_scrollbar_pos_and_size, is_scrollbar_visible, Axis, SCROLLBAR_SIZE,
+    get_scrollbar_pos_and_size, is_scrollbar_visible, Axis, 
 };
 
 pub fn get_scroll_position_from_wheel(
@@ -103,6 +103,7 @@ pub fn EditorScrollView<
     let onscroll = props.onscroll.unwrap();
     let mut focus = use_focus();
     let (node_ref, size) = use_node();
+    let scrollbar_theme = use_applied_theme!(&None, scroll_bar);
 
     let padding = &props.padding;
     let user_container_width = &props.width;
@@ -118,8 +119,8 @@ pub fn EditorScrollView<
     let horizontal_scrollbar_is_visible =
         is_scrollbar_visible(show_scrollbar, size.inner.width, size.area.width());
 
-    let container_width = get_container_size(vertical_scrollbar_is_visible);
-    let container_height = get_container_size(horizontal_scrollbar_is_visible);
+    let container_width = get_container_size(vertical_scrollbar_is_visible, &scrollbar_theme.size);
+    let container_height = get_container_size(horizontal_scrollbar_is_visible, &scrollbar_theme.size);
 
     let corrected_scrolled_y =
         get_corrected_scroll_position(inner_size, size.area.height(), scrolled_y as f32);
@@ -242,15 +243,14 @@ pub fn EditorScrollView<
     };
 
     let horizontal_scrollbar_size = if horizontal_scrollbar_is_visible {
-        SCROLLBAR_SIZE
+        &scrollbar_theme.size
     } else {
-        0
+        "0"
     };
-
     let vertical_scrollbar_size = if vertical_scrollbar_is_visible {
-        SCROLLBAR_SIZE
+        &scrollbar_theme.size
     } else {
-        0
+        "0"
     };
 
     // Calculate from what to what items must be rendered
@@ -260,6 +260,13 @@ pub fn EditorScrollView<
         items_size,
         items_length as f32,
     );
+
+    let children = use_memo(use_reactive(
+        &(render_range, props.builder_args),
+        move |(render_range, builder_args)| {
+            rsx!({render_range.map(|i| (props.builder)(i, &builder_args))})
+        },
+    ));
 
     let is_scrolling_x = clicking_scrollbar
         .read()
@@ -295,7 +302,7 @@ pub fn EditorScrollView<
                     offset_x: "{corrected_scrolled_x}",
                     reference: node_ref,
                     onwheel: onwheel,
-                    {render_range.map(|i| (props.builder)(i, &props.builder_args))}
+                    {children}
                 }
                 ScrollBar {
                     width: "100%",

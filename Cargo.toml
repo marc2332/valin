@@ -15,10 +15,11 @@ dioxus-router = { git = "https://github.com/DioxusLabs/dioxus", rev = "f26621361
 
 
 [dependencies]
-freya-node-state = { git = "https://github.com/marc2332/freya", rev = "668c4271cec1a3cfbe3fae901c5c85f416c26308" }
-freya = { git = "https://github.com/marc2332/freya", rev = "668c4271cec1a3cfbe3fae901c5c85f416c26308" }
-freya-common = { git = "https://github.com/marc2332/freya", rev = "668c4271cec1a3cfbe3fae901c5c85f416c26308" }
-torin = { git = "https://github.com/marc2332/freya", rev = "668c4271cec1a3cfbe3fae901c5c85f416c26308" }
+freya-node-state = { path = "../freya/crates/state" }
+freya = { path = "../freya/crates/freya" }
+freya-common = { path = "../freya/crates/common" }
+torin = { path = "../freya/crates/torin" }
+freya-hooks = { path = "../freya/crates/hooks" }
 
 dioxus-radio = "0.2"
 dioxus = "0.5"
