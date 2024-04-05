@@ -58,7 +58,7 @@ fn Body() -> Element {
     );
 
     use_init_radio_station::<EditorManager, Channel>(|| EditorManager::new(lsp_status_coroutine));
-    let mut radio = use_radio::<EditorManager, Channel>(Channel::All);
+    let mut radio = use_radio::<EditorManager, Channel>(Channel::Global);
 
     let focused_view = radio.read().focused_view;
 
@@ -71,41 +71,46 @@ fn Body() -> Element {
     });
 
     let onsubmitcommander = move |_| {
-        let mut manager = radio.write_channel(Channel::All);
+        let mut manager = radio.write_channel(Channel::Global);
         manager.set_focused_view_to_previous();
     };
 
     let onkeydown = move |e: KeyboardEvent| match &e.key {
         Key::Escape => {
-            let mut manager = radio.write_channel(Channel::All);
+            let mut manager = radio.write_channel(Channel::Global);
             if manager.focused_view == EditorView::Commander {
                 manager.set_focused_view_to_previous();
             } else {
                 manager.set_focused_view(EditorView::Commander);
             }
         }
-        Key::Character(ch) if e.modifiers.contains(Modifiers::ALT) => {
-            let mut manager = radio.write_channel(Channel::All);
-            let font_size = manager.font_size;
-            match ch.as_str() {
-                "+" => manager.set_fontsize((font_size + 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE)),
-                "-" => manager.set_fontsize((font_size - 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE)),
-                "e" => {
-                    if *manager.focused_view() == EditorView::FilesExplorer {
-                        manager.set_focused_view(EditorView::CodeEditor)
-                    } else {
-                        manager.set_focused_view(EditorView::FilesExplorer)
-                    }
-                }
-                _ => {}
+        Key::Character(ch) if e.modifiers.contains(Modifiers::ALT) => match ch.as_str() {
+            "+" => {
+                let mut manager = radio.write_channel(Channel::AllTabs);
+                let font_size = manager.font_size;
+                manager.set_fontsize((font_size + 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE))
             }
-        }
+            "-" => {
+                let mut manager = radio.write_channel(Channel::AllTabs);
+                let font_size = manager.font_size;
+                manager.set_fontsize((font_size - 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE))
+            }
+            "e" => {
+                let mut manager = radio.write_channel(Channel::Global);
+                if *manager.focused_view() == EditorView::FilesExplorer {
+                    manager.set_focused_view(EditorView::CodeEditor)
+                } else {
+                    manager.set_focused_view(EditorView::FilesExplorer)
+                }
+            }
+            _ => {}
+        },
         _ => {}
     };
 
     let onglobalmousedown = move |_| {
         if *radio.read().focused_view() == EditorView::Commander {
-            let mut manager = radio.write_channel(Channel::All);
+            let mut manager = radio.write_channel(Channel::Global);
             manager.set_focused_view_to_previous();
         }
     };

@@ -5,7 +5,7 @@ use freya::prelude::{dioxus_elements, keyboard::Key, use_applied_theme};
 
 use crate::{
     get_container_size, get_corrected_scroll_position, get_scroll_position_from_cursor,
-    get_scrollbar_pos_and_size, is_scrollbar_visible, Axis, 
+    get_scrollbar_pos_and_size, is_scrollbar_visible, Axis,
 };
 
 pub fn get_scroll_position_from_wheel(
@@ -120,7 +120,8 @@ pub fn EditorScrollView<
         is_scrollbar_visible(show_scrollbar, size.inner.width, size.area.width());
 
     let container_width = get_container_size(vertical_scrollbar_is_visible, &scrollbar_theme.size);
-    let container_height = get_container_size(horizontal_scrollbar_is_visible, &scrollbar_theme.size);
+    let container_height =
+        get_container_size(horizontal_scrollbar_is_visible, &scrollbar_theme.size);
 
     let corrected_scrolled_y =
         get_corrected_scroll_position(inner_size, size.area.height(), scrolled_y as f32);
@@ -264,7 +265,7 @@ pub fn EditorScrollView<
     let children = use_memo(use_reactive(
         &(render_range, props.builder_args),
         move |(render_range, builder_args)| {
-            rsx!({render_range.map(|i| (props.builder)(i, &builder_args))})
+            rsx!({ render_range.map(|i| (props.builder)(i, &builder_args)) })
         },
     ));
 

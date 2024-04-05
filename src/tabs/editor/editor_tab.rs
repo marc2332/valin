@@ -71,7 +71,7 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
                 .set_active_tab(props.editor_index);
         }
         {
-            let mut manager = radio.write_channel(Channel::All);
+            let mut manager = radio.write_channel(Channel::Global);
             manager.set_focused_view(EditorView::CodeEditor);
         }
     });
@@ -124,12 +124,12 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
         };
 
         if !is_code_editor_view_focused {
-            let mut manager = radio.write_channel(Channel::All);
+            let mut manager = radio.write_channel(Channel::Global);
             manager.set_focused_view(EditorView::CodeEditor);
         }
 
         if !is_editor_focused {
-            let mut manager = radio.write_channel(Channel::All);
+            let mut manager = radio.write_channel(Channel::Global);
             manager.set_focused_panel(props.panel_index);
             manager
                 .panel_mut(props.panel_index)
@@ -214,13 +214,12 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
                 onscroll: onscroll,
                 length: metrics.get().0.len(),
                 item_size: manual_line_height,
-                builder_args: (cursor, metrics, editable, lsp, file_uri, editor.rope().clone(), hover_location, cursor_coords, debouncer),
+                builder_args: (cursor, metrics, editable, lsp, file_uri, editor.rope().clone(), hover_location, cursor_coords, debouncer, font_size),
                 builder: move |i: usize, options: &BuilderProps| rsx!(
                     EditorLine {
                         key: "{i}",
                         line_index: i,
                         options: options.clone(),
-                        font_size: font_size,
                         line_height: manual_line_height,
                     }
                 )

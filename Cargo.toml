@@ -3,27 +3,16 @@ name = "freya-editor"
 version = "0.1.0"
 edition = "2021"
 
-[patch.crates-io]
-dioxus = { git = "https://github.com/DioxusLabs/dioxus", rev = "f266213618b9715e9df8c28fb51ca81e38b28055" }
-dioxus-rsx = { git = "https://github.com/DioxusLabs/dioxus", rev = "f266213618b9715e9df8c28fb51ca81e38b28055" }
-dioxus-core-macro = { git = "https://github.com/DioxusLabs/dioxus", rev = "f266213618b9715e9df8c28fb51ca81e38b28055" }
-dioxus-hooks = { git = "https://github.com/DioxusLabs/dioxus", rev = "f266213618b9715e9df8c28fb51ca81e38b28055" }
-dioxus-signals = { git = "https://github.com/DioxusLabs/dioxus", rev = "f266213618b9715e9df8c28fb51ca81e38b28055" }
-dioxus-core = { git = "https://github.com/DioxusLabs/dioxus", rev = "f266213618b9715e9df8c28fb51ca81e38b28055" }
-dioxus-hot-reload = { git = "https://github.com/DioxusLabs/dioxus", rev = "f266213618b9715e9df8c28fb51ca81e38b28055" }
-dioxus-router = { git = "https://github.com/DioxusLabs/dioxus", rev = "f266213618b9715e9df8c28fb51ca81e38b28055" }
-
-
 [dependencies]
-freya-node-state = { path = "../freya/crates/state" }
-freya = { path = "../freya/crates/freya" }
-freya-common = { path = "../freya/crates/common" }
-torin = { path = "../freya/crates/torin" }
-freya-hooks = { path = "../freya/crates/hooks" }
+freya-node-state = { git = "https://github.com/marc2332/freya", rev = "55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda" }
+freya = { git = "https://github.com/marc2332/freya", rev = "55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda" }
+freya-common = { git = "https://github.com/marc2332/freya", rev = "55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda" }
+torin = { git = "https://github.com/marc2332/freya", rev = "55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda" }
+freya-hooks = { git = "https://github.com/marc2332/freya", rev = "55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda" }
 
-dioxus-radio = "0.2"
+dioxus-radio = { git = "https://github.com/dioxus-community/dioxus-radio", rev = "a055450b2be64dbf1baff426a742536033bddbba" }
 dioxus = "0.5"
-dioxus-std = { git = "https://github.com/marc2332/dioxus-std", rev = "4d8ae33b94537d54471cd924c32f03c1d949430f", features = ["clipboard"]}
+dioxus-std = { version = "0.5", features = ["clipboard"]}
 
 tokio = { version = "1.33.0", features = ["fs", "process"]}
 glutin = { version = "0.31.2"}

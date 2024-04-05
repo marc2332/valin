@@ -13,7 +13,9 @@ impl EditorCommand for FontSizeCommand {
     fn run_with_args(&self, args: &str) {
         if let Ok(size) = args.parse::<f32>() {
             let mut radio_manager = self.0;
-            radio_manager.write_channel(Channel::All).set_fontsize(size);
+            radio_manager
+                .write_channel(Channel::AllTabs)
+                .set_fontsize(size);
         }
     }
 }

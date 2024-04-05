@@ -16,7 +16,7 @@ pub struct EditorPanelProps {
 
 #[allow(non_snake_case)]
 pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) -> Element {
-    let mut radio = use_radio::<EditorManager, Channel>(Channel::All);
+    let mut radio = use_radio::<EditorManager, Channel>(Channel::Global);
 
     let panels_len = radio.read().panels().len();
     let is_last_panel = radio.read().panels().len() - 1 == panel_index;
@@ -26,19 +26,21 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
     let active_tab_index = panel.active_tab();
 
     let close_panel = move |_: Option<MouseEvent>| {
-        radio.write_channel(Channel::All).close_panel(panel_index);
+        radio
+            .write_channel(Channel::Global)
+            .close_panel(panel_index);
     };
 
     let split_panel = move |_| {
         let len_panels = radio.read().panels().len();
-        let mut manager = radio.write_channel(Channel::All);
+        let mut manager = radio.write_channel(Channel::Global);
         manager.push_panel(Panel::new());
         manager.set_focused_panel(len_panels - 1);
     };
 
     let onclickpanel = move |_| {
         radio
-            .write_channel(Channel::All)
+            .write_channel(Channel::Global)
             .set_focused_panel(panel_index);
     };
 
@@ -181,7 +183,7 @@ fn PanelTab(props: PanelTabProps) -> Element {
 
     let onclick = {
         move |_| {
-            let mut manager = radio.write_channel(Channel::All);
+            let mut manager = radio.write_channel(Channel::Global);
             manager.set_focused_panel(props.panel_index);
             manager
                 .panel_mut(props.panel_index)
@@ -194,7 +196,7 @@ fn PanelTab(props: PanelTabProps) -> Element {
             println!("save...")
         } else {
             radio
-                .write_channel(Channel::All)
+                .write_channel(Channel::Global)
                 .close_editor(props.panel_index, props.editor_index);
         }
     };

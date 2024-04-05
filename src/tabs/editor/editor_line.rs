@@ -22,13 +22,13 @@ pub type BuilderProps = (
     Signal<Option<(u32, Hover)>>,
     Signal<CursorPoint>,
     UseDebouncer,
+    f32,
 );
 
 #[derive(Props, Clone)]
 pub struct EditorLineProps {
     options: BuilderProps,
     line_index: usize,
-    font_size: f32,
     line_height: f32,
 }
 
@@ -38,7 +38,6 @@ impl PartialEq for EditorLineProps {
             && self.options.2 == other.options.2
             && self.options.4 == other.options.4
             && self.line_index == other.line_index
-            && self.font_size == other.font_size
             && self.line_height == other.line_height
     }
 }
@@ -48,7 +47,6 @@ pub fn EditorLine(
     EditorLineProps {
         options,
         line_index,
-        font_size,
         line_height,
     }: EditorLineProps,
 ) -> Element {
@@ -62,6 +60,7 @@ pub fn EditorLine(
         hover_location,
         mut cursor_coords,
         mut debouncer,
+        font_size,
     ) = options;
 
     let onmousedown = move |e: MouseEvent| {

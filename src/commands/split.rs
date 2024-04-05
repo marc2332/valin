@@ -16,7 +16,7 @@ impl EditorCommand for SplitCommand {
             "panel" => {
                 let mut radio_manager = self.0;
                 let len_panels = radio_manager.read().panels().len();
-                let mut manager = radio_manager.write_channel(Channel::All);
+                let mut manager = radio_manager.write_channel(Channel::Global);
                 manager.push_panel(Panel::new());
                 manager.set_focused_panel(len_panels - 1);
             }

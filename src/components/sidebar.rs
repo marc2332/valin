@@ -5,12 +5,12 @@ use crate::editor_manager::{Channel, EditorManager, PanelTab};
 
 #[allow(non_snake_case)]
 pub fn EditorSidebar() -> Element {
-    let mut radio = use_radio::<EditorManager, Channel>(Channel::All);
+    let mut radio = use_radio::<EditorManager, Channel>(Channel::Global);
 
     let open_settings = move |_| {
         let focused_panel = radio.read().focused_panel();
         radio
-            .write_channel(Channel::All)
+            .write_channel(Channel::Global)
             .push_tab(PanelTab::Config, focused_panel, true);
     };
 

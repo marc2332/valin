@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fmt::Display};
 
 use dioxus::prelude::Coroutine;
-use dioxus_radio::prelude::Radio;
+use dioxus_radio::prelude::{Radio, RadioChannel};
 
 use crate::lsp::{create_lsp, LSPBridge, LspConfig};
 
@@ -9,11 +9,45 @@ pub type RadioManager = Radio<EditorManager, Channel>;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Channel {
-    All,
+    /// Affects global components
+    Global,
+    /// Affects all tabs
+    AllTabs,
+    /// Affects individual tab
     Tab {
         panel_index: usize,
         editor_index: usize,
     },
+}
+
+impl RadioChannel<EditorManager> for Channel {
+    fn derivate_channel(self, editor_manager: &EditorManager) -> Vec<Self> {
+        match self {
+            Self::AllTabs => {
+                let mut channels = vec![self];
+                channels.extend(
+                    editor_manager
+                        .panels
+                        .iter()
+                        .enumerate()
+                        .flat_map(|(panel_index, panel)| {
+                            panel
+                                .tabs()
+                                .iter()
+                                .enumerate()
+                                .map(move |(editor_index, _)| Self::Tab {
+                                    panel_index,
+                                    editor_index,
+                                })
+                        })
+                        .collect::<Vec<Self>>(),
+                );
+
+                channels
+            }
+            _ => vec![self],
+        }
+    }
 }
 
 impl Channel {
@@ -274,7 +308,7 @@ impl EditorManager {
             None => {
                 let server = create_lsp(lsp_config.clone(), &manager.read()).await;
                 manager
-                    .write_channel(Channel::All)
+                    .write_channel(Channel::Global)
                     .insert_lsp(lsp_config.language_server.clone(), server.clone());
                 server
             }
