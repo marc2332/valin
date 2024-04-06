@@ -10,7 +10,7 @@ freya-common = { git = "https://github.com/marc2332/freya", rev = "55f6046fd6bc1
 torin = { git = "https://github.com/marc2332/freya", rev = "55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda" }
 freya-hooks = { git = "https://github.com/marc2332/freya", rev = "55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda" }
 
-dioxus-radio = { git = "https://github.com/dioxus-community/dioxus-radio", rev = "a055450b2be64dbf1baff426a742536033bddbba" }
+dioxus-radio = { git = "https://github.com/dioxus-community/dioxus-radio", rev = "68adf4cf2859c88ceff179d5fbb0f702908fb9e1" }
 dioxus = "0.5"
 dioxus-std = { version = "0.5", features = ["clipboard"]}
 
