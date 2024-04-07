@@ -1247,7 +1247,7 @@ dependencies = [
 [[package]]
 name = "dioxus-radio"
 version = "0.2.2"
-source = "git+https://github.com/dioxus-community/dioxus-radio?rev=68adf4cf2859c88ceff179d5fbb0f702908fb9e1#68adf4cf2859c88ceff179d5fbb0f702908fb9e1"
+source = "git+https://github.com/dioxus-community/dioxus-radio?rev=dbed35c346234fe0f29a94a1d3e76e197e0dc2a9#dbed35c346234fe0f29a94a1d3e76e197e0dc2a9"
 dependencies = [
  "dioxus-lib",
  "generational-box",
