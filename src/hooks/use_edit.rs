@@ -53,11 +53,19 @@ pub struct EditorData {
     /// Selected text range
     selected: Option<(usize, usize)>,
 
+    clipboard: UseClipboard,
+
     last_saved_history_change: usize,
 }
 
 impl EditorData {
-    pub fn new(path: PathBuf, rope: Rope, (row, col): (usize, usize), root_path: PathBuf) -> Self {
+    pub fn new(
+        path: PathBuf,
+        rope: Rope,
+        (row, col): (usize, usize),
+        root_path: PathBuf,
+        clipboard: UseClipboard,
+    ) -> Self {
         let language_id = if let Some(ext) = path.extension() {
             LanguageId::parse(ext.to_str().unwrap())
         } else {
@@ -72,6 +80,7 @@ impl EditorData {
             root_path,
             history: History::new(),
             last_saved_history_change: 0,
+            clipboard,
         }
     }
 
@@ -80,24 +89,6 @@ impl EditorData {
         let line_idx = self.rope.line_to_byte(row);
         let col = idx - line_idx;
         self.cursor_mut().move_to(row, col);
-    }
-
-    pub fn redo(&mut self) {
-        if self.history.can_redo() {
-            let cursor_idx = self.history.redo(&mut self.rope);
-            if let Some(cursor_idx) = cursor_idx {
-                self.move_cursor_to_idx(cursor_idx);
-            }
-        }
-    }
-
-    pub fn undo(&mut self) {
-        if self.history.can_undo() {
-            let cursor_idx = self.history.undo(&mut self.rope);
-            if let Some(cursor_idx) = cursor_idx {
-                self.move_cursor_to_idx(cursor_idx);
-            }
-        }
     }
 
     pub fn is_edited(&self) -> bool {
@@ -276,23 +267,51 @@ impl TextEditor for EditorData {
     }
 
     fn get_clipboard(&mut self) -> &mut UseClipboard {
-        todo!()
+        &mut self.clipboard
     }
 
     fn get_selected_text(&self) -> Option<String> {
-        todo!()
-    }
+        let (start, end) = self.get_selection()?;
 
-    fn undo(&mut self) -> Option<usize> {
-        todo!()
-    }
-
-    fn redo(&mut self) -> Option<usize> {
-        todo!()
+        Some(self.rope().get_slice(start..end)?.to_string())
     }
 
     fn get_selection(&self) -> Option<(usize, usize)> {
-        todo!()
+        let (start, end) = self.selected?;
+
+        // Use left-to-right selection
+        let (start, end) = if start < end {
+            (start, end)
+        } else {
+            (end, start)
+        };
+
+        Some((start, end))
+    }
+
+    fn redo(&mut self) -> Option<usize> {
+        if self.history.can_redo() {
+            let cursor_idx = self.history.redo(&mut self.rope);
+            if let Some(cursor_idx) = cursor_idx {
+                self.move_cursor_to_idx(cursor_idx);
+            }
+
+            cursor_idx
+        } else {
+            None
+        }
+    }
+
+    fn undo(&mut self) -> Option<usize> {
+        if self.history.can_undo() {
+            let cursor_idx = self.history.undo(&mut self.rope);
+            if let Some(cursor_idx) = cursor_idx {
+                self.move_cursor_to_idx(cursor_idx);
+            }
+            cursor_idx
+        } else {
+            None
+        }
     }
 }
 

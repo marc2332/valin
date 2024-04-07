@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use dioxus_radio::hooks::use_radio;
+use dioxus_std::clipboard::use_clipboard;
 use freya::elements as dioxus_elements;
 use freya::prelude::keyboard::Code;
 use freya::prelude::*;
@@ -125,6 +126,7 @@ enum TreeTask {
 
 #[allow(non_snake_case)]
 pub fn FileExplorer() -> Element {
+    let clipboard = use_clipboard();
     let mut radio = use_radio::<EditorManager, Channel>(Channel::Global); // TODO Use specific
     let is_focused_files_explorer = *radio.read().focused_view() == EditorView::FilesExplorer;
     let mut tree = use_signal::<Option<TreeItem>>(|| None);
@@ -177,6 +179,7 @@ pub fn FileExplorer() -> Element {
                                         Rope::from(content),
                                         (0, 0),
                                         root_path,
+                                        clipboard,
                                     )),
                                     focused_panel,
                                     true,
