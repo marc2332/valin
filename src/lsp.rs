@@ -17,7 +17,7 @@ use lsp_types::{
 };
 use tower::ServiceBuilder;
 
-use crate::editor_manager::EditorManager;
+use crate::state::AppState;
 
 struct ClientState {
     indexed: Arc<Mutex<bool>>,
@@ -50,13 +50,13 @@ impl LspConfig {
     }
 }
 
-pub async fn create_lsp(config: LspConfig, manager: &EditorManager) -> LSPBridge {
+pub async fn create_lsp(config: LspConfig, app_state: &AppState) -> LSPBridge {
     let indexed = Arc::new(Mutex::new(false));
 
     let (_mainloop, mut server) = async_lsp::MainLoop::new_client(|_server| {
         let mut router = Router::new(ClientState {
             indexed: indexed.clone(),
-            lsp_status_coroutine: manager.lsp_status_coroutine,
+            lsp_status_coroutine: app_state.lsp_status_coroutine,
             language_server: config.language_server.clone(),
         });
         router

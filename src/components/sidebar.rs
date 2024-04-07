@@ -1,17 +1,19 @@
 use dioxus_radio::prelude::use_radio;
 use freya::prelude::*;
 
-use crate::editor_manager::{Channel, EditorManager, PanelTab};
+use crate::state::{AppState, Channel, PanelTab};
 
 #[allow(non_snake_case)]
 pub fn EditorSidebar() -> Element {
-    let mut radio = use_radio::<EditorManager, Channel>(Channel::Global);
+    let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Global);
 
     let open_settings = move |_| {
-        let focused_panel = radio.read().focused_panel();
-        radio
-            .write_channel(Channel::Global)
-            .push_tab(PanelTab::Config, focused_panel, true);
+        let focused_panel = radio_app_state.read().focused_panel();
+        radio_app_state.write_channel(Channel::Global).push_tab(
+            PanelTab::Config,
+            focused_panel,
+            true,
+        );
     };
 
     rsx!(

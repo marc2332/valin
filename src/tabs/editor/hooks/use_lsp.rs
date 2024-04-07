@@ -4,8 +4,8 @@ use lsp_types::{DidOpenTextDocumentParams, Hover, HoverParams, TextDocumentItem,
 use tokio_stream::StreamExt;
 
 use crate::{
-    editor_manager::{EditorManager, RadioManager},
     lsp::{LanguageId, LspConfig},
+    state::{AppState, RadioAppState},
 };
 
 #[derive(Clone, PartialEq)]
@@ -30,7 +30,7 @@ pub fn use_lsp(
     panel_index: usize,
     editor_index: usize,
     lsp_config: &Option<LspConfig>,
-    radio: RadioManager,
+    radio: RadioAppState,
     mut hover_location: Signal<Option<(u32, Hover)>>,
 ) -> UseLsp {
     use_hook(|| {
@@ -39,9 +39,9 @@ pub fn use_lsp(
 
         if let Some(lsp_config) = lsp_config {
             let (file_uri, file_text) = {
-                let manager = radio.read();
+                let app_state = radio.read();
 
-                let editor = manager
+                let editor = app_state
                     .panel(panel_index)
                     .tab(editor_index)
                     .as_text_editor()
@@ -56,7 +56,7 @@ pub fn use_lsp(
 
             // Notify language server the file has been opened
             spawn(async move {
-                let mut lsp = EditorManager::get_or_insert_lsp(radio, &lsp_config).await;
+                let mut lsp = AppState::get_or_insert_lsp(radio, &lsp_config).await;
 
                 lsp.server_socket
                     .did_open(DidOpenTextDocumentParams {

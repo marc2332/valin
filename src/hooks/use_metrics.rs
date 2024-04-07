@@ -9,21 +9,21 @@ use skia_safe::textlayout::ParagraphStyle;
 use skia_safe::textlayout::TextStyle;
 use skia_safe::FontMgr;
 
-use crate::{editor_manager::RadioManager, parser::*};
+use crate::{parser::*, state::RadioAppState};
 
 #[derive(Clone, Copy, PartialEq)]
 pub struct UseMetrics {
     paragraph_style: Signal<ParagraphStyle>,
     font_collection: Signal<FontCollection>,
     metrics: Signal<(SyntaxBlocks, f32)>,
-    radio: RadioManager,
+    radio_app_state: RadioAppState,
     pane_index: usize,
     editor_index: usize,
 }
 
 impl UseMetrics {
     pub fn new(
-        manager: RadioManager,
+        radio_app_state: RadioAppState,
         metrics: Signal<(SyntaxBlocks, f32)>,
         pane_index: usize,
         editor_index: usize,
@@ -33,14 +33,14 @@ impl UseMetrics {
 
         let mut paragraph_style = ParagraphStyle::default();
         let mut text_style = TextStyle::default();
-        text_style.set_font_size(manager.read().font_size());
+        text_style.set_font_size(radio_app_state.read().font_size());
         paragraph_style.set_text_style(&text_style);
 
         Self {
             paragraph_style: Signal::new(paragraph_style),
             font_collection: Signal::new(font_collection),
             metrics,
-            radio: manager,
+            radio_app_state,
             pane_index,
             editor_index,
         }
@@ -56,9 +56,9 @@ impl UseMetrics {
 
         let mut longest_line: Vec<Cow<str>> = vec![];
 
-        let manager = self.radio.read();
+        let app_state = self.radio_app_state.read();
 
-        let editor = manager
+        let editor = app_state
             .panel(self.pane_index)
             .tab(self.editor_index)
             .as_text_editor()
@@ -94,7 +94,7 @@ impl UseMetrics {
     }
 }
 
-pub fn use_metrics(radio: &RadioManager, pane_index: usize, editor_index: usize) -> UseMetrics {
+pub fn use_metrics(radio: &RadioAppState, pane_index: usize, editor_index: usize) -> UseMetrics {
     let metrics_ref = use_signal::<(SyntaxBlocks, f32)>(|| (SyntaxBlocks::default(), 0.0));
 
     use_hook(|| {

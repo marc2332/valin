@@ -5,7 +5,7 @@ use dioxus_radio::prelude::{Radio, RadioChannel};
 
 use crate::lsp::{create_lsp, LSPBridge, LspConfig};
 
-pub type RadioManager = Radio<EditorManager, Channel>;
+pub type RadioAppState = Radio<AppState, Channel>;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Channel {
@@ -20,13 +20,13 @@ pub enum Channel {
     },
 }
 
-impl RadioChannel<EditorManager> for Channel {
-    fn derivate_channel(self, editor_manager: &EditorManager) -> Vec<Self> {
+impl RadioChannel<AppState> for Channel {
+    fn derivate_channel(self, app_state: &AppState) -> Vec<Self> {
         match self {
             Self::AllTabs => {
                 let mut channels = vec![self];
                 channels.extend(
-                    editor_manager
+                    app_state
                         .panels
                         .iter()
                         .enumerate()
@@ -164,7 +164,7 @@ impl Display for EditorView {
 }
 
 #[derive(Clone)]
-pub struct EditorManager {
+pub struct AppState {
     pub previous_focused_view: Option<EditorView>,
     pub focused_view: EditorView,
     pub focused_panel: usize,
@@ -175,7 +175,7 @@ pub struct EditorManager {
     pub lsp_status_coroutine: Coroutine<(String, String)>,
 }
 
-impl EditorManager {
+impl AppState {
     pub fn new(lsp_status_coroutine: Coroutine<(String, String)>) -> Self {
         Self {
             previous_focused_view: None,
@@ -301,13 +301,16 @@ impl EditorManager {
         self.language_servers.insert(language_server, server);
     }
 
-    pub async fn get_or_insert_lsp(mut manager: RadioManager, lsp_config: &LspConfig) -> LSPBridge {
-        let server = manager.read().lsp(lsp_config).cloned();
+    pub async fn get_or_insert_lsp(
+        mut app_state: RadioAppState,
+        lsp_config: &LspConfig,
+    ) -> LSPBridge {
+        let server = app_state.read().lsp(lsp_config).cloned();
         match server {
             Some(server) => server,
             None => {
-                let server = create_lsp(lsp_config.clone(), &manager.read()).await;
-                manager
+                let server = create_lsp(lsp_config.clone(), &app_state.read()).await;
+                app_state
                     .write_channel(Channel::Global)
                     .insert_lsp(lsp_config.language_server.clone(), server.clone());
                 server

@@ -1,6 +1,6 @@
 use super::icons::*;
 use super::tab::*;
-use crate::editor_manager::{Channel, EditorManager, Panel, PanelTab};
+use crate::state::{AppState, Channel, Panel, PanelTab};
 use crate::tabs::config::*;
 use crate::tabs::editor::*;
 use crate::utils::*;
@@ -16,30 +16,30 @@ pub struct EditorPanelProps {
 
 #[allow(non_snake_case)]
 pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) -> Element {
-    let mut radio = use_radio::<EditorManager, Channel>(Channel::Global);
+    let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Global);
 
-    let panels_len = radio.read().panels().len();
-    let is_last_panel = radio.read().panels().len() - 1 == panel_index;
-    let is_focused = radio.read().focused_panel() == panel_index;
-    let current_manager = radio.read();
-    let panel = current_manager.panel(panel_index);
+    let app_state = radio_app_state.read();
+    let panels_len = app_state.panels().len();
+    let is_last_panel = app_state.panels().len() - 1 == panel_index;
+    let is_focused = app_state.focused_panel() == panel_index;
+    let panel = app_state.panel(panel_index);
     let active_tab_index = panel.active_tab();
 
     let close_panel = move |_: Option<MouseEvent>| {
-        radio
+        radio_app_state
             .write_channel(Channel::Global)
             .close_panel(panel_index);
     };
 
     let split_panel = move |_| {
-        let len_panels = radio.read().panels().len();
-        let mut manager = radio.write_channel(Channel::Global);
-        manager.push_panel(Panel::new());
-        manager.set_focused_panel(len_panels - 1);
+        let len_panels = radio_app_state.read().panels().len();
+        let mut app_state = radio_app_state.write_channel(Channel::Global);
+        app_state.push_panel(Panel::new());
+        app_state.set_focused_panel(len_panels - 1);
     };
 
     let onclickpanel = move |_| {
-        radio
+        radio_app_state
             .write_channel(Channel::Global)
             .set_focused_panel(panel_index);
     };
@@ -171,21 +171,21 @@ pub struct PanelTabProps {
 
 #[allow(non_snake_case)]
 fn PanelTab(props: PanelTabProps) -> Element {
-    let mut radio = use_radio::<EditorManager, Channel>(Channel::Tab {
+    let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Tab {
         panel_index: props.panel_index,
         editor_index: props.editor_index,
     });
 
-    let manager_ref = radio.read();
-    let tab = manager_ref.panel(props.panel_index).tab(props.editor_index);
+    let app_state = radio_app_state.read();
+    let tab = app_state.panel(props.panel_index).tab(props.editor_index);
     let tab_data = tab.get_data();
     let is_selected = props.is_selected;
 
     let onclick = {
         move |_| {
-            let mut manager = radio.write_channel(Channel::Global);
-            manager.set_focused_panel(props.panel_index);
-            manager
+            let mut app_state = radio_app_state.write_channel(Channel::Global);
+            app_state.set_focused_panel(props.panel_index);
+            app_state
                 .panel_mut(props.panel_index)
                 .set_active_tab(props.editor_index);
         }
@@ -195,7 +195,7 @@ fn PanelTab(props: PanelTabProps) -> Element {
         if tab_data.edited {
             println!("save...")
         } else {
-            radio
+            radio_app_state
                 .write_channel(Channel::Global)
                 .close_editor(props.panel_index, props.editor_index);
         }

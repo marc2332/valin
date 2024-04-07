@@ -1,10 +1,10 @@
 mod commands;
 mod components;
-mod editor_manager;
 mod history;
 mod hooks;
 mod lsp;
 mod parser;
+mod state;
 mod tabs;
 mod utils;
 
@@ -17,10 +17,10 @@ use hooks::*;
 use std::{collections::HashMap, rc::Rc};
 use utils::*;
 
-use crate::editor_manager::EditorView;
+use crate::state::EditorView;
 use crate::{
     commands::{EditorCommand, FontSizeCommand, SplitCommand},
-    editor_manager::{Channel, EditorManager},
+    state::{AppState, Channel},
 };
 
 static BASE_FONT_SIZE: f32 = 5.0;
@@ -57,50 +57,50 @@ fn Body() -> Element {
         },
     );
 
-    use_init_radio_station::<EditorManager, Channel>(|| EditorManager::new(lsp_status_coroutine));
-    let mut radio = use_radio::<EditorManager, Channel>(Channel::Global);
+    use_init_radio_station::<AppState, Channel>(|| AppState::new(lsp_status_coroutine));
+    let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Global);
 
-    let focused_view = radio.read().focused_view;
+    let focused_view = radio_app_state.read().focused_view;
 
     // Commands
     let commands = use_hook::<Rc<Vec<Box<dyn EditorCommand>>>>(|| {
         Rc::new(vec![
-            Box::new(FontSizeCommand(radio)),
-            Box::new(SplitCommand(radio)),
+            Box::new(FontSizeCommand(radio_app_state)),
+            Box::new(SplitCommand(radio_app_state)),
         ])
     });
 
     let onsubmitcommander = move |_| {
-        let mut manager = radio.write_channel(Channel::Global);
-        manager.set_focused_view_to_previous();
+        let mut app_state = radio_app_state.write_channel(Channel::Global);
+        app_state.set_focused_view_to_previous();
     };
 
     let onkeydown = move |e: KeyboardEvent| match &e.key {
         Key::Escape => {
-            let mut manager = radio.write_channel(Channel::Global);
-            if manager.focused_view == EditorView::Commander {
-                manager.set_focused_view_to_previous();
+            let mut app_state = radio_app_state.write_channel(Channel::Global);
+            if app_state.focused_view == EditorView::Commander {
+                app_state.set_focused_view_to_previous();
             } else {
-                manager.set_focused_view(EditorView::Commander);
+                app_state.set_focused_view(EditorView::Commander);
             }
         }
         Key::Character(ch) if e.modifiers.contains(Modifiers::ALT) => match ch.as_str() {
             "+" => {
-                let mut manager = radio.write_channel(Channel::AllTabs);
-                let font_size = manager.font_size;
-                manager.set_fontsize((font_size + 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE))
+                let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
+                let font_size = app_state.font_size;
+                app_state.set_fontsize((font_size + 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE))
             }
             "-" => {
-                let mut manager = radio.write_channel(Channel::AllTabs);
-                let font_size = manager.font_size;
-                manager.set_fontsize((font_size - 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE))
+                let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
+                let font_size = app_state.font_size;
+                app_state.set_fontsize((font_size - 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE))
             }
             "e" => {
-                let mut manager = radio.write_channel(Channel::Global);
-                if *manager.focused_view() == EditorView::FilesExplorer {
-                    manager.set_focused_view(EditorView::CodeEditor)
+                let mut app_state = radio_app_state.write_channel(Channel::Global);
+                if *app_state.focused_view() == EditorView::FilesExplorer {
+                    app_state.set_focused_view(EditorView::CodeEditor)
                 } else {
-                    manager.set_focused_view(EditorView::FilesExplorer)
+                    app_state.set_focused_view(EditorView::FilesExplorer)
                 }
             }
             _ => {}
@@ -109,18 +109,18 @@ fn Body() -> Element {
     };
 
     let onglobalmousedown = move |_| {
-        if *radio.read().focused_view() == EditorView::Commander {
-            let mut manager = radio.write_channel(Channel::Global);
-            manager.set_focused_view_to_previous();
+        if *radio_app_state.read().focused_view() == EditorView::Commander {
+            let mut app_state = radio_app_state.write_channel(Channel::Global);
+            app_state.set_focused_view_to_previous();
         }
     };
 
-    let panels_len = radio.read().panels().len();
+    let panels_len = radio_app_state.read().panels().len();
     let panes_width = 100.0 / panels_len as f32;
 
     let cursor = {
-        let manager = radio.read();
-        let panel = manager.panel(manager.focused_panel);
+        let app_state = radio_app_state.read();
+        let panel = app_state.panel(app_state.focused_panel);
         if let Some(active_tab) = panel.active_tab() {
             panel
                 .tab(active_tab)
@@ -162,7 +162,7 @@ fn Body() -> Element {
                         height: "100%",
                         width: "100%",
                         direction: "horizontal",
-                        {radio.read().panels().iter().enumerate().map(|(panel_index, _)| {
+                        {radio_app_state.read().panels().iter().enumerate().map(|(panel_index, _)| {
                             rsx!(
                                 EditorPanel {
                                     key: "{panel_index}",

@@ -1,9 +1,9 @@
-use crate::editor_manager::{Channel, Panel, RadioManager};
+use crate::state::{Channel, Panel, RadioAppState};
 
 use super::EditorCommand;
 
 #[derive(Clone)]
-pub struct SplitCommand(pub RadioManager);
+pub struct SplitCommand(pub RadioAppState);
 
 impl EditorCommand for SplitCommand {
     fn name(&self) -> &str {
@@ -14,11 +14,11 @@ impl EditorCommand for SplitCommand {
         #[allow(clippy::single_match)]
         match args {
             "panel" => {
-                let mut radio_manager = self.0;
-                let len_panels = radio_manager.read().panels().len();
-                let mut manager = radio_manager.write_channel(Channel::Global);
-                manager.push_panel(Panel::new());
-                manager.set_focused_panel(len_panels - 1);
+                let mut radio_app_state = self.0;
+                let len_panels = radio_app_state.read().panels().len();
+                let mut app_state = radio_app_state.write_channel(Channel::Global);
+                app_state.push_panel(Panel::new());
+                app_state.set_focused_panel(len_panels - 1);
             }
             _ => {}
         }

@@ -19,9 +19,9 @@ use torin::geometry::CursorPoint;
 use uuid::Uuid;
 
 use crate::{
-    editor_manager::RadioManager,
     history::{History, HistoryChange},
     lsp::LanguageId,
+    state::RadioAppState,
 };
 
 use super::UseMetrics;
@@ -318,7 +318,7 @@ impl TextEditor for EditorData {
 /// Manage an editable content.
 #[derive(Clone, Copy)]
 pub struct UseEdit {
-    pub(crate) radio: RadioManager,
+    pub(crate) radio: RadioAppState,
     pub(crate) cursor_reference: Memo<CursorReference>,
     pub(crate) selecting_text_with_mouse: Signal<Option<CursorPoint>>,
     pub(crate) platform: UsePlatform,
@@ -347,8 +347,8 @@ impl UseEdit {
 
     /// Create a highlights attribute.
     pub fn highlights_attr(&self, editor_id: usize) -> AttributeValue {
-        let manager = self.radio.read();
-        let editor = manager
+        let app_state = self.radio.read();
+        let editor = app_state
             .panel(self.pane_index)
             .tab(self.editor_index)
             .as_text_editor()
@@ -372,9 +372,9 @@ impl UseEdit {
                 self.cursor_reference
                     .read()
                     .set_cursor_position(Some(coords));
-                let mut manager = self.radio.write();
+                let mut app_state = self.radio.write();
 
-                let editor = manager
+                let editor = app_state
                     .panel_mut(self.pane_index)
                     .tab_mut(self.editor_index)
                     .as_text_editor_mut()
@@ -408,8 +408,8 @@ impl UseEdit {
                 }
 
                 let event = 'key_matcher: {
-                    let mut manager = self.radio.write();
-                    let editor = manager
+                    let mut app_state = self.radio.write();
+                    let editor = app_state
                         .panel_mut(self.pane_index)
                         .tab_mut(self.editor_index)
                         .as_text_editor_mut()
@@ -447,7 +447,7 @@ impl UseEdit {
 }
 
 pub fn use_edit(
-    radio: &RadioManager,
+    radio: &RadioAppState,
     pane_index: usize,
     editor_index: usize,
     metrics: &UseMetrics,
@@ -476,8 +476,8 @@ pub fn use_edit(
                         match message {
                             // Update the cursor position calculated by the layout
                             CursorLayoutResponse::CursorPosition { position, id } => {
-                                let mut manager = radio.write();
-                                let editor = manager
+                                let mut app_state = radio.write();
+                                let editor = app_state
                                     .panel(pane_index)
                                     .tab(editor_index)
                                     .as_text_editor()
@@ -494,7 +494,7 @@ pub fn use_edit(
 
                                 // Only update if it's actually different
                                 if editor.cursor.as_tuple() != new_cursor {
-                                    let editor = manager
+                                    let editor = app_state
                                         .panel_mut(pane_index)
                                         .tab_mut(editor_index)
                                         .as_text_editor_mut()
@@ -509,8 +509,8 @@ pub fn use_edit(
                             }
                             // Update the text selections calculated by the layout
                             CursorLayoutResponse::TextSelection { from, to, id } => {
-                                let mut manager = radio.write();
-                                let editor = manager
+                                let mut app_state = radio.write();
+                                let editor = app_state
                                     .panel_mut(pane_index)
                                     .tab_mut(editor_index)
                                     .as_text_editor_mut()

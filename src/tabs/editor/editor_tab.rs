@@ -1,14 +1,14 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use crate::editor_manager::EditorView;
 use crate::hooks::*;
 use crate::lsp::LanguageId;
 use crate::lsp::LspConfig;
+use crate::state::EditorView;
 use crate::tabs::editor::hooks::use_lsp;
 use crate::tabs::editor::BuilderProps;
 use crate::tabs::editor::EditorLine;
-use crate::{components::*, editor_manager::Channel};
+use crate::{components::*, state::Channel};
 
 use dioxus_radio::prelude::use_radio;
 use freya::events::KeyboardEvent;
@@ -43,11 +43,16 @@ pub struct EditorTabProps {
 #[allow(non_snake_case)]
 pub fn EditorTab(props: EditorTabProps) -> Element {
     let lsp_config = LspConfig::new(props.root_path.clone(), props.language_id);
-    let mut radio = use_radio(Channel::follow_tab(props.panel_index, props.editor_index));
+    let mut radio_app_state = use_radio(Channel::follow_tab(props.panel_index, props.editor_index));
     let debouncer = use_debouncer(Duration::from_millis(300));
     let hover_location = use_signal(|| None);
-    let metrics = use_metrics(&radio, props.panel_index, props.editor_index);
-    let mut editable = use_edit(&radio, props.panel_index, props.editor_index, &metrics);
+    let metrics = use_metrics(&radio_app_state, props.panel_index, props.editor_index);
+    let mut editable = use_edit(
+        &radio_app_state,
+        props.panel_index,
+        props.editor_index,
+        &metrics,
+    );
     let cursor_coords = use_signal(CursorPoint::default);
     let mut scroll_offsets = use_signal(|| (0, 0));
     let lsp = use_lsp(
@@ -55,7 +60,7 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
         props.panel_index,
         props.editor_index,
         &lsp_config,
-        radio,
+        radio_app_state,
         hover_location,
     );
     let platform = use_platform();
@@ -64,15 +69,15 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
     // Focus editor when created
     use_hook(|| {
         {
-            let mut manager = radio.write();
-            manager.set_focused_panel(props.panel_index);
-            manager
+            let mut app_state = radio_app_state.write();
+            app_state.set_focused_panel(props.panel_index);
+            app_state
                 .panel_mut(props.panel_index)
                 .set_active_tab(props.editor_index);
         }
         {
-            let mut manager = radio.write_channel(Channel::Global);
-            manager.set_focused_view(EditorView::CodeEditor);
+            let mut app_state = radio_app_state.write_channel(Channel::Global);
+            app_state.set_focused_view(EditorView::CodeEditor);
         }
     });
 
@@ -106,7 +111,7 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
     };
 
     let onglobalclick = move |_: MouseEvent| {
-        let is_panel_focused = radio.read().focused_panel() == props.panel_index;
+        let is_panel_focused = radio_app_state.read().focused_panel() == props.panel_index;
 
         if is_panel_focused {
             editable.process_event(&EditableEvent::Click);
@@ -115,41 +120,41 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
 
     let onclick = move |_: MouseEvent| {
         let (is_code_editor_view_focused, is_editor_focused) = {
-            let manager_ref = radio.read();
-            let panel = manager_ref.panel(props.panel_index);
-            let is_code_editor_view_focused = *manager_ref.focused_view() == EditorView::CodeEditor;
-            let is_editor_focused = manager_ref.focused_panel() == props.panel_index
+            let app_state = radio_app_state.read();
+            let panel = app_state.panel(props.panel_index);
+            let is_code_editor_view_focused = *app_state.focused_view() == EditorView::CodeEditor;
+            let is_editor_focused = app_state.focused_panel() == props.panel_index
                 && panel.active_tab() == Some(props.editor_index);
             (is_code_editor_view_focused, is_editor_focused)
         };
 
         if !is_code_editor_view_focused {
-            let mut manager = radio.write_channel(Channel::Global);
-            manager.set_focused_view(EditorView::CodeEditor);
+            let mut app_state = radio_app_state.write_channel(Channel::Global);
+            app_state.set_focused_view(EditorView::CodeEditor);
         }
 
         if !is_editor_focused {
-            let mut manager = radio.write_channel(Channel::Global);
-            manager.set_focused_panel(props.panel_index);
-            manager
+            let mut app_state = radio_app_state.write_channel(Channel::Global);
+            app_state.set_focused_panel(props.panel_index);
+            app_state
                 .panel_mut(props.panel_index)
                 .set_active_tab(props.editor_index);
         }
     };
 
-    let editor_manager = radio.read();
+    let app_state = radio_app_state.read();
     let cursor_reference = editable.cursor_attr();
-    let font_size = editor_manager.font_size();
-    let line_height = editor_manager.line_height();
+    let font_size = app_state.font_size();
+    let line_height = app_state.line_height();
     let manual_line_height = (font_size * line_height).floor();
-    let panel = editor_manager.panel(props.panel_index);
+    let panel = app_state.panel(props.panel_index);
 
     let onkeydown = move |e: KeyboardEvent| {
         let (is_panel_focused, is_editor_focused) = {
-            let editor_manager = radio.read();
-            let panel = editor_manager.panel(props.panel_index);
-            let is_panel_focused = editor_manager.focused_panel() == props.panel_index;
-            let is_editor_focused = *editor_manager.focused_view() == EditorView::CodeEditor
+            let app_state = radio_app_state.read();
+            let panel = app_state.panel(props.panel_index);
+            let is_panel_focused = app_state.focused_panel() == props.panel_index;
+            let is_editor_focused = *app_state.focused_view() == EditorView::CodeEditor
                 && panel.active_tab() == Some(props.editor_index);
             (is_panel_focused, is_editor_focused)
         };

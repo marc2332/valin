@@ -13,8 +13,8 @@ use tokio::{
 };
 
 use crate::{
-    editor_manager::{Channel, EditorManager, EditorView, PanelTab},
     hooks::EditorData,
+    state::{AppState, Channel, EditorView, PanelTab},
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -127,8 +127,9 @@ enum TreeTask {
 #[allow(non_snake_case)]
 pub fn FileExplorer() -> Element {
     let clipboard = use_clipboard();
-    let mut radio = use_radio::<EditorManager, Channel>(Channel::Global); // TODO Use specific
-    let is_focused_files_explorer = *radio.read().focused_view() == EditorView::FilesExplorer;
+    let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Global); // TODO Use specific
+    let is_focused_files_explorer =
+        *radio_app_state.read().focused_view() == EditorView::FilesExplorer;
     let mut tree = use_signal::<Option<TreeItem>>(|| None);
     let mut focused_item = use_signal(|| 0);
 
@@ -145,9 +146,9 @@ pub fn FileExplorer() -> Element {
             async move {
                 while let Some((task, item_index)) = rx.next().await {
                     // Focus the FilesExplorer view if it wasn't focused already
-                    let focused_view = *radio.read().focused_view();
+                    let focused_view = *radio_app_state.read().focused_view();
                     if focused_view != EditorView::FilesExplorer {
-                        radio
+                        radio_app_state
                             .write_channel(Channel::Global)
                             .set_focused_view(EditorView::FilesExplorer);
                     }
@@ -172,8 +173,8 @@ pub fn FileExplorer() -> Element {
                             let content = read_to_string(&file_path).await;
                             if let Ok(content) = content {
                                 let root_path = tree.read().as_ref().unwrap().path().clone();
-                                let focused_panel = radio.read().focused_panel();
-                                radio.write_channel(Channel::Global).push_tab(
+                                let focused_panel = radio_app_state.read().focused_panel();
+                                radio_app_state.write_channel(Channel::Global).push_tab(
                                     PanelTab::TextEditor(EditorData::new(
                                         file_path.to_path_buf(),
                                         Rope::from(content),
@@ -209,7 +210,7 @@ pub fn FileExplorer() -> Element {
                             path,
                             state: FolderState::Opened(items),
                         });
-                        radio
+                        radio_app_state
                             .write_channel(Channel::Global)
                             .set_focused_view(EditorView::FilesExplorer);
                     }
@@ -219,7 +220,8 @@ pub fn FileExplorer() -> Element {
     };
 
     let onkeydown = move |ev: KeyboardEvent| {
-        let is_focused_files_explorer = *radio.read().focused_view() == EditorView::FilesExplorer;
+        let is_focused_files_explorer =
+            *radio_app_state.read().focused_view() == EditorView::FilesExplorer;
         if is_focused_files_explorer {
             match ev.code {
                 Code::ArrowDown => {
