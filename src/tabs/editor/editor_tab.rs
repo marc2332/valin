@@ -1,15 +1,16 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
-use crate::components::*;
-use crate::editor_manager::EditorView;
 use crate::hooks::*;
 use crate::lsp::LanguageId;
 use crate::lsp::LspConfig;
+use crate::state::EditorView;
 use crate::tabs::editor::hooks::use_lsp;
 use crate::tabs::editor::BuilderProps;
 use crate::tabs::editor::EditorLine;
+use crate::{components::*, state::Channel};
 
+use dioxus_radio::prelude::use_radio;
 use freya::events::KeyboardEvent;
 use freya::prelude::keyboard::Key;
 use freya::prelude::keyboard::Modifiers;
@@ -31,7 +32,7 @@ pub enum EditorStatus {
     Hovering,
 }
 
-#[derive(Props, PartialEq)]
+#[derive(Props, Clone, PartialEq)]
 pub struct EditorTabProps {
     pub panel_index: usize,
     pub editor_index: usize,
@@ -40,66 +41,55 @@ pub struct EditorTabProps {
 }
 
 #[allow(non_snake_case)]
-pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
-    let lsp_config = LspConfig::new(cx.props.root_path.clone(), cx.props.language_id);
-    let manager = use_manager(
-        cx,
-        SubscriptionModel::follow_tab(cx.props.panel_index, cx.props.editor_index),
+pub fn EditorTab(props: EditorTabProps) -> Element {
+    let lsp_config = LspConfig::new(props.root_path.clone(), props.language_id);
+    let mut radio_app_state = use_radio(Channel::follow_tab(props.panel_index, props.editor_index));
+    let debouncer = use_debouncer(Duration::from_millis(300));
+    let hover_location = use_signal(|| None);
+    let metrics = use_metrics(&radio_app_state, props.panel_index, props.editor_index);
+    let mut editable = use_edit(
+        &radio_app_state,
+        props.panel_index,
+        props.editor_index,
+        &metrics,
     );
-    let debouncer = use_debouncer(cx, Duration::from_millis(300));
-    let hover_location = use_ref(cx, || None);
-    let metrics = use_metrics(cx, manager, cx.props.panel_index, cx.props.editor_index);
-    let editable = use_edit(
-        cx,
-        manager,
-        cx.props.panel_index,
-        cx.props.editor_index,
-        metrics,
-    );
-    let cursor_coords = use_ref(cx, CursorPoint::default);
-    let scroll_offsets = use_ref(cx, || (0, 0));
+    let cursor_coords = use_signal(CursorPoint::default);
+    let mut scroll_offsets = use_signal(|| (0, 0));
     let lsp = use_lsp(
-        cx,
-        cx.props.language_id,
-        cx.props.panel_index,
-        cx.props.editor_index,
+        props.language_id,
+        props.panel_index,
+        props.editor_index,
         &lsp_config,
-        manager,
+        radio_app_state,
         hover_location,
     );
-    let platform = use_platform(cx);
-    let status = use_state(cx, EditorStatus::default);
+    let platform = use_platform();
+    let mut status = use_signal(EditorStatus::default);
 
     // Focus editor when created
-    cx.use_hook(|| {
+    use_hook(|| {
         {
-            let mut manager = manager.write();
-            manager.set_focused_panel(cx.props.panel_index);
-            manager
-                .panel_mut(cx.props.panel_index)
-                .set_active_tab(cx.props.editor_index);
+            let mut app_state = radio_app_state.write();
+            app_state.set_focused_panel(props.panel_index);
+            app_state
+                .panel_mut(props.panel_index)
+                .set_active_tab(props.editor_index);
         }
         {
-            let mut manager = manager.global_write();
-            manager.set_focused_view(EditorView::CodeEditor);
+            let mut app_state = radio_app_state.write_channel(Channel::Global);
+            app_state.set_focused_view(EditorView::CodeEditor);
         }
     });
 
-    use_on_destroy(cx, {
-        to_owned![status, platform];
-        move || {
-            if *status.current() == EditorStatus::Hovering {
-                platform.set_cursor(CursorIcon::default());
-            }
+    use_drop(move || {
+        if *status.read() == EditorStatus::Hovering {
+            platform.set_cursor(CursorIcon::default());
         }
     });
 
-    let onmouseenter = {
-        to_owned![status, platform];
-        move |_| {
-            platform.set_cursor(CursorIcon::Text);
-            status.set(EditorStatus::Hovering);
-        }
+    let onmouseenter = move |_| {
+        platform.set_cursor(CursorIcon::Text);
+        status.set(EditorStatus::Hovering);
     };
 
     let onmouseleave = move |_| {
@@ -120,107 +110,97 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
         }
     };
 
-    let onglobalclick = {
-        to_owned![editable, manager];
-        move |_: MouseEvent| {
-            let is_panel_focused = manager.current().focused_panel() == cx.props.panel_index;
+    let onglobalclick = move |_: MouseEvent| {
+        let is_panel_focused = radio_app_state.read().focused_panel() == props.panel_index;
 
-            if is_panel_focused {
-                editable.process_event(&EditableEvent::Click);
-            }
+        if is_panel_focused {
+            editable.process_event(&EditableEvent::Click);
         }
     };
 
-    let onclick = {
-        to_owned![manager];
-        move |_: MouseEvent| {
-            let (is_code_editor_view_focused, is_editor_focused) = {
-                let manager_ref = manager.current();
-                let panel = manager_ref.panel(cx.props.panel_index);
-                let is_code_editor_view_focused =
-                    *manager_ref.focused_view() == EditorView::CodeEditor;
-                let is_editor_focused = manager_ref.focused_panel() == cx.props.panel_index
-                    && panel.active_tab() == Some(cx.props.editor_index);
-                (is_code_editor_view_focused, is_editor_focused)
-            };
+    let onclick = move |_: MouseEvent| {
+        let (is_code_editor_view_focused, is_editor_focused) = {
+            let app_state = radio_app_state.read();
+            let panel = app_state.panel(props.panel_index);
+            let is_code_editor_view_focused = *app_state.focused_view() == EditorView::CodeEditor;
+            let is_editor_focused = app_state.focused_panel() == props.panel_index
+                && panel.active_tab() == Some(props.editor_index);
+            (is_code_editor_view_focused, is_editor_focused)
+        };
 
-            if !is_code_editor_view_focused {
-                let mut manager = manager.global_write();
-                manager.set_focused_view(EditorView::CodeEditor);
-            }
+        if !is_code_editor_view_focused {
+            let mut app_state = radio_app_state.write_channel(Channel::Global);
+            app_state.set_focused_view(EditorView::CodeEditor);
+        }
 
-            if !is_editor_focused {
-                let mut manager = manager.global_write();
-                manager.set_focused_panel(cx.props.panel_index);
-                manager
-                    .panel_mut(cx.props.panel_index)
-                    .set_active_tab(cx.props.editor_index);
-            }
+        if !is_editor_focused {
+            let mut app_state = radio_app_state.write_channel(Channel::Global);
+            app_state.set_focused_panel(props.panel_index);
+            app_state
+                .panel_mut(props.panel_index)
+                .set_active_tab(props.editor_index);
         }
     };
 
-    let manager_ref = manager.current();
-    let cursor_attr = editable.cursor_attr(cx);
-    let font_size = manager_ref.font_size();
-    let line_height = manager_ref.line_height();
+    let app_state = radio_app_state.read();
+    let cursor_reference = editable.cursor_attr();
+    let font_size = app_state.font_size();
+    let line_height = app_state.line_height();
     let manual_line_height = (font_size * line_height).floor();
-    let panel = manager_ref.panel(cx.props.panel_index);
+    let panel = app_state.panel(props.panel_index);
 
-    let onkeydown = {
-        to_owned![editable, manager];
-        move |e: KeyboardEvent| {
-            let (is_panel_focused, is_editor_focused) = {
-                let manager_ref = manager.current();
-                let panel = manager_ref.panel(cx.props.panel_index);
-                let is_panel_focused = manager_ref.focused_panel() == cx.props.panel_index;
-                let is_editor_focused = *manager_ref.focused_view() == EditorView::CodeEditor
-                    && panel.active_tab() == Some(cx.props.editor_index);
-                (is_panel_focused, is_editor_focused)
+    let onkeydown = move |e: KeyboardEvent| {
+        let (is_panel_focused, is_editor_focused) = {
+            let app_state = radio_app_state.read();
+            let panel = app_state.panel(props.panel_index);
+            let is_panel_focused = app_state.focused_panel() == props.panel_index;
+            let is_editor_focused = *app_state.focused_view() == EditorView::CodeEditor
+                && panel.active_tab() == Some(props.editor_index);
+            (is_panel_focused, is_editor_focused)
+        };
+
+        if is_panel_focused && is_editor_focused {
+            let current_scroll = scroll_offsets.read().1;
+            let lines_jump = (manual_line_height * LINES_JUMP_ALT as f32).ceil() as i32;
+            let min_height = -(metrics.get().0.len() as f32 * manual_line_height) as i32;
+            let max_height = 0; // TODO, this should be the height of the viewport
+
+            let events = match &e.key {
+                Key::ArrowUp if e.modifiers.contains(Modifiers::ALT) => {
+                    let jump = (current_scroll + lines_jump).clamp(min_height, max_height);
+                    scroll_offsets.write().1 = jump;
+                    (0..LINES_JUMP_ALT)
+                        .map(|_| EditableEvent::KeyDown(e.data.clone()))
+                        .collect::<Vec<EditableEvent>>()
+                }
+                Key::ArrowDown if e.modifiers.contains(Modifiers::ALT) => {
+                    let jump = (current_scroll - lines_jump).clamp(min_height, max_height);
+                    scroll_offsets.write().1 = jump;
+                    (0..LINES_JUMP_ALT)
+                        .map(|_| EditableEvent::KeyDown(e.data.clone()))
+                        .collect::<Vec<EditableEvent>>()
+                }
+                Key::ArrowDown | Key::ArrowUp if e.modifiers.contains(Modifiers::CONTROL) => (0
+                    ..LINES_JUMP_CONTROL)
+                    .map(|_| EditableEvent::KeyDown(e.data.clone()))
+                    .collect::<Vec<EditableEvent>>(),
+                _ => {
+                    vec![EditableEvent::KeyDown(e.data)]
+                }
             };
 
-            if is_panel_focused && is_editor_focused {
-                let current_scroll = scroll_offsets.read().1;
-                let lines_jump = (manual_line_height * LINES_JUMP_ALT as f32).ceil() as i32;
-                let min_height = -(metrics.get().0.len() as f32 * manual_line_height) as i32;
-                let max_height = 0; // TODO, this should be the height of the viewport
-
-                let events = match &e.key {
-                    Key::ArrowUp if e.modifiers.contains(Modifiers::ALT) => {
-                        let jump = (current_scroll + lines_jump).clamp(min_height, max_height);
-                        scroll_offsets.write().1 = jump;
-                        (0..LINES_JUMP_ALT)
-                            .map(|_| EditableEvent::KeyDown(e.data.clone()))
-                            .collect::<Vec<EditableEvent>>()
-                    }
-                    Key::ArrowDown if e.modifiers.contains(Modifiers::ALT) => {
-                        let jump = (current_scroll - lines_jump).clamp(min_height, max_height);
-                        scroll_offsets.write().1 = jump;
-                        (0..LINES_JUMP_ALT)
-                            .map(|_| EditableEvent::KeyDown(e.data.clone()))
-                            .collect::<Vec<EditableEvent>>()
-                    }
-                    Key::ArrowDown | Key::ArrowUp if e.modifiers.contains(Modifiers::CONTROL) => (0
-                        ..LINES_JUMP_CONTROL)
-                        .map(|_| EditableEvent::KeyDown(e.data.clone()))
-                        .collect::<Vec<EditableEvent>>(),
-                    _ => {
-                        vec![EditableEvent::KeyDown(e.data)]
-                    }
-                };
-
-                for event in events {
-                    editable.process_event(&event);
-                }
+            for event in events {
+                editable.process_event(&event);
             }
         }
     };
 
-    let editor = panel.tab(cx.props.editor_index).as_text_editor().unwrap();
+    let editor = panel.tab(props.editor_index).as_text_editor().unwrap();
     let path = editor.path();
     let cursor = editor.cursor();
     let file_uri = Url::from_file_path(path).unwrap();
 
-    render!(
+    rsx!(
         rect {
             width: "100%",
             height: "100%",
@@ -229,7 +209,7 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
             onkeydown: onkeydown,
             onglobalclick: onglobalclick,
             onclick: onclick,
-            cursor_reference: cursor_attr,
+            cursor_reference,
             direction: "horizontal",
             background: "rgb(40, 40, 40)",
             padding: "5 0 0 5",
@@ -239,13 +219,12 @@ pub fn EditorTab(cx: Scope<EditorTabProps>) -> Element {
                 onscroll: onscroll,
                 length: metrics.get().0.len(),
                 item_size: manual_line_height,
-                builder_args: (cursor, metrics.clone(), editable, lsp.clone(), file_uri, editor.rope().clone(), hover_location.clone(), cursor_coords.clone(), debouncer.clone()),
-                builder: move |i, options: BuilderProps| rsx!(
+                builder_args: (cursor, metrics, editable, lsp, file_uri, editor.rope().clone(), hover_location, cursor_coords, debouncer, font_size),
+                builder: move |i: usize, options: &BuilderProps| rsx!(
                     EditorLine {
                         key: "{i}",
                         line_index: i,
-                        options: options,
-                        font_size: font_size,
+                        options: options.clone(),
                         line_height: manual_line_height,
                     }
                 )

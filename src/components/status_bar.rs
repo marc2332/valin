@@ -2,19 +2,19 @@ use std::collections::HashMap;
 
 use freya::prelude::*;
 
-use crate::hooks::EditorView;
+use crate::state::EditorView;
 
-#[derive(Props, PartialEq)]
+#[derive(Props, Clone, PartialEq)]
 pub struct StatusBarProps {
     #[props(!optional)]
     cursor: Option<TextCursor>,
-    lsp_messages: UseState<HashMap<String, String>>,
+    lsp_messages: Signal<HashMap<String, String>>,
     focused_view: EditorView,
 }
 
 #[allow(non_snake_case)]
-pub fn StatusBar(cx: Scope<StatusBarProps>) -> Element {
-    render!(
+pub fn StatusBar(props: StatusBarProps) -> Element {
+    rsx!(
         rect {
             width: "100%",
             height: "25",
@@ -25,23 +25,19 @@ pub fn StatusBar(cx: Scope<StatusBarProps>) -> Element {
             color: "rgb(200, 200, 200)",
             label {
                 font_size: "14",
-                "{cx.props.focused_view}"
+                "{props.focused_view}"
             }
-            if let Some(cursor) = &cx.props.cursor {
-                rsx!(
-                    label {
-                        font_size: "14",
-                        " | Ln {cursor.row() + 1}, Col {cursor.col() + 1}"
-                    }
-                )
+            if let Some(cursor) = props.cursor {
+                label {
+                    font_size: "14",
+                    " | Ln {cursor.row() + 1}, Col {cursor.col() + 1}"
+                }
             }
-            for (name, msg) in cx.props.lsp_messages.get() {
-                rsx!(
-                    label {
-                        font_size: "14",
-                        " | {name} {msg}"
-                    }
-                )
+            for (name, msg) in props.lsp_messages.read().iter() {
+                label {
+                    font_size: "14",
+                    " | {name} {msg}"
+                }
             }
         }
     )

@@ -3,7 +3,7 @@ use freya::prelude::*;
 static LOGO_ENABLED: &str = include_str!("../icons/logo_enabled.svg");
 static LOGO_DISABLED: &str = include_str!("../icons/logo_disabled.svg");
 
-#[derive(Props, PartialEq)]
+#[derive(Props, PartialEq, Clone)]
 pub struct IconProps {
     #[props(default = "auto".to_string(), into)]
     width: String,
@@ -13,37 +13,37 @@ pub struct IconProps {
 }
 
 #[allow(non_snake_case)]
-pub fn Logo(cx: Scope<IconProps>) -> Element {
-    let width = &cx.props.width;
-    let height = &cx.props.height;
+pub fn Logo(props: IconProps) -> Element {
+    let width = &props.width;
+    let height = &props.height;
 
-    let logo = if cx.props.enabled {
+    let logo = if props.enabled {
         LOGO_ENABLED
     } else {
         LOGO_DISABLED
     };
 
-    render!(svg {
+    rsx!(svg {
         width: "{width}",
         height: "{height}",
         svg_content: logo,
     })
 }
 
-#[derive(Props)]
-pub struct ExpandedIconProps<'a> {
-    children: Element<'a>,
+#[derive(Props, Clone, PartialEq)]
+pub struct ExpandedIconProps {
+    children: Element,
 }
 
 #[allow(non_snake_case)]
-pub fn ExpandedIcon<'a>(cx: Scope<'a, ExpandedIconProps<'a>>) -> Element<'a> {
-    render!(
+pub fn ExpandedIcon(props: ExpandedIconProps) -> Element {
+    rsx!(
         rect {
             main_align: "center",
             cross_align: "center",
             width: "100%",
             height: "100%",
-            &cx.props.children
+            {props.children}
         }
     )
 }

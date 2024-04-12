@@ -1,11 +1,63 @@
 use std::{collections::HashMap, fmt::Display};
 
 use dioxus::prelude::Coroutine;
+use dioxus_radio::prelude::{Radio, RadioChannel};
 
-use crate::{
-    hooks::UseManager,
-    lsp::{create_lsp, LSPBridge, LspConfig},
-};
+use crate::lsp::{create_lsp, LSPBridge, LspConfig};
+
+pub type RadioAppState = Radio<AppState, Channel>;
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub enum Channel {
+    /// Affects global components
+    Global,
+    /// Affects all tabs
+    AllTabs,
+    /// Affects individual tab
+    Tab {
+        panel_index: usize,
+        editor_index: usize,
+    },
+}
+
+impl RadioChannel<AppState> for Channel {
+    fn derivate_channel(self, app_state: &AppState) -> Vec<Self> {
+        match self {
+            Self::AllTabs => {
+                let mut channels = vec![self];
+                channels.extend(
+                    app_state
+                        .panels
+                        .iter()
+                        .enumerate()
+                        .flat_map(|(panel_index, panel)| {
+                            panel
+                                .tabs()
+                                .iter()
+                                .enumerate()
+                                .map(move |(editor_index, _)| Self::Tab {
+                                    panel_index,
+                                    editor_index,
+                                })
+                        })
+                        .collect::<Vec<Self>>(),
+                );
+
+                channels
+            }
+            _ => vec![self],
+        }
+    }
+}
+
+impl Channel {
+    pub fn follow_tab(panel: usize, editor: usize) -> Self {
+        Self::Tab {
+            panel_index: panel,
+            editor_index: editor,
+        }
+    }
+}
 
 use super::EditorData;
 
@@ -93,7 +145,7 @@ impl Panel {
     }
 }
 
-#[derive(Clone, Default, PartialEq)]
+#[derive(Clone, Default, PartialEq, Copy)]
 pub enum EditorView {
     #[default]
     CodeEditor,
@@ -112,7 +164,7 @@ impl Display for EditorView {
 }
 
 #[derive(Clone)]
-pub struct EditorManager {
+pub struct AppState {
     pub previous_focused_view: Option<EditorView>,
     pub focused_view: EditorView,
     pub focused_panel: usize,
@@ -123,7 +175,7 @@ pub struct EditorManager {
     pub lsp_status_coroutine: Coroutine<(String, String)>,
 }
 
-impl EditorManager {
+impl AppState {
     pub fn new(lsp_status_coroutine: Coroutine<(String, String)>) -> Self {
         Self {
             previous_focused_view: None,
@@ -142,7 +194,7 @@ impl EditorManager {
     }
 
     pub fn set_focused_view(&mut self, focused_view: EditorView) {
-        self.previous_focused_view = Some(self.focused_view.clone());
+        self.previous_focused_view = Some(self.focused_view);
 
         self.focused_view = focused_view;
     }
@@ -152,7 +204,7 @@ impl EditorManager {
     }
 
     pub fn set_focused_view_to_previous(&mut self) {
-        if let Some(previous_focused_view) = self.previous_focused_view.clone() {
+        if let Some(previous_focused_view) = self.previous_focused_view {
             self.focused_view = previous_focused_view;
             self.previous_focused_view = None;
         }
@@ -249,14 +301,17 @@ impl EditorManager {
         self.language_servers.insert(language_server, server);
     }
 
-    pub async fn get_or_insert_lsp(manager: UseManager, lsp_config: &LspConfig) -> LSPBridge {
-        let server = manager.current().lsp(lsp_config).cloned();
+    pub async fn get_or_insert_lsp(
+        mut app_state: RadioAppState,
+        lsp_config: &LspConfig,
+    ) -> LSPBridge {
+        let server = app_state.read().lsp(lsp_config).cloned();
         match server {
             Some(server) => server,
             None => {
-                let server = create_lsp(lsp_config.clone(), &manager.current()).await;
-                manager
-                    .write()
+                let server = create_lsp(lsp_config.clone(), &app_state.read()).await;
+                app_state
+                    .write_channel(Channel::Global)
                     .insert_lsp(lsp_config.language_server.clone(), server.clone());
                 server
             }

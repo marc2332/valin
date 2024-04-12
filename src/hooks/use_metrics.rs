@@ -1,5 +1,4 @@
 use std::borrow::Cow;
-use std::cell;
 use std::cmp::Ordering;
 
 use freya::prelude::*;
@@ -10,23 +9,22 @@ use skia_safe::textlayout::ParagraphStyle;
 use skia_safe::textlayout::TextStyle;
 use skia_safe::FontMgr;
 
-use crate::hooks::UseManager;
-use crate::parser::*;
+use crate::{parser::*, state::RadioAppState};
 
-#[derive(Clone)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct UseMetrics {
-    paragraph_style: ParagraphStyle,
-    font_collection: FontCollection,
-    metrics: UseRef<(SyntaxBlocks, f32)>,
-    manager: UseManager,
+    paragraph_style: Signal<ParagraphStyle>,
+    font_collection: Signal<FontCollection>,
+    metrics: Signal<(SyntaxBlocks, f32)>,
+    radio_app_state: RadioAppState,
     pane_index: usize,
     editor_index: usize,
 }
 
 impl UseMetrics {
     pub fn new(
-        manager: UseManager,
-        metrics: UseRef<(SyntaxBlocks, f32)>,
+        radio_app_state: RadioAppState,
+        metrics: Signal<(SyntaxBlocks, f32)>,
         pane_index: usize,
         editor_index: usize,
     ) -> Self {
@@ -35,32 +33,32 @@ impl UseMetrics {
 
         let mut paragraph_style = ParagraphStyle::default();
         let mut text_style = TextStyle::default();
-        text_style.set_font_size(manager.current().font_size());
+        text_style.set_font_size(radio_app_state.read().font_size());
         paragraph_style.set_text_style(&text_style);
 
         Self {
-            paragraph_style,
-            font_collection,
+            paragraph_style: Signal::new(paragraph_style),
+            font_collection: Signal::new(font_collection),
             metrics,
-            manager,
+            radio_app_state,
             pane_index,
             editor_index,
         }
     }
 
-    pub fn get(&self) -> cell::Ref<(SyntaxBlocks, f32)> {
+    pub fn get(&self) -> ReadableRef<Signal<(SyntaxBlocks, f32)>> {
         self.metrics.read()
     }
 
-    pub fn run_metrics(&self) {
+    pub fn run_metrics(&mut self) {
         let mut paragraph_builder =
-            ParagraphBuilder::new(&self.paragraph_style, &self.font_collection);
+            ParagraphBuilder::new(&self.paragraph_style.read(), &*self.font_collection.read());
 
         let mut longest_line: Vec<Cow<str>> = vec![];
 
-        let manager = self.manager.current();
+        let app_state = self.radio_app_state.read();
 
-        let editor = manager
+        let editor = app_state
             .panel(self.pane_index)
             .tab(self.editor_index)
             .as_text_editor()
@@ -96,21 +94,11 @@ impl UseMetrics {
     }
 }
 
-pub fn use_metrics<'a>(
-    cx: &'a ScopeState,
-    manager: &UseManager,
-    pane_index: usize,
-    editor_index: usize,
-) -> &'a UseMetrics {
-    let metrics_ref = use_ref::<(SyntaxBlocks, f32)>(cx, || (SyntaxBlocks::default(), 0.0));
+pub fn use_metrics(radio: &RadioAppState, pane_index: usize, editor_index: usize) -> UseMetrics {
+    let metrics_ref = use_signal::<(SyntaxBlocks, f32)>(|| (SyntaxBlocks::default(), 0.0));
 
-    cx.use_hook(|| {
-        let metrics = UseMetrics::new(
-            manager.clone(),
-            metrics_ref.clone(),
-            pane_index,
-            editor_index,
-        );
+    use_hook(|| {
+        let mut metrics = UseMetrics::new(*radio, metrics_ref, pane_index, editor_index);
 
         metrics.run_metrics();
 

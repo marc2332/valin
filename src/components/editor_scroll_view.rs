@@ -1,11 +1,11 @@
 use std::ops::Range;
 
 use freya::prelude::*;
-use freya::prelude::{dioxus_elements, keyboard::Key};
+use freya::prelude::{dioxus_elements, keyboard::Key, use_applied_theme};
 
 use crate::{
     get_container_size, get_corrected_scroll_position, get_scroll_position_from_cursor,
-    get_scrollbar_pos_and_size, is_scrollbar_visible, Axis, SCROLLBAR_SIZE,
+    get_scrollbar_pos_and_size, is_scrollbar_visible, Axis,
 };
 
 pub fn get_scroll_position_from_wheel(
@@ -32,8 +32,11 @@ pub fn get_scroll_position_from_wheel(
 }
 
 /// Properties for the EditorScrollView component.
-#[derive(Props)]
-pub struct EditorScrollViewProps<'a, Builder, BuilderArgs> {
+#[derive(Props, Clone)]
+pub struct EditorScrollViewProps<
+    Builder: 'static + Clone + Fn(usize, &BuilderArgs) -> Element,
+    BuilderArgs: Clone + 'static + PartialEq = (),
+> {
     length: usize,
     item_size: f32,
     #[props(default = "100%".to_string(), into)]
@@ -46,10 +49,23 @@ pub struct EditorScrollViewProps<'a, Builder, BuilderArgs> {
     pub show_scrollbar: bool,
     pub offset_y: i32,
     pub offset_x: i32,
-    pub onscroll: Option<EventHandler<'a, (Axis, i32)>>,
+    pub onscroll: Option<EventHandler<(Axis, i32)>>,
 
     builder_args: BuilderArgs,
     builder: Builder,
+}
+
+impl<BuilderArgs: Clone + PartialEq, Builder: Clone + Fn(usize, &BuilderArgs) -> Element> PartialEq
+    for EditorScrollViewProps<Builder, BuilderArgs>
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.length == other.length
+            && self.offset_x == other.offset_x
+            && self.offset_y == other.offset_y
+            && self.item_size == other.item_size
+            && self.show_scrollbar == other.show_scrollbar
+            && self.builder_args == other.builder_args
+    }
 }
 
 fn get_render_range(
@@ -73,27 +89,28 @@ fn get_render_range(
 
 /// A controlled ScrollView with virtual scrolling.
 #[allow(non_snake_case)]
-pub fn EditorScrollView<'a, Builder, BuilderArgs: Clone>(
-    cx: Scope<'a, EditorScrollViewProps<'a, Builder, BuilderArgs>>,
-) -> Element
-where
-    Builder: Fn(usize, BuilderArgs) -> LazyNodes<'a, 'a>,
-{
-    let clicking_shift = use_ref(cx, || false);
-    let clicking_alt = use_ref(cx, || false);
-    let clicking_scrollbar = use_ref::<Option<(Axis, f64)>>(cx, || None);
-    let scrolled_y = cx.props.offset_y;
-    let scrolled_x = cx.props.offset_x;
-    let onscroll = cx.props.onscroll.as_ref().unwrap();
-    let focus = use_focus(cx);
-    let (node_ref, size) = use_node(cx);
+pub fn EditorScrollView<
+    Builder: Clone + Fn(usize, &BuilderArgs) -> Element,
+    BuilderArgs: Clone + PartialEq,
+>(
+    props: EditorScrollViewProps<Builder, BuilderArgs>,
+) -> Element {
+    let mut clicking_shift = use_signal(|| false);
+    let mut clicking_alt = use_signal(|| false);
+    let mut clicking_scrollbar = use_signal::<Option<(Axis, f64)>>(|| None);
+    let scrolled_y = props.offset_y;
+    let scrolled_x = props.offset_x;
+    let onscroll = props.onscroll.unwrap();
+    let mut focus = use_focus();
+    let (node_ref, size) = use_node();
+    let scrollbar_theme = use_applied_theme!(&None, scroll_bar);
 
-    let padding = &cx.props.padding;
-    let user_container_width = &cx.props.width;
-    let user_container_height = &cx.props.height;
-    let show_scrollbar = cx.props.show_scrollbar;
-    let items_length = cx.props.length;
-    let items_size = cx.props.item_size;
+    let padding = &props.padding;
+    let user_container_width = &props.width;
+    let user_container_height = &props.height;
+    let show_scrollbar = props.show_scrollbar;
+    let items_length = props.length;
+    let items_size = props.item_size;
 
     let inner_size = items_size + (items_size * items_length as f32);
 
@@ -102,8 +119,9 @@ where
     let horizontal_scrollbar_is_visible =
         is_scrollbar_visible(show_scrollbar, size.inner.width, size.area.width());
 
-    let container_width = get_container_size(vertical_scrollbar_is_visible);
-    let container_height = get_container_size(horizontal_scrollbar_is_visible);
+    let container_width = get_container_size(vertical_scrollbar_is_visible, &scrollbar_theme.size);
+    let container_height =
+        get_container_size(horizontal_scrollbar_is_visible, &scrollbar_theme.size);
 
     let corrected_scrolled_y =
         get_corrected_scroll_position(inner_size, size.area.height(), scrolled_y as f32);
@@ -198,7 +216,7 @@ where
         };
     };
 
-    let onkeyup = |e: KeyboardEvent| {
+    let onkeyup = move |e: KeyboardEvent| {
         if e.key == Key::Shift {
             clicking_shift.set(false);
         } else if e.key == Key::Alt {
@@ -207,34 +225,33 @@ where
     };
 
     // Mark the Y axis scrollbar as the one being dragged
-    let onmousedown_y = |e: MouseEvent| {
+    let onmousedown_y = move |e: MouseEvent| {
         let coordinates = e.get_element_coordinates();
         *clicking_scrollbar.write() = Some((Axis::Y, coordinates.y));
     };
 
     // Mark the X axis scrollbar as the one being dragged
-    let onmousedown_x = |e: MouseEvent| {
+    let onmousedown_x = move |e: MouseEvent| {
         let coordinates = e.get_element_coordinates();
         *clicking_scrollbar.write() = Some((Axis::X, coordinates.x));
     };
 
     // Unmark any scrollbar
-    let onclick = |_: MouseEvent| {
+    let onclick = move |_: MouseEvent| {
         if clicking_scrollbar.read().is_some() {
             *clicking_scrollbar.write() = None;
         }
     };
 
     let horizontal_scrollbar_size = if horizontal_scrollbar_is_visible {
-        SCROLLBAR_SIZE
+        &scrollbar_theme.size
     } else {
-        0
+        "0"
     };
-
     let vertical_scrollbar_size = if vertical_scrollbar_is_visible {
-        SCROLLBAR_SIZE
+        &scrollbar_theme.size
     } else {
-        0
+        "0"
     };
 
     // Calculate from what to what items must be rendered
@@ -244,6 +261,13 @@ where
         items_size,
         items_length as f32,
     );
+
+    let children = use_memo(use_reactive(
+        &(render_range, props.builder_args),
+        move |(render_range, builder_args)| {
+            rsx!({ render_range.map(|i| (props.builder)(i, &builder_args)) })
+        },
+    ));
 
     let is_scrolling_x = clicking_scrollbar
         .read()
@@ -256,7 +280,7 @@ where
         .map(|f| f.0 == Axis::Y)
         .unwrap_or_default();
 
-    render!(
+    rsx!(
         rect {
             overflow: "clip",
             direction: "horizontal",
@@ -279,7 +303,7 @@ where
                     offset_x: "{corrected_scrolled_x}",
                     reference: node_ref,
                     onwheel: onwheel,
-                    render_range.map(|i| (cx.props.builder)(i, cx.props.builder_args.clone()))
+                    {children}
                 }
                 ScrollBar {
                     width: "100%",

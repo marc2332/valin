@@ -1,19 +1,22 @@
+use dioxus_radio::prelude::use_radio;
 use freya::prelude::*;
 
-use crate::hooks::{use_manager, PanelTab, SubscriptionModel};
+use crate::state::{AppState, Channel, PanelTab};
 
 #[allow(non_snake_case)]
-pub fn Sidebar(cx: Scope) -> Element {
-    let manager = use_manager(cx, SubscriptionModel::All);
+pub fn EditorSidebar() -> Element {
+    let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Global);
 
     let open_settings = move |_| {
-        let focused_panel = manager.current().focused_panel();
-        manager
-            .global_write()
-            .push_tab(PanelTab::Config, focused_panel, true);
+        let focused_panel = radio_app_state.read().focused_panel();
+        radio_app_state.write_channel(Channel::Global).push_tab(
+            PanelTab::Config,
+            focused_panel,
+            true,
+        );
     };
 
-    render!(
+    rsx!(
         rect {
             overflow: "clip",
             direction: "vertical",
@@ -48,18 +51,18 @@ pub fn Sidebar(cx: Scope) -> Element {
     )
 }
 
-#[derive(Props)]
-struct SideBarButtonProps<'a> {
-    children: Element<'a>,
+#[derive(Props, Clone, PartialEq)]
+struct SideBarButtonProps {
+    children: Element,
 }
 
 #[allow(non_snake_case)]
-fn SideBarButton<'a>(cx: Scope<'a, SideBarButtonProps<'a>>) -> Element<'a> {
-    render!(
+fn SideBarButton(props: SideBarButtonProps) -> Element {
+    rsx!(
         rect {
             direction: "horizontal",
             main_align: "center",
-            &cx.props.children
+            {props.children}
         }
     )
 }
