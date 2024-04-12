@@ -1,5 +1,5 @@
 use dioxus::{dioxus_core::AttributeValue, prelude::use_memo};
-use dioxus_std::clipboard::UseClipboard;
+use dioxus_sdk::clipboard::UseClipboard;
 use freya::prelude::{
     keyboard::{Code, Key, Modifiers},
     *,

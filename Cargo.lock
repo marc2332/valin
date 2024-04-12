@@ -1222,32 +1222,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "dioxus-native-core"
-version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda#55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda"
-dependencies = [
- "anymap",
- "dashmap",
- "dioxus-core",
- "parking_lot",
- "rustc-hash",
- "shipyard",
- "smallvec",
-]
-
-[[package]]
-name = "dioxus-native-core-macro"
-version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda#55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda"
-dependencies = [
- "quote",
- "syn 2.0.43",
-]
-
-[[package]]
 name = "dioxus-radio"
-version = "0.2.2"
-source = "git+https://github.com/dioxus-community/dioxus-radio?rev=dbed35c346234fe0f29a94a1d3e76e197e0dc2a9#dbed35c346234fe0f29a94a1d3e76e197e0dc2a9"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "67e651a8dfa205ecee5d8edd91877987d562b1ab9793601de32e715064501f67"
 dependencies = [
  "dioxus-lib",
  "generational-box",
@@ -1295,6 +1273,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "dioxus-sdk"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "271adf41837fbbceb955fefd71816d4a3fbbab2829f8c0ea0364584b531ce999"
+dependencies = [
+ "cfg-if",
+ "copypasta",
+ "dioxus",
+ "js-sys",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "dioxus-signals"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1308,20 +1300,6 @@ dependencies = [
  "parking_lot",
  "rustc-hash",
  "tracing",
-]
-
-[[package]]
-name = "dioxus-std"
-version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d04c6c53c21a071da1d3f35553a75593fabba84e2c112814bdd25fcdf6e2afe5"
-dependencies = [
- "cfg-if",
- "copypasta",
- "dioxus",
- "js-sys",
- "tracing",
- "uuid",
 ]
 
 [[package]]
@@ -1660,7 +1638,7 @@ dependencies = [
 [[package]]
 name = "freya"
 version = "0.1.8"
-source = "git+https://github.com/marc2332/freya?rev=55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda#55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda"
+source = "git+https://github.com/marc2332/freya?rev=711e3c5b580a4d167c9ddda0d8deed64799ba03d#711e3c5b580a4d167c9ddda0d8deed64799ba03d"
 dependencies = [
  "dioxus",
  "dioxus-core",
@@ -1683,13 +1661,13 @@ dependencies = [
 [[package]]
 name = "freya-common"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda#55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda"
+source = "git+https://github.com/marc2332/freya?rev=711e3c5b580a4d167c9ddda0d8deed64799ba03d#711e3c5b580a4d167c9ddda0d8deed64799ba03d"
 dependencies = [
  "accesskit",
  "accesskit_winit",
  "dioxus-core",
- "dioxus-native-core",
  "freya-engine",
+ "freya-native-core",
  "rustc-hash",
  "torin",
  "uuid",
@@ -1699,8 +1677,9 @@ dependencies = [
 [[package]]
 name = "freya-components"
 version = "0.1.5"
-source = "git+https://github.com/marc2332/freya?rev=55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda#55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda"
+source = "git+https://github.com/marc2332/freya?rev=711e3c5b580a4d167c9ddda0d8deed64799ba03d#711e3c5b580a4d167c9ddda0d8deed64799ba03d"
 dependencies = [
+ "bytes",
  "dioxus",
  "dioxus-router",
  "freya-common",
@@ -1721,14 +1700,14 @@ dependencies = [
 [[package]]
 name = "freya-core"
 version = "0.1.3"
-source = "git+https://github.com/marc2332/freya?rev=55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda#55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda"
+source = "git+https://github.com/marc2332/freya?rev=711e3c5b580a4d167c9ddda0d8deed64799ba03d#711e3c5b580a4d167c9ddda0d8deed64799ba03d"
 dependencies = [
  "accesskit",
  "dioxus-core",
- "dioxus-native-core",
  "freya-common",
  "freya-elements",
  "freya-engine",
+ "freya-native-core",
  "freya-node-state",
  "itertools",
  "rustc-hash",
@@ -1749,7 +1728,7 @@ dependencies = [
  "debounced",
  "dioxus",
  "dioxus-radio",
- "dioxus-std",
+ "dioxus-sdk",
  "freya",
  "freya-common",
  "freya-hooks",
@@ -1773,7 +1752,7 @@ dependencies = [
 [[package]]
 name = "freya-elements"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda#55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda"
+source = "git+https://github.com/marc2332/freya?rev=711e3c5b580a4d167c9ddda0d8deed64799ba03d#711e3c5b580a4d167c9ddda0d8deed64799ba03d"
 dependencies = [
  "dioxus-core",
  "dioxus-rsx",
@@ -1785,7 +1764,7 @@ dependencies = [
 [[package]]
 name = "freya-engine"
 version = "0.1.3"
-source = "git+https://github.com/marc2332/freya?rev=55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda#55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda"
+source = "git+https://github.com/marc2332/freya?rev=711e3c5b580a4d167c9ddda0d8deed64799ba03d#711e3c5b580a4d167c9ddda0d8deed64799ba03d"
 dependencies = [
  "bitflags 2.4.1",
  "glutin",
@@ -1795,14 +1774,14 @@ dependencies = [
 [[package]]
 name = "freya-hooks"
 version = "0.1.3"
-source = "git+https://github.com/marc2332/freya?rev=55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda#55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda"
+source = "git+https://github.com/marc2332/freya?rev=711e3c5b580a4d167c9ddda0d8deed64799ba03d#711e3c5b580a4d167c9ddda0d8deed64799ba03d"
 dependencies = [
  "bitflags 2.4.1",
- "copypasta",
+ "bytes",
  "dioxus-core",
  "dioxus-hooks",
+ "dioxus-sdk",
  "dioxus-signals",
- "dioxus-std",
  "easer",
  "freya-common",
  "freya-core",
@@ -1818,17 +1797,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "freya-native-core"
+version = "0.1.0"
+source = "git+https://github.com/marc2332/freya?rev=711e3c5b580a4d167c9ddda0d8deed64799ba03d#711e3c5b580a4d167c9ddda0d8deed64799ba03d"
+dependencies = [
+ "anymap",
+ "dashmap",
+ "dioxus-core",
+ "parking_lot",
+ "rustc-hash",
+ "shipyard",
+ "smallvec",
+]
+
+[[package]]
+name = "freya-native-core-macro"
+version = "0.1.0"
+source = "git+https://github.com/marc2332/freya?rev=711e3c5b580a4d167c9ddda0d8deed64799ba03d#711e3c5b580a4d167c9ddda0d8deed64799ba03d"
+dependencies = [
+ "quote",
+ "syn 2.0.43",
+]
+
+[[package]]
 name = "freya-node-state"
 version = "0.1.4"
-source = "git+https://github.com/marc2332/freya?rev=55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda#55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda"
+source = "git+https://github.com/marc2332/freya?rev=711e3c5b580a4d167c9ddda0d8deed64799ba03d#711e3c5b580a4d167c9ddda0d8deed64799ba03d"
 dependencies = [
  "accesskit",
  "bytes",
  "dioxus-core",
- "dioxus-native-core",
- "dioxus-native-core-macro",
  "freya-common",
  "freya-engine",
+ "freya-native-core",
+ "freya-native-core-macro",
  "rustc-hash",
  "serde_json",
  "shipyard",
@@ -1840,18 +1842,18 @@ dependencies = [
 [[package]]
 name = "freya-renderer"
 version = "0.1.6"
-source = "git+https://github.com/marc2332/freya?rev=55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda#55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda"
+source = "git+https://github.com/marc2332/freya?rev=711e3c5b580a4d167c9ddda0d8deed64799ba03d#711e3c5b580a4d167c9ddda0d8deed64799ba03d"
 dependencies = [
  "accesskit",
  "accesskit_winit",
  "dioxus-core",
  "dioxus-hot-reload",
- "dioxus-native-core",
  "freya-common",
  "freya-core",
  "freya-elements",
  "freya-engine",
  "freya-hooks",
+ "freya-native-core",
  "freya-node-state",
  "futures-task",
  "futures-util",
@@ -4435,10 +4437,10 @@ dependencies = [
 [[package]]
 name = "torin"
 version = "0.1.0"
-source = "git+https://github.com/marc2332/freya?rev=55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda#55f6046fd6bc1dfedcf8d2b89e7ee04a8e468fda"
+source = "git+https://github.com/marc2332/freya?rev=711e3c5b580a4d167c9ddda0d8deed64799ba03d#711e3c5b580a4d167c9ddda0d8deed64799ba03d"
 dependencies = [
- "dioxus-native-core",
  "euclid",
+ "freya-native-core",
  "rustc-hash",
  "tracing",
 ]

@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use dioxus_radio::hooks::use_radio;
-use dioxus_std::clipboard::use_clipboard;
+use dioxus_sdk::clipboard::use_clipboard;
 use freya::elements as dioxus_elements;
 use freya::prelude::keyboard::Code;
 use freya::prelude::*;
