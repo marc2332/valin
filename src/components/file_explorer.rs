@@ -124,14 +124,16 @@ enum TreeTask {
     OpenFile(PathBuf),
 }
 
+static TREE: GlobalSignal<Option<TreeItem>> = Signal::global(|| None);
+
 #[allow(non_snake_case)]
 pub fn FileExplorer() -> Element {
     let clipboard = use_clipboard();
     let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Global); // TODO Use specific
     let is_focused_files_explorer =
         *radio_app_state.read().focused_view() == EditorView::FilesExplorer;
-    let mut tree = use_signal::<Option<TreeItem>>(|| None);
     let mut focused_item = use_signal(|| 0);
+    let mut tree = TREE.signal();
 
     let items = use_memo(use_reactive(&tree, move |tree| {
         if let Some(tree) = tree.read().as_ref() {

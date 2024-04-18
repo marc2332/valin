@@ -17,7 +17,7 @@ use hooks::*;
 use std::{collections::HashMap, rc::Rc};
 use utils::*;
 
-use crate::state::EditorView;
+use crate::state::{EditorSidePanel, EditorView};
 use crate::{
     commands::{EditorCommand, FontSizeCommand, SplitCommand},
     state::{AppState, Channel},
@@ -32,8 +32,7 @@ fn main() {
         LaunchConfig::<()>::builder()
             .with_width(900.0)
             .with_height(600.0)
-            .with_title("Editor")
-            .with_plugin(PerformanceOverlayPlugin::default())
+            .with_title("freya-editor")
             .build(),
     );
 }
@@ -150,13 +149,21 @@ fn Body() -> Element {
                 direction: "horizontal",
                 EditorSidebar {}
                 Divider {}
-                Sidepanel {
-                    FileExplorer {}
+                if let Some(side_panel) = radio_app_state.read().side_panel {
+                    Sidepanel {
+                        match side_panel {
+                            EditorSidePanel::FileExplorer => {
+                                rsx!(
+                                    FileExplorer {}
+                                )
+                            }
+                        }
+                    }
+                    Divider {}
                 }
-                Divider {}
                 rect {
                     direction: "vertical",
-                    width: "calc(100% - 334)",
+                    width: "fill",
                     height: "100%",
                     rect {
                         height: "100%",
