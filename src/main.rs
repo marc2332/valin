@@ -26,6 +26,14 @@ use crate::{
 static BASE_FONT_SIZE: f32 = 5.0;
 static MAX_FONT_SIZE: f32 = 150.0;
 
+const CUSTOM_THEME: Theme = Theme {
+    button: ButtonTheme {
+        border_fill: Cow::Borrowed("rgb(50, 50, 50)"),
+        ..DARK_THEME.button
+    },
+    ..DARK_THEME
+};
+
 fn main() {
     launch_cfg(
         app,
@@ -39,7 +47,7 @@ fn main() {
 
 fn app() -> Element {
     rsx!(
-        ThemeProvider { theme: DARK_THEME, Body {} }
+        ThemeProvider { theme: CUSTOM_THEME, Body {} }
     )
 }
 

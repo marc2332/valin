@@ -27,17 +27,18 @@ pub fn EditorSidebar() -> Element {
             direction: "vertical",
             width: "60",
             height: "100%",
-            padding: "2",
+            padding: "1",
             cross_align: "center",
             SideBarButton {
                 Button {
                     theme: theme_with!(ButtonTheme {
                         width: "100%".into(),
-                        padding: "10 8".into(),
+                        padding: "10 6".into(),
                     }),
                     onclick: toggle_file_explorer,
                     label {
-                        "Files"
+                        width: "100%",
+                        "📂"
                     }
                 }
             }
@@ -45,11 +46,12 @@ pub fn EditorSidebar() -> Element {
                 Button {
                     theme: theme_with!(ButtonTheme {
                         width: "100%".into(),
-                        padding: "10 8".into(),
+                        padding: "10 6".into(),
                     }),
                     onclick: open_settings,
                     label {
-                        "Conf"
+                        width: "100%",
+                        "⚙️"
                     }
                 }
             }
