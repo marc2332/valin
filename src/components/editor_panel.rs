@@ -39,9 +39,12 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
     };
 
     let onclickpanel = move |_| {
-        radio_app_state
-            .write_channel(Channel::Global)
-            .set_focused_panel(panel_index);
+        let is_panel_focused = radio_app_state.read().focused_panel == panel_index;
+        if !is_panel_focused {
+            radio_app_state
+                .write_channel(Channel::Global)
+                .set_focused_panel(panel_index);
+        }
     };
 
     let show_close_panel = panels_len > 1;
