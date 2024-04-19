@@ -3,6 +3,7 @@ use super::tab::*;
 use crate::state::{AppState, Channel, Panel, PanelTab};
 use crate::tabs::config::*;
 use crate::tabs::editor::*;
+use crate::tabs::welcome::*;
 use crate::utils::*;
 use dioxus_radio::prelude::use_radio;
 use freya::prelude::*;
@@ -134,6 +135,13 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                                 PanelTab::Config => {
                                     rsx!(
                                         ConfigTab {
+                                            key: "{tab_data.id}",
+                                        }
+                                    )
+                                }
+                                PanelTab::Welcome => {
+                                    rsx!(
+                                        WelcomeTab {
                                             key: "{tab_data.id}",
                                         }
                                     )

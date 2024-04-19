@@ -17,7 +17,7 @@ use hooks::*;
 use std::{collections::HashMap, rc::Rc};
 use utils::*;
 
-use crate::state::{EditorSidePanel, EditorView};
+use crate::state::{EditorSidePanel, EditorView, PanelTab};
 use crate::{
     commands::{EditorCommand, FontSizeCommand, SplitCommand},
     state::{AppState, Channel},
@@ -64,7 +64,11 @@ fn Body() -> Element {
         },
     );
 
-    use_init_radio_station::<AppState, Channel>(|| AppState::new(lsp_status_coroutine));
+    use_init_radio_station::<AppState, Channel>(|| {
+        let mut state = AppState::new(lsp_status_coroutine);
+        state.push_tab(PanelTab::Welcome, 0, true);
+        state
+    });
     let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Global);
 
     let focused_view = radio_app_state.read().focused_view;

@@ -65,6 +65,7 @@ use super::EditorData;
 pub enum PanelTab {
     TextEditor(EditorData),
     Config,
+    Welcome,
 }
 
 #[derive(PartialEq, Eq)]
@@ -92,6 +93,11 @@ impl PanelTab {
                     .unwrap()
                     .to_owned(),
                 edited: editor.is_edited(),
+            },
+            PanelTab::Welcome => PanelTabData {
+                id: "welcome".to_string(),
+                title: "Welcome".to_string(),
+                edited: false,
             },
         }
     }
