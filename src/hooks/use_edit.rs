@@ -316,7 +316,7 @@ impl TextEditor for EditorData {
 }
 
 /// Manage an editable content.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 pub struct UseEdit {
     pub(crate) radio: RadioAppState,
     pub(crate) cursor_reference: Memo<CursorReference>,
@@ -325,16 +325,6 @@ pub struct UseEdit {
     pub(crate) pane_index: usize,
     pub(crate) editor_index: usize,
     pub(crate) metrics: UseMetrics,
-}
-
-impl PartialEq for UseEdit {
-    fn eq(&self, other: &Self) -> bool {
-        self.radio == other.radio
-            && self.cursor_reference == other.cursor_reference
-            && self.selecting_text_with_mouse == other.selecting_text_with_mouse
-            && self.pane_index == other.pane_index
-            && self.editor_index == other.editor_index
-    }
 }
 
 impl UseEdit {
@@ -454,10 +444,15 @@ pub fn use_edit(
 ) -> UseEdit {
     let selecting_text_with_mouse = use_signal(|| None);
     let platform = use_platform();
+    let mut cursor_receiver_task = use_signal::<Option<Task>>(|| None);
 
     let cursor_reference = use_memo(use_reactive(&(pane_index, editor_index), {
         to_owned![radio];
-        move |_| {
+        move |(pane_index, editor_index)| {
+            if let Some(cursor_receiver_task) = cursor_receiver_task.write_unchecked().take() {
+                cursor_receiver_task.cancel();
+            }
+
             let text_id = Uuid::new_v4();
             let (cursor_sender, mut cursor_receiver) = unbounded_channel::<CursorLayoutResponse>();
 
@@ -469,7 +464,7 @@ pub fn use_edit(
                 cursor_selections: Arc::new(Mutex::new(None)),
             };
 
-            spawn({
+            let task = spawn({
                 to_owned![cursor_reference];
                 async move {
                     while let Some(message) = cursor_receiver.recv().await {
@@ -522,6 +517,8 @@ pub fn use_edit(
                     }
                 }
             });
+
+            cursor_receiver_task.set(Some(task));
 
             cursor_reference
         }

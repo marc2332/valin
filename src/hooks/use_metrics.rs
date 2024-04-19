@@ -97,11 +97,16 @@ impl UseMetrics {
 pub fn use_metrics(radio: &RadioAppState, pane_index: usize, editor_index: usize) -> UseMetrics {
     let metrics_ref = use_signal::<(SyntaxBlocks, f32)>(|| (SyntaxBlocks::default(), 0.0));
 
-    use_hook(|| {
+    let mut metrics = use_hook(|| {
         let mut metrics = UseMetrics::new(*radio, metrics_ref, pane_index, editor_index);
 
         metrics.run_metrics();
 
         metrics
-    })
+    });
+
+    metrics.pane_index = pane_index;
+    metrics.editor_index = editor_index;
+
+    metrics
 }
