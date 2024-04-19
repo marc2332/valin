@@ -32,3 +32,5 @@ async-process = "1.7.0"
 debounced = "0.1.0"
 futures-channel = "0.3.28"
 
+[profile.release]
+lto = true
