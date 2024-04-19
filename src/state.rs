@@ -163,6 +163,12 @@ impl Display for EditorView {
     }
 }
 
+#[derive(Clone, Default, PartialEq, Copy)]
+pub enum EditorSidePanel {
+    #[default]
+    FileExplorer,
+}
+
 #[derive(Clone)]
 pub struct AppState {
     pub previous_focused_view: Option<EditorView>,
@@ -173,6 +179,7 @@ pub struct AppState {
     pub line_height: f32,
     pub language_servers: HashMap<String, LSPBridge>,
     pub lsp_status_coroutine: Coroutine<(String, String)>,
+    pub side_panel: Option<EditorSidePanel>,
 }
 
 impl AppState {
@@ -186,7 +193,19 @@ impl AppState {
             line_height: 1.2,
             language_servers: HashMap::default(),
             lsp_status_coroutine,
+            side_panel: Some(EditorSidePanel::default()),
         }
+    }
+
+    pub fn toggle_side_panel(&mut self, side_panel: EditorSidePanel) {
+        if let Some(current_side_panel) = self.side_panel {
+            if current_side_panel == side_panel {
+                self.side_panel = None;
+                return;
+            }
+        }
+
+        self.side_panel = Some(side_panel);
     }
 
     pub fn set_fontsize(&mut self, fontsize: f32) {

@@ -1,7 +1,7 @@
 use dioxus_radio::prelude::use_radio;
 use freya::prelude::*;
 
-use crate::state::{AppState, Channel, PanelTab};
+use crate::state::{AppState, Channel, EditorSidePanel, PanelTab};
 
 #[allow(non_snake_case)]
 pub fn EditorSidebar() -> Element {
@@ -14,6 +14,11 @@ pub fn EditorSidebar() -> Element {
             focused_panel,
             true,
         );
+    };
+
+    let toggle_file_explorer = move |_| {
+        let mut app_state = radio_app_state.write();
+        app_state.toggle_side_panel(EditorSidePanel::FileExplorer);
     };
 
     rsx!(
@@ -30,6 +35,7 @@ pub fn EditorSidebar() -> Element {
                         width: "100%".into(),
                         padding: "10 8".into(),
                     }),
+                    onclick: toggle_file_explorer,
                     label {
                         "Files"
                     }
