@@ -15,34 +15,80 @@ pub struct TextAreaProps {
 pub fn TextArea(props: TextAreaProps) -> Element {
     let theme = use_get_theme();
     let button_theme = &theme.button;
+    let platform = use_platform();
+    let mut status = use_signal(InputStatus::default);
+    let mut editable = use_editable(
+        || EditableConfig::new(props.value.to_string()),
+        EditableMode::MultipleLinesSingleEditor,
+    );
+    let mut focus = use_focus();
 
-    let onkeydown = {
-        let value = props.value.clone();
-        move |e: Event<KeyboardData>| {
-            if let Key::Character(text_char) = &e.data.key {
-                // Add a new char
-                props.onchange.call(format!("{value}{text_char}"));
-            } else if let Key::Backspace = e.data.key {
-                // Remove the last character
-                let mut content = value.to_string();
-                content.pop();
-                props.onchange.call(content);
-            } else if let Key::Enter = e.data.key {
-                props.onsubmit.call(value.to_string());
+    use_hook(|| {
+        focus.focus();
+    });
+
+    if &props.value != editable.editor().read().rope() {
+        editable.editor_mut().write().set(&props.value);
+    }
+
+    let onkeydown = move |e: Event<KeyboardData>| {
+        if focus.is_focused() {
+            if let Key::Enter = e.data.key {
+                props.onsubmit.call(editable.editor().peek().to_string());
+            } else {
+                editable.process_event(&EditableEvent::KeyDown(e.data));
+                props.onchange.call(editable.editor().peek().to_string());
             }
         }
     };
 
+    let onmouseover = move |e: MouseEvent| {
+        editable.process_event(&EditableEvent::MouseOver(e.data, 0));
+    };
+
+    let onmouseenter = move |_| {
+        platform.set_cursor(CursorIcon::Text);
+        *status.write() = InputStatus::Hovering;
+    };
+
+    let onmouseleave = move |_| {
+        platform.set_cursor(CursorIcon::default());
+        *status.write() = InputStatus::default();
+    };
+
+    let color = &button_theme.font_theme.color;
+    let focus_id = focus.attribute();
+    let cursor_reference = editable.cursor_attr();
+    let highlights = editable.highlights_attr(0);
+    let cursor_char = editable.editor().read().cursor_pos().to_string();
+
     rsx!(
         rect {
             overflow: "clip",
-            onkeydown: onkeydown,
             width: "100%",
-            color: "{button_theme.font_theme.color}",
+            color: "{color}",
             corner_radius: "5",
             padding: "12 10",
-            label {
-                "{props.value}"
+            cursor_reference,
+            focus_id,
+            focusable: "true",
+            role: "textInput",
+            paragraph {
+                margin: "8 12",
+                onkeydown,
+                onmouseenter,
+                onmouseleave,
+                onmouseover,
+                width: "100%",
+                cursor_id: "0",
+                cursor_index: "{cursor_char}",
+                cursor_mode: "editable",
+                cursor_color: "{color}",
+                max_lines: "1",
+                highlights,
+                text {
+                    "{props.value}"
+                }
             }
         }
     )
