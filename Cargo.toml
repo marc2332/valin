@@ -4,11 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-freya-node-state = { git = "https://github.com/marc2332/freya", rev = "4c32259e9f3974fc2b96c36651ab8df20a273be0" }
-freya = { git = "https://github.com/marc2332/freya", rev = "4c32259e9f3974fc2b96c36651ab8df20a273be0" }
-freya-common = { git = "https://github.com/marc2332/freya", rev = "4c32259e9f3974fc2b96c36651ab8df20a273be0" }
-torin = { git = "https://github.com/marc2332/freya", rev = "4c32259e9f3974fc2b96c36651ab8df20a273be0" }
-freya-hooks = { git = "https://github.com/marc2332/freya", rev = "4c32259e9f3974fc2b96c36651ab8df20a273be0" }
+freya-node-state = { git = "https://github.com/marc2332/freya", rev = "0a1e1d91e80227f16fecbb15a78d684ae299cd2e" }
+freya = { git = "https://github.com/marc2332/freya", rev = "0a1e1d91e80227f16fecbb15a78d684ae299cd2e" }
+freya-common = { git = "https://github.com/marc2332/freya", rev = "0a1e1d91e80227f16fecbb15a78d684ae299cd2e" }
+torin = { git = "https://github.com/marc2332/freya", rev = "0a1e1d91e80227f16fecbb15a78d684ae299cd2e" }
+freya-hooks = { git = "https://github.com/marc2332/freya", rev = "0a1e1d91e80227f16fecbb15a78d684ae299cd2e" }
 
 dioxus-radio = "0.2"
 dioxus = "0.5"
