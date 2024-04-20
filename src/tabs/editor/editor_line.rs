@@ -1,13 +1,15 @@
+use std::sync::Arc;
+
 use freya::prelude::*;
 use lsp_types::{
     Hover, HoverParams, Position, TextDocumentIdentifier, TextDocumentPositionParams, Url,
     WorkDoneProgressParams,
 };
 
-use crate::hooks;
 use crate::tabs::editor::hooks::LspAction;
 use crate::tabs::editor::hover_box::HoverBox;
 use crate::tabs::editor::lsp::HoverToText;
+use crate::{hooks, Args};
 use crate::{hooks::UseDebouncer, utils::create_paragraph};
 
 use super::hooks::UseLsp;
@@ -50,6 +52,7 @@ pub fn EditorLine(
         line_height,
     }: EditorLineProps,
 ) -> Element {
+    let args = use_context::<Arc<Args>>();
     let (
         cursor,
         metrics,
@@ -67,8 +70,13 @@ pub fn EditorLine(
         editable.process_event(&EditableEvent::MouseDown(e.data, line_index));
     };
 
-    let onmouseleave = move |_| {
-        lsp.send(LspAction::Clear);
+    let onmouseleave = {
+        to_owned![args];
+        move |_| {
+            if args.lsp {
+                lsp.send(LspAction::Clear);
+            }
+        }
     };
 
     let onmouseover = {
@@ -79,6 +87,10 @@ pub fn EditorLine(
             let data = e.data;
 
             editable.process_event(&EditableEvent::MouseOver(data, line_index));
+
+            if !args.lsp {
+                return;
+            }
 
             cursor_coords.set(coords);
 

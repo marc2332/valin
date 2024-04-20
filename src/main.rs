@@ -12,13 +12,13 @@ mod state;
 mod tabs;
 mod utils;
 
+use clap::Parser;
 use components::*;
 use dioxus_radio::prelude::*;
 use freya::prelude::keyboard::{Key, Modifiers};
 use freya::prelude::*;
-use futures::StreamExt;
 use hooks::*;
-use std::{collections::HashMap, rc::Rc};
+use std::{rc::Rc, sync::Arc};
 use tokio::{fs, io::AsyncWriteExt};
 use utils::*;
 
@@ -39,13 +39,23 @@ const CUSTOM_THEME: Theme = Theme {
     ..DARK_THEME
 };
 
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Enable Support for language servers.
+    #[arg(short, long)]
+    lsp: bool,
+}
+
 fn main() {
+    let args = Args::parse();
     launch_cfg(
         app,
-        LaunchConfig::<()>::builder()
+        LaunchConfig::<Arc<Args>>::builder()
             .with_width(900.0)
             .with_height(600.0)
             .with_title("freya-editor")
+            .with_state(Arc::new(args))
             .build(),
     );
 }
@@ -58,19 +68,10 @@ fn app() -> Element {
 
 #[allow(non_snake_case)]
 fn Body() -> Element {
-    let mut lsp_messages = use_signal::<HashMap<String, String>>(HashMap::default);
-    let lsp_status_coroutine = use_coroutine(
-        move |mut rx: UnboundedReceiver<(String, String)>| async move {
-            while let Some((name, val)) = rx.next().await {
-                lsp_messages.with_mut(|msgs| {
-                    msgs.insert(name, val);
-                })
-            }
-        },
-    );
+    let (lsp_statuses, lsp_sender) = use_lsp_status();
 
     use_init_radio_station::<AppState, Channel>(|| {
-        let mut state = AppState::new(lsp_status_coroutine);
+        let mut state = AppState::new(lsp_sender);
         state.push_tab(PanelTab::Welcome, 0, true);
         state
     });
@@ -235,7 +236,7 @@ fn Body() -> Element {
             VerticalDivider {}
             StatusBar {
                 cursor,
-                lsp_messages,
+                lsp_statuses,
                 focused_view
             }
         }

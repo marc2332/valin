@@ -32,5 +32,7 @@ async-process = "1.7.0"
 debounced = "0.1.0"
 futures-channel = "0.3.28"
 
+clap = { version = "4.5.4", features = ["derive"]}
+
 [profile.release]
 lto = true

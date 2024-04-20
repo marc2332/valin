@@ -1,10 +1,12 @@
 use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
-use dioxus::prelude::Coroutine;
 use dioxus_radio::prelude::{Radio, RadioChannel};
 use freya::prelude::Rope;
 
-use crate::lsp::{create_lsp, LSPBridge, LspConfig};
+use crate::{
+    lsp::{create_lsp, LSPBridge, LspConfig},
+    LspStatusSender,
+};
 
 pub type RadioAppState = Radio<AppState, Channel>;
 
@@ -209,12 +211,12 @@ pub struct AppState {
     pub font_size: f32,
     pub line_height: f32,
     pub language_servers: HashMap<String, LSPBridge>,
-    pub lsp_status_coroutine: Coroutine<(String, String)>,
+    pub lsp_sender: LspStatusSender,
     pub side_panel: Option<EditorSidePanel>,
 }
 
 impl AppState {
-    pub fn new(lsp_status_coroutine: Coroutine<(String, String)>) -> Self {
+    pub fn new(lsp_sender: LspStatusSender) -> Self {
         Self {
             previous_focused_view: None,
             focused_view: EditorView::default(),
@@ -223,7 +225,7 @@ impl AppState {
             font_size: 17.0,
             line_height: 1.2,
             language_servers: HashMap::default(),
-            lsp_status_coroutine,
+            lsp_sender,
             side_panel: Some(EditorSidePanel::default()),
         }
     }
@@ -351,16 +353,14 @@ impl AppState {
         self.language_servers.insert(language_server, server);
     }
 
-    pub async fn get_or_insert_lsp(
-        mut app_state: RadioAppState,
-        lsp_config: &LspConfig,
-    ) -> LSPBridge {
-        let server = app_state.read().lsp(lsp_config).cloned();
+    pub async fn get_or_insert_lsp(mut radio: RadioAppState, lsp_config: &LspConfig) -> LSPBridge {
+        let server = { radio.read().lsp(lsp_config).cloned() };
         match server {
             Some(server) => server,
             None => {
-                let server = create_lsp(lsp_config.clone(), &app_state.read()).await;
-                app_state
+                let lsp_sender = radio.read().lsp_sender.clone();
+                let server = create_lsp(lsp_config.clone(), lsp_sender).await;
+                radio
                     .write_channel(Channel::Global)
                     .insert_lsp(lsp_config.language_server.clone(), server.clone());
                 server

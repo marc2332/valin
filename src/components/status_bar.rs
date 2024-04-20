@@ -1,14 +1,12 @@
-use std::collections::HashMap;
-
 use freya::prelude::*;
 
-use crate::state::EditorView;
+use crate::{state::EditorView, LspStatuses};
 
 #[derive(Props, Clone, PartialEq)]
 pub struct StatusBarProps {
     #[props(!optional)]
     cursor: Option<TextCursor>,
-    lsp_messages: Signal<HashMap<String, String>>,
+    lsp_statuses: LspStatuses,
     focused_view: EditorView,
 }
 
@@ -31,7 +29,7 @@ pub fn StatusBar(props: StatusBarProps) -> Element {
                     " | Ln {cursor.row() + 1}, Col {cursor.col() + 1}"
                 }
             }
-            for (name, msg) in props.lsp_messages.read().iter() {
+            for (name, msg) in props.lsp_statuses.read().iter() {
                 label {
                     " | {name} {msg}"
                 }
