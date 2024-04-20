@@ -6,13 +6,13 @@
 
 ![Demo](./demo.png)
 
-Run with `--release` mode if you want max performance.
+You can download it from the [Releases](https://github.com/marc2332/freya-editor/releases) page or run it from source code, with `--release` mode if you want max performance.
 
-## To Do
+## Features
 
 - [x] Open folders
 - [x] Open files
-- [x] Save files (hehe)
+- [x] Save files
 - [x] Generic Syntax highlighting
 - [x] Text editing
 - [x] Text selection
@@ -21,7 +21,7 @@ Run with `--release` mode if you want max performance.
 - [x] Undo
 - [x] Redo
 - [x] Files explorer
-- [ ] Intellisense
+- [ ] Intellisense (Enable with `--lsp`)
   - [x] Hover (exprimental, only rust-analyzer atm)
   - [ ] Autocomplete
   - [ ] Code actions
@@ -33,6 +33,11 @@ Run with `--release` mode if you want max performance.
 - `Esc`: Open Commander
 - `Arrows`: Navigate the files explorer when focused
 - `Alt Arrows`: Scroll the editor and the cursor with increased speed
+- `Alt Arrows`: Scroll the cursor with increased speed  
 - `Ctrl Arrows`: Scroll the cursor with increased speed  
-- `Ctrl Z`: Undo
-- `Ctrl Y`: Redo
+- `Ctrl/Meta Z`: Undo
+- `Ctrl/Meta Y`: Redo
+- `Ctrl/Meta X`: Cut
+- `Ctrl/Meta C`: Copy
+- `Ctrl/Meta V`: paste
+- `Ctrl/Meta S`: Save
