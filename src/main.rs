@@ -153,7 +153,7 @@ fn Body() -> Element {
                                         let panel: &mut Panel = app_state.panel_mut(panel);
                                         let editor = panel.tab_mut(active_tab).as_text_editor_mut();
                                         if let Some(editor) = editor {
-                                            editor.save()
+                                            editor.mark_as_saved()
                                         }
                                     });
                                 }

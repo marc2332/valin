@@ -87,7 +87,7 @@ impl EditorData {
         self.history.current_change() != self.last_saved_history_change
     }
 
-    pub fn save(&mut self) {
+    pub fn mark_as_saved(&mut self) {
         self.last_saved_history_change = self.history.current_change();
     }
 
