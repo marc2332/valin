@@ -16,8 +16,8 @@ Run with `--release` mode if you want max performance.
 - [x] Generic Syntax highlighting
 - [x] Text editing
 - [x] Text selection
-- [ ] Copy
-- [ ] Paste
+- [x] Copy
+- [x] Paste
 - [x] Undo
 - [x] Redo
 - [x] Files explorer
