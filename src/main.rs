@@ -182,6 +182,7 @@ fn Body() -> Element {
 
     rsx!(
         rect {
+            font_size: "14",
             color: "white",
             background: "rgb(20, 20, 20)",
             width: "100%",
@@ -195,7 +196,7 @@ fn Body() -> Element {
                 }
             }
             rect {
-                height: "calc(100% - 25)",
+                height: "calc(100% - 35)",
                 direction: "horizontal",
                 EditorSidebar {}
                 Divider {}

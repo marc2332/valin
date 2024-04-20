@@ -49,8 +49,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
     };
 
     let show_close_panel = panels_len > 1;
-    let tabsbar_tools_width = if show_close_panel { 125 } else { 60 };
-    let extra_container_width = if is_last_panel { 0 } else { 2 };
+    let tabsbar_tools_width = if show_close_panel { 115 } else { 60 };
 
     rsx!(
         rect {
@@ -58,7 +57,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
             height: "100%",
             width: "{width}",
             rect {
-                width: "calc(100% - {extra_container_width})",
+                width: "100%",
                 height: "100%",
                 overflow: "clip",
                 rect {
@@ -87,6 +86,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                         width: "{tabsbar_tools_width}",
                         direction: "horizontal",
                         cross_align: "center",
+                        main_align: "end",
                         height: "100%",
                         if show_close_panel {
                             Button {
