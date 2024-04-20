@@ -5,7 +5,6 @@
 
 mod commands;
 mod components;
-mod history;
 mod hooks;
 mod lsp;
 mod parser;

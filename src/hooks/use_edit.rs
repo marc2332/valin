@@ -18,11 +18,7 @@ use tokio::sync::mpsc::unbounded_channel;
 use torin::geometry::CursorPoint;
 use uuid::Uuid;
 
-use crate::{
-    history::{History, HistoryChange},
-    lsp::LanguageId,
-    state::RadioAppState,
-};
+use crate::{lsp::LanguageId, state::RadioAppState};
 
 use super::UseMetrics;
 
@@ -44,7 +40,7 @@ impl<'a> Iterator for LinesIterator<'a> {
 #[derive(Clone)]
 pub struct EditorData {
     cursor: TextCursor,
-    history: History,
+    history: EditorHistory,
     rope: Rope,
     path: PathBuf,
     pub root_path: PathBuf,
@@ -78,7 +74,7 @@ impl EditorData {
             selected: None,
             language_id,
             root_path,
-            history: History::new(),
+            history: EditorHistory::new(),
             last_saved_history_change: 0,
             clipboard,
         }
@@ -127,7 +123,7 @@ impl TextEditor for EditorData {
     fn insert_char(&mut self, char: char, char_idx: usize) {
         self.history.push_change(HistoryChange::InsertChar {
             idx: char_idx,
-            ch: char,
+            char,
         });
         self.rope.insert_char(char_idx, char);
     }
