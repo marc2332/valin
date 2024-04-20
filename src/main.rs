@@ -22,7 +22,7 @@ use std::{collections::HashMap, rc::Rc};
 use tokio::{fs, io::AsyncWriteExt};
 use utils::*;
 
-use crate::state::{EditorSidePanel, EditorView, Panel, PanelTab};
+use crate::state::{AppStateUtils, EditorSidePanel, EditorView, Panel, PanelTab};
 use crate::{
     commands::{EditorCommand, FontSizeCommand, SplitCommand},
     state::{AppState, Channel},
@@ -128,30 +128,14 @@ fn Body() -> Element {
             } else if e.modifiers == Modifiers::CONTROL {
                 match ch.as_str() {
                     "s" => {
-                        let (focused_view, panel, active_tab) = {
-                            let app_state = radio_app_state.read();
-                            (
-                                *app_state.focused_view(),
-                                app_state.focused_panel,
-                                app_state.panel(app_state.focused_panel).active_tab,
-                            )
-                        };
+                        let (focused_view, panel, active_tab) = radio_app_state.get_focused_data();
 
                         if focused_view == EditorView::CodeEditor {
                             if let Some(active_tab) = active_tab {
-                                let res = {
-                                    let mut app_state = radio_app_state
-                                        .write_channel(Channel::follow_tab(panel, active_tab));
-                                    let panel: &mut Panel = app_state.panel_mut(panel);
-                                    let editor = panel.tab_mut(active_tab).as_text_editor_mut();
-                                    if let Some(editor) = editor {
-                                        Some((editor.path.clone(), editor.rope.clone()))
-                                    } else {
-                                        None
-                                    }
-                                };
+                                let editor_data =
+                                    radio_app_state.get_editor_data(panel, active_tab);
 
-                                if let Some((path, rope)) = res {
+                                if let Some((path, rope)) = editor_data {
                                     spawn(async move {
                                         let mut writer = fs::File::options()
                                             .write(true)
