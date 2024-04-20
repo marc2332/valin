@@ -7,15 +7,13 @@ edition = "2021"
 freya-node-state = { git = "https://github.com/marc2332/freya", rev = "0a1e1d91e80227f16fecbb15a78d684ae299cd2e" }
 freya = { git = "https://github.com/marc2332/freya", rev = "0a1e1d91e80227f16fecbb15a78d684ae299cd2e" }
 freya-common = { git = "https://github.com/marc2332/freya", rev = "0a1e1d91e80227f16fecbb15a78d684ae299cd2e" }
-torin = { git = "https://github.com/marc2332/freya", rev = "0a1e1d91e80227f16fecbb15a78d684ae299cd2e" }
 freya-hooks = { git = "https://github.com/marc2332/freya", rev = "0a1e1d91e80227f16fecbb15a78d684ae299cd2e" }
 
-dioxus-radio = "0.2"
+dioxus-radio = "0.2.4"
 dioxus = "0.5"
 dioxus-sdk = { version = "0.5", features = ["clipboard"]}
 
 tokio = { version = "1.33.0", features = ["fs", "process"]}
-glutin = { version = "0.31.2"}
 winit = "0.29.9"
 skia-safe = { version = "0.72.0", features = ["gl", "textlayout", "svg"] }
 
@@ -31,7 +29,6 @@ futures = "0.3.28"
 async-process = "1.7.0"
 debounced = "0.1.0"
 futures-channel = "0.3.28"
-
 clap = { version = "4.5.4", features = ["derive"]}
 
 [profile.release]

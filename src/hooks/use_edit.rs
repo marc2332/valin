@@ -15,7 +15,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 use tokio::sync::mpsc::unbounded_channel;
-use torin::geometry::CursorPoint;
 use uuid::Uuid;
 
 use crate::{lsp::LanguageId, state::RadioAppState};

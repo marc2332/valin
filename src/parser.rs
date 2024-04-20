@@ -47,7 +47,7 @@ impl From<SyntaxSemantic> for SyntaxType {
     }
 }
 
-pub type SyntaxLine = SmallVec<[(SyntaxType, Range<usize>); 8]>;
+pub type SyntaxLine = SmallVec<[(SyntaxType, Range<usize>); 4]>;
 
 #[derive(Default)]
 pub struct SyntaxBlocks {
@@ -55,7 +55,7 @@ pub struct SyntaxBlocks {
 }
 
 impl SyntaxBlocks {
-    pub fn push_line(&mut self, line: SmallVec<[(SyntaxType, Range<usize>); 8]>) {
+    pub fn push_line(&mut self, line: SyntaxLine) {
         self.blocks.push(line);
     }
 

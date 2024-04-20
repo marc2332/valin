@@ -1317,9 +1317,9 @@ dependencies = [
 
 [[package]]
 name = "dioxus-radio"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "67e651a8dfa205ecee5d8edd91877987d562b1ab9793601de32e715064501f67"
+checksum = "ea121893ada21cc848a39e12cd3fb724e922ad2af06c556722d8ddc500d5ee45"
 dependencies = [
  "dioxus-lib",
  "generational-box",
@@ -1831,7 +1831,6 @@ dependencies = [
  "freya-node-state",
  "futures",
  "futures-channel",
- "glutin",
  "lsp-types",
  "rfd",
  "ropey",
@@ -1839,7 +1838,6 @@ dependencies = [
  "smallvec",
  "tokio",
  "tokio-stream",
- "torin",
  "tower",
  "uuid",
  "winit",

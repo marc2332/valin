@@ -50,7 +50,7 @@ pub enum Channel {
 }
 
 impl RadioChannel<AppState> for Channel {
-    fn derivate_channel(self, app_state: &AppState) -> Vec<Self> {
+    fn derive_channel(self, app_state: &AppState) -> Vec<Self> {
         match self {
             Self::AllTabs => {
                 let mut channels = vec![self, Self::ActiveTab];
