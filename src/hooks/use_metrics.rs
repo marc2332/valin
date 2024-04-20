@@ -58,11 +58,7 @@ impl UseMetrics {
 
         let app_state = self.radio_app_state.read();
 
-        let editor = app_state
-            .panel(self.pane_index)
-            .tab(self.editor_index)
-            .as_text_editor()
-            .unwrap();
+        let editor = app_state.editor(self.pane_index, self.editor_index);
 
         for line in editor.lines() {
             let current_longest_width = longest_line.first().map(|l| l.len()).unwrap_or_default();

@@ -17,25 +17,22 @@ pub fn StatusBar(props: StatusBarProps) -> Element {
     rsx!(
         rect {
             width: "100%",
-            height: "25",
+            height: "fill",
             background: "rgb(20, 20, 20)",
             direction: "horizontal",
             cross_align: "center",
             padding: "0 6",
-            color: "rgb(200, 200, 200)",
+            color: "rgb(220, 220, 220)",
             label {
-                font_size: "14",
                 "{props.focused_view}"
             }
             if let Some(cursor) = props.cursor {
                 label {
-                    font_size: "14",
                     " | Ln {cursor.row() + 1}, Col {cursor.col() + 1}"
                 }
             }
             for (name, msg) in props.lsp_messages.read().iter() {
                 label {
-                    font_size: "14",
                     " | {name} {msg}"
                 }
             }

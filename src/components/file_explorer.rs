@@ -318,8 +318,6 @@ fn file_explorer_item_builder(index: usize, values: &Option<TreeBuilderOptions>)
                 is_focused: is_focused,
                 is_focused_files_explorer: is_focused_files_explorer,
                 label {
-                    font_family: "jetbrains mono",
-                    font_size: "14",
                     max_lines: "1",
                     text_overflow: "ellipsis",
                     "📃 {name}"
@@ -346,8 +344,6 @@ fn file_explorer_item_builder(index: usize, values: &Option<TreeBuilderOptions>)
                 is_focused: is_focused,
                 is_focused_files_explorer: is_focused_files_explorer,
                 label {
-                    font_family: "jetbrains mono",
-                    font_size: "14",
                     max_lines: "1",
                     text_overflow: "ellipsis",
                     "{icon} {name}"

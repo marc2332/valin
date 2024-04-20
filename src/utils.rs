@@ -10,7 +10,7 @@ pub fn Divider() -> Element {
     rsx!(rect {
         background: "rgb(60, 60, 60)",
         height: "100%",
-        width: "2",
+        width: "1",
     })
 }
 
@@ -18,7 +18,7 @@ pub fn Divider() -> Element {
 pub fn VerticalDivider() -> Element {
     rsx!(rect {
         background: "rgb(60, 60, 60)",
-        height: "2",
+        height: "1",
         width: "100%",
     })
 }

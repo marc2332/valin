@@ -65,36 +65,39 @@ pub fn Tab(
                 cross_align: "center",
                 direction: "horizontal",
                 label {
-                    font_family: "jetbrains mono",
-                    width: "calc(100% - 15)",
+                    width: "calc(100% - 16)",
                     max_lines: "1",
                     text_overflow: "ellipsis",
-                    font_size: "14",
                     "{value}"
                 }
                 rect {
-                    width: "15",
-                    height: "20",
+                    width: "16",
                     onclick: move |e| {
                         e.stop_propagation();
                         onclickaction.call(());
                     },
-                    main_align: "center",
-                    cross_align: "center",
-                    corner_radius: "100",
-                    padding: "4",
-                    background: "{background}",
                     if is_edited {
                         rect {
-                            background: "white",
-                            width: "10",
-                            height: "10",
-                            corner_radius: "100",
+                            padding: "6",
+                            rect {
+                                background: "rgb(180, 180, 180)",
+                                width: "10",
+                                height: "10",
+                                corner_radius: "100",
+                            }
                         }
                     } else if is_hovering || is_selected {
-                        label {
-                            font_size: "13",
-                            "X"
+                        Button {
+                            theme: theme_with!(ButtonTheme {
+                                padding: "6".into(),
+                                margin: "0".into(),
+                                corner_radius: "999".into(),
+                                shadow: "none".into(),
+                                border_fill: "none".into(),
+                            }),
+                            CrossIcon {
+                                fill: "rgb(150, 150, 150)",
+                            }
                         }
                     }
                 }
