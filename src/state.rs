@@ -1,11 +1,40 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
 use dioxus::prelude::Coroutine;
 use dioxus_radio::prelude::{Radio, RadioChannel};
+use freya::prelude::Rope;
 
 use crate::lsp::{create_lsp, LSPBridge, LspConfig};
 
 pub type RadioAppState = Radio<AppState, Channel>;
+
+pub trait AppStateUtils {
+    fn get_focused_data(&self) -> (EditorView, usize, Option<usize>);
+
+    fn get_editor_data(&self, panel: usize, editor_id: usize) -> Option<(PathBuf, Rope)>;
+}
+
+impl AppStateUtils for RadioAppState {
+    fn get_focused_data(&self) -> (EditorView, usize, Option<usize>) {
+        let app_state = self.read();
+        (
+            *app_state.focused_view(),
+            app_state.focused_panel,
+            app_state.panel(app_state.focused_panel).active_tab,
+        )
+    }
+
+    fn get_editor_data(&self, panel: usize, editor_id: usize) -> Option<(PathBuf, Rope)> {
+        let app_state = self.read();
+        let panel: &Panel = app_state.panel(panel);
+        let editor = panel.tab(editor_id).as_text_editor();
+        if let Some(editor) = editor {
+            Some((editor.path.clone(), editor.rope.clone()))
+        } else {
+            None
+        }
+    }
+}
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Channel {

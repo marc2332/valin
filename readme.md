@@ -12,7 +12,7 @@ Run with `--release` mode if you want max performance.
 
 - [x] Open folders
 - [x] Open files
-- [ ] Save files (hehe)
+- [x] Save files (hehe)
 - [x] Generic Syntax highlighting
 - [x] Text editing
 - [x] Text selection

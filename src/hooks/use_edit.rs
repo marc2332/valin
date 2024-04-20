@@ -39,19 +39,15 @@ impl<'a> Iterator for LinesIterator<'a> {
 
 #[derive(Clone)]
 pub struct EditorData {
-    cursor: TextCursor,
-    history: EditorHistory,
-    rope: Rope,
-    path: PathBuf,
-    pub root_path: PathBuf,
-    pub language_id: LanguageId,
-
-    /// Selected text range
-    selected: Option<(usize, usize)>,
-
-    clipboard: UseClipboard,
-
-    last_saved_history_change: usize,
+    pub(crate) cursor: TextCursor,
+    pub(crate) history: EditorHistory,
+    pub(crate) rope: Rope,
+    pub(crate) path: PathBuf,
+    pub(crate) root_path: PathBuf,
+    pub(crate) language_id: LanguageId,
+    pub(crate) selected: Option<(usize, usize)>,
+    pub(crate) clipboard: UseClipboard,
+    pub(crate) last_saved_history_change: usize,
 }
 
 impl EditorData {
@@ -88,7 +84,11 @@ impl EditorData {
     }
 
     pub fn is_edited(&self) -> bool {
-        self.history.current_change() > self.last_saved_history_change
+        self.history.current_change() != self.last_saved_history_change
+    }
+
+    pub fn mark_as_saved(&mut self) {
+        self.last_saved_history_change = self.history.current_change();
     }
 
     pub fn path(&self) -> &PathBuf {
@@ -386,9 +386,11 @@ impl UseEdit {
                 let is_plus = e.key == Key::Character("+".to_string());
                 let is_minus = e.key == Key::Character("-".to_string());
                 let is_e = e.key == Key::Character("e".to_string());
+                let is_s = e.key == Key::Character("s".to_string());
 
                 if e.key == Key::Escape
                     || (e.modifiers.contains(Modifiers::ALT) && (is_plus || is_minus || is_e))
+                    || (e.modifiers.contains(Modifiers::CONTROL) && is_s)
                 {
                     return;
                 }
