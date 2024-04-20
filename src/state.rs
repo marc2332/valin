@@ -45,13 +45,15 @@ pub enum Channel {
         panel_index: usize,
         editor_index: usize,
     },
+    /// Only affects the active tab
+    ActiveTab,
 }
 
 impl RadioChannel<AppState> for Channel {
     fn derivate_channel(self, app_state: &AppState) -> Vec<Self> {
         match self {
             Self::AllTabs => {
-                let mut channels = vec![self];
+                let mut channels = vec![self, Self::ActiveTab];
                 channels.extend(
                     app_state
                         .panels
@@ -70,6 +72,21 @@ impl RadioChannel<AppState> for Channel {
                         .collect::<Vec<Self>>(),
                 );
 
+                channels
+            }
+            Self::Tab {
+                panel_index,
+                editor_index,
+            } => {
+                let mut channels = vec![self];
+                if app_state.focused_panel == panel_index {
+                    let panel = app_state.panel(panel_index);
+                    if let Some(active_tab) = panel.active_tab {
+                        if active_tab == editor_index {
+                            channels.push(Self::ActiveTab);
+                        }
+                    }
+                }
                 channels
             }
             _ => vec![self],

@@ -168,19 +168,6 @@ fn Body() -> Element {
     let panels_len = radio_app_state.read().panels().len();
     let panes_width = 100.0 / panels_len as f32;
 
-    let cursor = {
-        let app_state = radio_app_state.read();
-        let panel = app_state.panel(app_state.focused_panel);
-        if let Some(active_tab) = panel.active_tab() {
-            panel
-                .tab(active_tab)
-                .as_text_editor()
-                .map(|editor| editor.cursor())
-        } else {
-            None
-        }
-    };
-
     rsx!(
         rect {
             font_size: "14",
@@ -235,7 +222,6 @@ fn Body() -> Element {
             }
             VerticalDivider {}
             StatusBar {
-                cursor,
                 lsp_statuses,
                 focused_view
             }
