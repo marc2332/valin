@@ -41,11 +41,7 @@ pub fn use_lsp(
             let (file_uri, file_text) = {
                 let app_state = radio.read();
 
-                let editor = app_state
-                    .panel(panel_index)
-                    .tab(editor_index)
-                    .as_text_editor()
-                    .unwrap();
+                let editor = app_state.editor(panel_index, editor_index);
 
                 let path = editor.path();
                 (

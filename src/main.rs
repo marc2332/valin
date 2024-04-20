@@ -22,7 +22,7 @@ use std::{collections::HashMap, rc::Rc};
 use tokio::{fs, io::AsyncWriteExt};
 use utils::*;
 
-use crate::state::{AppStateUtils, EditorSidePanel, EditorView, Panel, PanelTab};
+use crate::state::{AppStateUtils, EditorSidePanel, EditorView, PanelTab};
 use crate::{
     commands::{EditorCommand, FontSizeCommand, SplitCommand},
     state::{AppState, Channel},
@@ -125,42 +125,32 @@ fn Body() -> Element {
                     }
                     _ => {}
                 }
-            } else if e.modifiers == Modifiers::CONTROL {
-                match ch.as_str() {
-                    "s" => {
-                        let (focused_view, panel, active_tab) = radio_app_state.get_focused_data();
+            } else if e.modifiers == Modifiers::CONTROL && ch.as_str() == "s" {
+                let (focused_view, panel, active_tab) = radio_app_state.get_focused_data();
 
-                        if focused_view == EditorView::CodeEditor {
-                            if let Some(active_tab) = active_tab {
-                                let editor_data =
-                                    radio_app_state.get_editor_data(panel, active_tab);
+                if focused_view == EditorView::CodeEditor {
+                    if let Some(active_tab) = active_tab {
+                        let editor_data = radio_app_state.editor_mut_data(panel, active_tab);
 
-                                if let Some((path, rope)) = editor_data {
-                                    spawn(async move {
-                                        let mut writer = fs::File::options()
-                                            .write(true)
-                                            .open(path)
-                                            .await
-                                            .unwrap();
-                                        for chunk in rope.chunks() {
-                                            writer.write_all(chunk.as_bytes()).await.unwrap();
-                                        }
-                                        writer.flush().await.unwrap();
-                                        drop(writer);
-
-                                        let mut app_state = radio_app_state
-                                            .write_channel(Channel::follow_tab(panel, active_tab));
-                                        let panel: &mut Panel = app_state.panel_mut(panel);
-                                        let editor = panel.tab_mut(active_tab).as_text_editor_mut();
-                                        if let Some(editor) = editor {
-                                            editor.mark_as_saved()
-                                        }
-                                    });
+                        if let Some((path, rope)) = editor_data {
+                            spawn(async move {
+                                let mut writer =
+                                    fs::File::options().write(true).open(path).await.unwrap();
+                                for chunk in rope.chunks() {
+                                    writer.write_all(chunk.as_bytes()).await.unwrap();
                                 }
-                            }
+                                writer.flush().await.unwrap();
+                                drop(writer);
+
+                                let mut app_state = radio_app_state
+                                    .write_channel(Channel::follow_tab(panel, active_tab));
+                                let editor = app_state.try_editor_mut(panel, active_tab);
+                                if let Some(editor) = editor {
+                                    editor.mark_as_saved()
+                                }
+                            });
                         }
                     }
-                    _ => {}
                 }
             }
         }

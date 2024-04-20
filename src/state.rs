@@ -11,7 +11,7 @@ pub type RadioAppState = Radio<AppState, Channel>;
 pub trait AppStateUtils {
     fn get_focused_data(&self) -> (EditorView, usize, Option<usize>);
 
-    fn get_editor_data(&self, panel: usize, editor_id: usize) -> Option<(PathBuf, Rope)>;
+    fn editor_mut_data(&self, panel: usize, editor_id: usize) -> Option<(PathBuf, Rope)>;
 }
 
 impl AppStateUtils for RadioAppState {
@@ -24,15 +24,11 @@ impl AppStateUtils for RadioAppState {
         )
     }
 
-    fn get_editor_data(&self, panel: usize, editor_id: usize) -> Option<(PathBuf, Rope)> {
+    fn editor_mut_data(&self, panel: usize, editor_id: usize) -> Option<(PathBuf, Rope)> {
         let app_state = self.read();
         let panel: &Panel = app_state.panel(panel);
         let editor = panel.tab(editor_id).as_text_editor();
-        if let Some(editor) = editor {
-            Some((editor.path.clone(), editor.rope.clone()))
-        } else {
-            None
-        }
+        editor.map(|editor| (editor.path.clone(), editor.rope.clone()))
     }
 }
 
@@ -370,5 +366,22 @@ impl AppState {
                 server
             }
         }
+    }
+
+    pub fn editor(&self, panel: usize, editor_id: usize) -> &EditorData {
+        self.panel(panel).tab(editor_id).as_text_editor().unwrap()
+    }
+
+    pub fn editor_mut(&mut self, panel: usize, editor_id: usize) -> &mut EditorData {
+        self.panel_mut(panel)
+            .tab_mut(editor_id)
+            .as_text_editor_mut()
+            .unwrap()
+    }
+
+    pub fn try_editor_mut(&mut self, panel: usize, editor_id: usize) -> Option<&mut EditorData> {
+        self.panel_mut(panel)
+            .tab_mut(editor_id)
+            .as_text_editor_mut()
     }
 }

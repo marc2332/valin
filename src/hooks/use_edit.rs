@@ -360,11 +360,7 @@ impl UseEdit {
                     .set_cursor_position(Some(coords));
                 let mut app_state = self.radio.write();
 
-                let editor = app_state
-                    .panel_mut(self.pane_index)
-                    .tab_mut(self.editor_index)
-                    .as_text_editor_mut()
-                    .unwrap();
+                let editor = app_state.editor_mut(self.pane_index, self.editor_index);
                 editor.unhighlight();
             }
             EditableEvent::MouseOver(e, id) => {
@@ -397,11 +393,7 @@ impl UseEdit {
 
                 let event = 'key_matcher: {
                     let mut app_state = self.radio.write();
-                    let editor = app_state
-                        .panel_mut(self.pane_index)
-                        .tab_mut(self.editor_index)
-                        .as_text_editor_mut()
-                        .unwrap();
+                    let editor = app_state.editor_mut(self.pane_index, self.editor_index);
 
                     if e.modifiers.contains(Modifiers::CONTROL) {
                         if e.code == Code::KeyZ {
@@ -470,11 +462,7 @@ pub fn use_edit(
                             // Update the cursor position calculated by the layout
                             CursorLayoutResponse::CursorPosition { position, id } => {
                                 let mut app_state = radio.write();
-                                let editor = app_state
-                                    .panel(pane_index)
-                                    .tab(editor_index)
-                                    .as_text_editor()
-                                    .unwrap();
+                                let editor = app_state.editor(pane_index, editor_index);
 
                                 let new_current_line = editor.rope.line(id);
 
@@ -487,11 +475,7 @@ pub fn use_edit(
 
                                 // Only update if it's actually different
                                 if editor.cursor.as_tuple() != new_cursor {
-                                    let editor = app_state
-                                        .panel_mut(pane_index)
-                                        .tab_mut(editor_index)
-                                        .as_text_editor_mut()
-                                        .unwrap();
+                                    let editor = app_state.editor_mut(pane_index, editor_index);
                                     editor.cursor.set_col(new_cursor.0);
                                     editor.cursor.set_row(new_cursor.1);
                                     editor.unhighlight();
@@ -503,11 +487,7 @@ pub fn use_edit(
                             // Update the text selections calculated by the layout
                             CursorLayoutResponse::TextSelection { from, to, id } => {
                                 let mut app_state = radio.write();
-                                let editor = app_state
-                                    .panel_mut(pane_index)
-                                    .tab_mut(editor_index)
-                                    .as_text_editor_mut()
-                                    .unwrap();
+                                let editor = app_state.editor_mut(pane_index, editor_index);
                                 editor.highlight_text(from, to, id);
                                 cursor_reference.set_cursor_selections(None);
                             }
