@@ -2,6 +2,7 @@ use freya::prelude::*;
 use lsp_types::{Hover, HoverParams};
 use std::path::PathBuf;
 use tokio_stream::StreamExt;
+use tracing::info;
 
 use crate::{
     lsp::{LanguageId, LspConfig},
@@ -48,7 +49,6 @@ pub fn use_lsp(
             // Notify language server the file has been opened
             spawn(async move {
                 let mut lsp = AppState::get_or_insert_lsp(radio, &lsp_config).await;
-
                 lsp.open_file(language_id, file_uri, file_text);
             });
         }
@@ -75,10 +75,10 @@ pub fn use_lsp(
                                         *hover_location.write() = None;
                                     }
                                 } else {
-                                    println!("LSP: Still indexing...");
+                                    info!("Language Server is indexing.");
                                 }
                             } else {
-                                println!("LSP: Not running.");
+                                info!("Language Server not running.");
                             }
                         }
                         LspAction::Clear => {

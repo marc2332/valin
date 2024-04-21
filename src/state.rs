@@ -2,6 +2,7 @@ use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
 use dioxus_radio::prelude::{Radio, RadioChannel};
 use freya::prelude::Rope;
+use tracing::info;
 
 use crate::{
     lsp::{create_lsp, LSPBridge, LspConfig},
@@ -311,6 +312,11 @@ impl AppState {
                 self.panels[panel].active_tab = Some(self.panels[panel].tabs.len() - 1);
             }
         }
+
+        info!(
+            "Opened tab [panel={panel}] [tab={}]",
+            self.panels[panel].tabs.len()
+        );
     }
 
     pub fn close_tab(&mut self, panel: usize, tab: usize) {
@@ -329,6 +335,11 @@ impl AppState {
                 self.panels[panel].active_tab = Some(active_tab - 1);
             }
         }
+
+        info!(
+            "Closed tab [panel={panel}] [tab={}]",
+            self.panels[panel].tabs.len()
+        );
 
         let mut panel_tab = self.panels[panel].tabs.remove(tab);
 

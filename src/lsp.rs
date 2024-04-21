@@ -20,6 +20,7 @@ use lsp_types::{
     Url, WindowClientCapabilities, WorkDoneProgress,
 };
 use tower::ServiceBuilder;
+use tracing::info;
 
 use crate::{Args, LspStatusSender};
 
@@ -39,6 +40,7 @@ pub struct LSPBridge {
 
 impl LSPBridge {
     pub fn open_file(&mut self, language_id: LanguageId, file_uri: Url, file_text: String) {
+        info!("Opened document [uri={file_uri}] from [lsp={language_id:?}]");
         self.server_socket
             .did_open(DidOpenTextDocumentParams {
                 text_document: TextDocumentItem {
@@ -52,6 +54,7 @@ impl LSPBridge {
     }
 
     pub fn close_file(&mut self, file_uri: Url) {
+        info!("Closed document [uri={file_uri}] from LSP");
         self.server_socket
             .did_close(DidCloseTextDocumentParams {
                 text_document: TextDocumentIdentifier { uri: file_uri },

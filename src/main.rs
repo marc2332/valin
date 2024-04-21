@@ -21,6 +21,8 @@ use clap::Parser;
 use components::*;
 use freya::prelude::*;
 use hooks::*;
+use tracing::info;
+use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 const CUSTOM_THEME: Theme = Theme {
     button: ButtonTheme {
@@ -39,7 +41,21 @@ struct Args {
 }
 
 fn main() {
+    let subscriber = FmtSubscriber::builder()
+        .with_env_filter(
+            EnvFilter::builder()
+                .with_default_directive("freya_editor=debug".parse().unwrap())
+                .from_env()
+                .unwrap(),
+        )
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+
     let args = Args::parse();
+
+    info!("Starting freya-editor. \n{args:#?}");
+
     launch_cfg(
         || {
             rsx!(

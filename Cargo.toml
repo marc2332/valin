@@ -31,5 +31,8 @@ debounced = "0.1.0"
 futures-channel = "0.3.28"
 clap = { version = "4.5.4", features = ["derive"]}
 
+tracing = "0.1.40"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+
 [profile.release]
 lto = true
