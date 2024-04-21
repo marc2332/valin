@@ -3,7 +3,6 @@ use std::time::Duration;
 
 use crate::hooks::*;
 use crate::lsp::LanguageId;
-use crate::lsp::LspConfig;
 use crate::state::EditorView;
 use crate::tabs::editor::hooks::use_lsp;
 use crate::tabs::editor::BuilderProps;
@@ -42,7 +41,6 @@ pub struct EditorTabProps {
 
 #[allow(non_snake_case)]
 pub fn EditorTab(props: EditorTabProps) -> Element {
-    let lsp_config = LspConfig::new(props.root_path.clone(), props.language_id);
     let mut radio_app_state = use_radio(Channel::follow_tab(props.panel_index, props.editor_index));
     let debouncer = use_debouncer(Duration::from_millis(300));
     let hover_location = use_signal(|| None);
@@ -56,10 +54,10 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
     let cursor_coords = use_signal(CursorPoint::default);
     let mut scroll_offsets = use_signal(|| (0, 0));
     let lsp = use_lsp(
+        props.root_path,
         props.language_id,
         props.panel_index,
         props.editor_index,
-        &lsp_config,
         radio_app_state,
         hover_location,
     );

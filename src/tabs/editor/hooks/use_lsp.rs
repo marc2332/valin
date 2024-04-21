@@ -1,6 +1,6 @@
-use async_lsp::LanguageServer;
 use freya::prelude::*;
-use lsp_types::{DidOpenTextDocumentParams, Hover, HoverParams, TextDocumentItem, Url};
+use lsp_types::{Hover, HoverParams};
+use std::path::PathBuf;
 use tokio_stream::StreamExt;
 
 use crate::{
@@ -26,44 +26,30 @@ impl UseLsp {
 }
 
 pub fn use_lsp(
+    root_path: PathBuf,
     language_id: LanguageId,
     panel_index: usize,
     editor_index: usize,
-    lsp_config: &Option<LspConfig>,
     radio: RadioAppState,
     mut hover_location: Signal<Option<(u32, Hover)>>,
 ) -> UseLsp {
+    let lsp_config = LspConfig::new(root_path, language_id);
+
     use_hook(|| {
         to_owned![lsp_config];
-        let language_id = language_id.to_string();
 
         if let Some(lsp_config) = lsp_config {
             let (file_uri, file_text) = {
                 let app_state = radio.read();
-
                 let editor = app_state.editor(panel_index, editor_index);
-
-                let path = editor.path();
-                (
-                    Url::from_file_path(path).unwrap(),
-                    editor.rope().to_string(),
-                )
+                (editor.uri(), editor.text())
             };
 
             // Notify language server the file has been opened
             spawn(async move {
                 let mut lsp = AppState::get_or_insert_lsp(radio, &lsp_config).await;
 
-                lsp.server_socket
-                    .did_open(DidOpenTextDocumentParams {
-                        text_document: TextDocumentItem {
-                            uri: file_uri,
-                            language_id,
-                            version: 0,
-                            text: file_text,
-                        },
-                    })
-                    .unwrap();
+                lsp.open_file(language_id, file_uri, file_text);
             });
         }
     });
@@ -81,7 +67,7 @@ pub fn use_lsp(
                                 let is_indexed = *lsp.indexed.lock().unwrap();
                                 if is_indexed {
                                     let line = params.text_document_position_params.position.line;
-                                    let response = lsp.server_socket.hover(params).await;
+                                    let response = lsp.hover_file_with_prams(params).await;
 
                                     if let Ok(Some(res)) = response {
                                         *hover_location.write() = Some((line, res));

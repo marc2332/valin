@@ -6,6 +6,7 @@ use freya::prelude::{
 };
 use freya_common::{CursorLayoutResponse, EventMessage};
 use freya_node_state::CursorReference;
+use lsp_types::Url;
 use ropey::iter::Lines;
 use std::{
     cmp::Ordering,
@@ -73,6 +74,14 @@ impl EditorData {
             last_saved_history_change: 0,
             clipboard,
         }
+    }
+
+    pub fn uri(&self) -> Url {
+        Url::from_file_path(&self.path).unwrap()
+    }
+
+    pub fn text(&self) -> String {
+        self.rope.to_string()
     }
 
     pub fn move_cursor_to_idx(&mut self, idx: usize) {

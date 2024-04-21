@@ -313,24 +313,40 @@ impl AppState {
         }
     }
 
-    pub fn close_editor(&mut self, panel: usize, editor: usize) {
+    pub fn close_tab(&mut self, panel: usize, tab: usize) {
         if let Some(active_tab) = self.panels[panel].active_tab {
-            let prev_editor = editor > 0;
-            let next_editor = self.panels[panel].tabs.get(editor + 1).is_some();
-            if active_tab == editor {
-                self.panels[panel].active_tab = if next_editor {
-                    Some(editor)
-                } else if prev_editor {
-                    Some(editor - 1)
+            let prev_tab = tab > 0;
+            let next_tab = self.panels[panel].tabs.get(tab + 1).is_some();
+            if active_tab == tab {
+                self.panels[panel].active_tab = if next_tab {
+                    Some(tab)
+                } else if prev_tab {
+                    Some(tab - 1)
                 } else {
                     None
                 };
-            } else if active_tab >= editor {
+            } else if active_tab >= tab {
                 self.panels[panel].active_tab = Some(active_tab - 1);
             }
         }
 
-        self.panels[panel].tabs.remove(editor);
+        let mut panel_tab = self.panels[panel].tabs.remove(tab);
+
+        // Notify the language server that a document was closed
+        if let Some(text_editor) = panel_tab.as_text_editor_mut() {
+            let language_server_id = text_editor.language_id.language_server();
+
+            // Only if it ever hard LSP support
+            if let Some(language_server_id) = language_server_id {
+                let language_server = self.language_servers.get_mut(language_server_id);
+
+                // And there was an actual language server running
+                if let Some(language_server) = language_server {
+                    let file_uri = text_editor.uri();
+                    language_server.close_file(file_uri);
+                }
+            }
+        }
     }
 
     pub fn push_panel(&mut self, panel: Panel) {
@@ -371,7 +387,7 @@ impl AppState {
     }
 
     pub async fn get_or_insert_lsp(mut radio: RadioAppState, lsp_config: &LspConfig) -> LSPBridge {
-        let server = { radio.read().lsp(lsp_config).cloned() };
+        let server = radio.read().lsp(lsp_config).cloned();
         match server {
             Some(server) => server,
             None => {

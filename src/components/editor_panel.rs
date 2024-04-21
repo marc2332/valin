@@ -209,7 +209,7 @@ fn PanelTab(props: PanelTabProps) -> Element {
         } else {
             radio_app_state
                 .write_channel(Channel::Global)
-                .close_editor(props.panel_index, props.editor_index);
+                .close_tab(props.panel_index, props.editor_index);
         }
     };
 

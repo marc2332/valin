@@ -10,7 +10,11 @@ use async_lsp::tracing::TracingLayer;
 use async_lsp::{LanguageServer, ServerSocket};
 use async_process::Command;
 use freya::prelude::use_context;
-use lsp_types::notification::{Progress, PublishDiagnostics, ShowMessage};
+use lsp_types::{
+    notification::{Progress, PublishDiagnostics, ShowMessage},
+    DidCloseTextDocumentParams, DidOpenTextDocumentParams, HoverParams, TextDocumentIdentifier,
+    TextDocumentItem,
+};
 use lsp_types::{
     ClientCapabilities, InitializeParams, InitializedParams, NumberOrString, ProgressParamsValue,
     Url, WindowClientCapabilities, WorkDoneProgress,
@@ -28,15 +32,45 @@ struct ClientState {
 struct Stop;
 
 #[derive(Clone)]
-pub struct LspConfig {
-    root_dir: PathBuf,
-    pub language_server: String,
-}
-
-#[derive(Clone)]
 pub struct LSPBridge {
     pub indexed: Arc<Mutex<bool>>,
     pub server_socket: ServerSocket,
+}
+
+impl LSPBridge {
+    pub fn open_file(&mut self, language_id: LanguageId, file_uri: Url, file_text: String) {
+        self.server_socket
+            .did_open(DidOpenTextDocumentParams {
+                text_document: TextDocumentItem {
+                    uri: file_uri,
+                    language_id: language_id.to_string(),
+                    version: 0,
+                    text: file_text,
+                },
+            })
+            .unwrap();
+    }
+
+    pub fn close_file(&mut self, file_uri: Url) {
+        self.server_socket
+            .did_close(DidCloseTextDocumentParams {
+                text_document: TextDocumentIdentifier { uri: file_uri },
+            })
+            .unwrap();
+    }
+
+    pub async fn hover_file_with_prams(
+        &mut self,
+        hover_params: HoverParams,
+    ) -> Result<Option<lsp_types::Hover>, async_lsp::Error> {
+        self.server_socket.hover(hover_params).await
+    }
+}
+
+#[derive(Clone)]
+pub struct LspConfig {
+    root_dir: PathBuf,
+    pub language_server: String,
 }
 
 impl LspConfig {
