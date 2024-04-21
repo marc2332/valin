@@ -154,23 +154,18 @@ pub fn App() -> Element {
                     Divider {}
                 }
                 rect {
-                    direction: "vertical",
                     width: "fill",
-                    height: "100%",
-                    rect {
-                        height: "100%",
-                        width: "100%",
-                        direction: "horizontal",
-                        {radio_app_state.read().panels().iter().enumerate().map(|(panel_index, _)| {
-                            rsx!(
-                                EditorPanel {
-                                    key: "{panel_index}",
-                                    panel_index: panel_index,
-                                    width: format!("{panes_width}%")
-                                }
-                            )
-                        })}
-                    }
+                    height: "fill",
+                    direction: "horizontal",
+                    {radio_app_state.read().panels().iter().enumerate().map(|(panel_index, _)| {
+                        rsx!(
+                            EditorPanel {
+                                key: "{panel_index}",
+                                panel_index: panel_index,
+                                width: format!("{panes_width}%")
+                            }
+                        )
+                    })}
                 }
             }
             VerticalDivider {}
