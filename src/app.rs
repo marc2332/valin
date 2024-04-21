@@ -38,8 +38,10 @@ pub fn App() -> Element {
     });
 
     let onsubmitcommander = move |_| {
-        let mut app_state = radio_app_state.write_channel(Channel::Global);
-        app_state.set_focused_view_to_previous();
+        after_tick(move || {
+            let mut app_state = radio_app_state.write_channel(Channel::Global);
+            app_state.set_focused_view_to_previous();
+        })
     };
 
     let onkeydown = move |e: KeyboardEvent| match &e.key {
