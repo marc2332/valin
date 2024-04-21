@@ -35,21 +35,43 @@ pub fn StatusBar(props: StatusBarProps) -> Element {
             background: "rgb(20, 20, 20)",
             direction: "horizontal",
             cross_align: "center",
-            padding: "0 6",
+            padding: "0 2",
             color: "rgb(220, 220, 220)",
-            label {
-                "{props.focused_view}"
+            StatusBarItem {
+                label {
+                    "{props.focused_view}"
+                }
             }
             if let Some(cursor) = cursor {
-                label {
-                    " | Ln {cursor.row() + 1}, Col {cursor.col() + 1}"
+                StatusBarItem {
+                    label {
+                        "Ln {cursor.row() + 1}, Col {cursor.col() + 1}"
+                    }
                 }
             }
             for (name, msg) in props.lsp_statuses.read().iter() {
-                label {
-                    " | {name} {msg}"
+                StatusBarItem {
+                    label {
+                        "{name} {msg}"
+                    }
                 }
             }
+        }
+    )
+}
+
+#[allow(non_snake_case)]
+#[component]
+fn StatusBarItem(children: Element) -> Element {
+    rsx!(
+        Button {
+            theme: theme_with!(ButtonTheme {
+                margin: "2".into(),
+                padding: "4 6".into(),
+                background: "none".into(),
+                border_fill: "none".into(),
+            }),
+            {children}
         }
     )
 }
