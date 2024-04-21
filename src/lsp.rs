@@ -9,7 +9,6 @@ use async_lsp::router::Router;
 use async_lsp::tracing::TracingLayer;
 use async_lsp::{LanguageServer, ServerSocket};
 use async_process::Command;
-use freya::prelude::use_context;
 use lsp_types::{
     notification::{Progress, PublishDiagnostics, ShowMessage},
     DidCloseTextDocumentParams, DidOpenTextDocumentParams, HoverParams, TextDocumentIdentifier,
@@ -22,7 +21,7 @@ use lsp_types::{
 use tower::ServiceBuilder;
 use tracing::info;
 
-use crate::{Args, LspStatusSender};
+use crate::LspStatusSender;
 
 struct ClientState {
     indexed: Arc<Mutex<bool>>,
@@ -78,10 +77,6 @@ pub struct LspConfig {
 
 impl LspConfig {
     pub fn new(root_dir: PathBuf, language_id: LanguageId) -> Option<Self> {
-        let args = use_context::<Arc<Args>>();
-        if !args.lsp {
-            return None;
-        }
         let language_server = language_id.language_server()?.to_string();
 
         Some(Self {
@@ -102,7 +97,7 @@ pub async fn create_lsp(config: LspConfig, lsp_sender: LspStatusSender) -> LSPBr
                 language_server: config.language_server.clone(),
             });
             router
-            .notification::<Progress>(|this, prog| {
+            .notification::<Progress>(|client_state, prog| {
                 if matches!(prog.token, NumberOrString::String(s) if s == "rustAnalyzer/Indexing") {
                     if let ProgressParamsValue::WorkDone(WorkDoneProgress::Report(report)) =
                         &prog.value
@@ -114,8 +109,8 @@ pub async fn create_lsp(config: LspConfig, lsp_sender: LspStatusSender) -> LSPBr
                                 String::default()
                             }
                         });
-                        this.lsp_sender.send((
-                            this.language_server.clone(),
+                        client_state.lsp_sender.send((
+                            client_state.language_server.clone(),
                             format!(
                                 "{} {}",
                                 percentage.unwrap_or_default(),
@@ -127,7 +122,7 @@ pub async fn create_lsp(config: LspConfig, lsp_sender: LspStatusSender) -> LSPBr
                         prog.value,
                         ProgressParamsValue::WorkDone(WorkDoneProgress::End(_))
                     ) {
-                        *this.indexed.lock().unwrap() = true;
+                        *client_state.indexed.lock().unwrap() = true;
                     }
                 }
                 ControlFlow::Continue(())

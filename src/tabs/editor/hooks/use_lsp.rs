@@ -1,12 +1,13 @@
 use freya::prelude::*;
 use lsp_types::{Hover, HoverParams};
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 use tokio_stream::StreamExt;
 use tracing::info;
 
 use crate::{
     lsp::{LanguageId, LspConfig},
     state::{AppState, RadioAppState},
+    Args,
 };
 
 #[derive(Clone, PartialEq)]
@@ -34,7 +35,11 @@ pub fn use_lsp(
     radio: RadioAppState,
     mut hover_location: Signal<Option<(u32, Hover)>>,
 ) -> UseLsp {
-    let lsp_config = LspConfig::new(root_path, language_id);
+    let args = use_context::<Arc<Args>>();
+    let lsp_config = args
+        .lsp
+        .then(|| LspConfig::new(root_path, language_id))
+        .flatten();
 
     use_hook(|| {
         to_owned![lsp_config];
