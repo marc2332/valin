@@ -1,11 +1,11 @@
 use std::time::Duration;
 
-use crate::state::EditorView;
 use crate::tabs::editor::hooks::use_lsp;
 use crate::tabs::editor::BuilderProps;
 use crate::tabs::editor::EditorLine;
 use crate::{components::*, state::Channel};
 use crate::{hooks::*, state::EditorType};
+use crate::{state::EditorView, tabs::editor::hooks::LspAction};
 
 use dioxus_radio::prelude::use_radio;
 use freya::events::KeyboardEvent;
@@ -183,7 +183,18 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
             };
 
             for event in events {
-                editable.process_event(&event);
+                let event = editable.process_event(&event);
+
+                if event.contains(TextEvent::TEXT_CHANGED) {
+                    // TODO: Use the latest change from `EditorHistory`
+                    lsp.send(LspAction::Write(
+                        lsp_types::TextDocumentContentChangeEvent {
+                            range: todo!(),
+                            range_length: None,
+                            text: todo!(),
+                        },
+                    ))
+                }
             }
         }
     };

@@ -48,8 +48,8 @@ impl UseEdit {
     }
 
     /// Process a [`EditableEvent`] event.
-    pub fn process_event(&mut self, edit_event: &EditableEvent) {
-        match edit_event {
+    pub fn process_event(&mut self, edit_event: &EditableEvent) -> TextEvent {
+        let event = match edit_event {
             EditableEvent::MouseDown(e, id) => {
                 let coords = e.get_element_coordinates();
                 *self.selecting_text_with_mouse.write() = Some(coords);
@@ -62,6 +62,8 @@ impl UseEdit {
 
                 let editor = app_state.editor_mut(self.panel_index, self.editor_index);
                 editor.unhighlight();
+
+                TextEvent::default()
             }
             EditableEvent::MouseOver(e, id) => {
                 self.selecting_text_with_mouse.with(|selecting_text| {
@@ -74,9 +76,13 @@ impl UseEdit {
                             .set_cursor_selections(Some((*current_dragging, coords)));
                     }
                 });
+
+                TextEvent::default()
             }
             EditableEvent::Click => {
                 *self.selecting_text_with_mouse.write() = None;
+
+                TextEvent::default()
             }
             EditableEvent::KeyDown(e) => {
                 let is_plus = e.key == Key::Character("+".to_string());
@@ -88,7 +94,7 @@ impl UseEdit {
                     || (e.modifiers.contains(Modifiers::ALT) && (is_plus || is_minus || is_e))
                     || (e.modifiers.contains(Modifiers::CONTROL) && is_s)
                 {
-                    return;
+                    return TextEvent::default();
                 }
 
                 let event = 'key_matcher: {
@@ -113,8 +119,10 @@ impl UseEdit {
                 } else if event.contains(TextEvent::SELECTION_CHANGED) {
                     self.selecting_text_with_mouse.write();
                 }
+
+                event
             }
-        }
+        };
 
         if self.selecting_text_with_mouse.peek().is_some() {
             self.platform
@@ -123,6 +131,8 @@ impl UseEdit {
                 ))
                 .unwrap();
         }
+
+        event
     }
 }
 

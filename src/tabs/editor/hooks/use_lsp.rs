@@ -1,6 +1,8 @@
+use async_lsp::LanguageServer;
 use freya::prelude::*;
 use lsp_types::{
-    Hover, HoverParams, Position, TextDocumentIdentifier, TextDocumentPositionParams, Url,
+    DidChangeTextDocumentParams, Hover, HoverParams, Position, TextDocumentContentChangeEvent,
+    TextDocumentIdentifier, TextDocumentPositionParams, Url, VersionedTextDocumentIdentifier,
     WorkDoneProgressParams,
 };
 use std::sync::Arc;
@@ -15,6 +17,7 @@ use crate::{
 
 #[derive(Clone, PartialEq)]
 pub enum LspAction {
+    Write(TextDocumentContentChangeEvent),
     Hover(Position),
     Clear,
 }
@@ -73,6 +76,8 @@ pub fn use_lsp(
                     .expect("Something went wrong.");
                 let file_uri = Url::from_file_path(file_path).unwrap();
 
+                let mut i = 0;
+
                 while let Some(action) = rx.next().await {
                     let lsp = radio.read().lsp(&lsp_config).cloned();
                     let mut lsp = if let Some(lsp) = lsp {
@@ -89,6 +94,20 @@ pub fn use_lsp(
                     };
 
                     match action {
+                        LspAction::Write(event) => {
+                            lsp.server_socket
+                                .did_change(DidChangeTextDocumentParams {
+                                    text_document: VersionedTextDocumentIdentifier {
+                                        uri: file_uri.clone(),
+
+                                        version: i,
+                                    },
+                                    content_changes: vec![event],
+                                })
+                                .unwrap();
+
+                            i += 1;
+                        }
                         LspAction::Hover(position) => {
                             let line = position.line;
                             let response = lsp
