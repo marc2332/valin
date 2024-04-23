@@ -1,4 +1,7 @@
-use std::path::PathBuf;
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use dioxus_radio::hooks::use_radio;
 use dioxus_sdk::clipboard::use_clipboard;
@@ -6,15 +9,13 @@ use freya::elements as dioxus_elements;
 use freya::prelude::keyboard::Code;
 use freya::prelude::*;
 use futures::StreamExt;
-use tokio::fs::read_to_string;
-use tokio::{
-    fs::{self},
-    io,
-};
+use tokio::io;
 
 use crate::{
+    fs::FSTransport,
     hooks::EditorData,
     state::{AppState, Channel, EditorView, PanelTab},
+    EditorType,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -92,8 +93,8 @@ pub struct FlatItem {
     depth: usize,
 }
 
-async fn read_folder_as_items(dir: &PathBuf) -> io::Result<Vec<TreeItem>> {
-    let mut paths = fs::read_dir(dir).await?;
+async fn read_folder_as_items(dir: &Path, transport: &FSTransport) -> io::Result<Vec<TreeItem>> {
+    let mut paths = transport.read_dir(dir).await?;
     let mut folder_items = Vec::default();
     let mut files_items = Vec::default();
 
@@ -126,8 +127,19 @@ enum TreeTask {
 
 static TREE: GlobalSignal<Option<TreeItem>> = Signal::global(|| None);
 
+#[derive(Clone, Props)]
+pub struct FileExplorerProps {
+    transport: FSTransport,
+}
+
+impl PartialEq for FileExplorerProps {
+    fn eq(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.transport, &other.transport)
+    }
+}
+
 #[allow(non_snake_case)]
-pub fn FileExplorer() -> Element {
+pub fn FileExplorer(FileExplorerProps { transport }: FileExplorerProps) -> Element {
     let clipboard = use_clipboard();
     let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Global); // TODO Use specific
     let is_focused_files_explorer =
@@ -144,6 +156,7 @@ pub fn FileExplorer() -> Element {
     }));
 
     let channel = use_coroutine({
+        to_owned![transport];
         move |mut rx| {
             async move {
                 while let Some((task, item_index)) = rx.next().await {
@@ -157,7 +170,8 @@ pub fn FileExplorer() -> Element {
 
                     match task {
                         TreeTask::OpenFolder(folder_path) => {
-                            if let Ok(items) = read_folder_as_items(&folder_path).await {
+                            if let Ok(items) = read_folder_as_items(&folder_path, &transport).await
+                            {
                                 if let Some(tree) = tree.write().as_mut() {
                                     tree.set_folder_state(
                                         &folder_path,
@@ -172,17 +186,20 @@ pub fn FileExplorer() -> Element {
                             }
                         }
                         TreeTask::OpenFile(file_path) => {
-                            let content = read_to_string(&file_path).await;
+                            let content = transport.read_to_string(&file_path).await;
                             if let Ok(content) = content {
                                 let root_path = tree.read().as_ref().unwrap().path().clone();
                                 let focused_panel = radio_app_state.read().focused_panel();
                                 radio_app_state.write_channel(Channel::Global).push_tab(
                                     PanelTab::TextEditor(EditorData::new(
-                                        file_path.to_path_buf(),
+                                        EditorType::FS {
+                                            path: file_path.to_path_buf(),
+                                            root_path,
+                                        },
                                         Rope::from(content),
                                         (0, 0),
-                                        root_path,
                                         clipboard,
+                                        transport.clone(),
                                     )),
                                     focused_panel,
                                     true,
@@ -198,27 +215,25 @@ pub fn FileExplorer() -> Element {
         }
     });
 
-    let open_dialog = {
-        move |_| {
-            spawn({
-                async move {
-                    let task = rfd::AsyncFileDialog::new().pick_folder();
-                    let folder = task.await;
+    let open_dialog = move |_| {
+        to_owned![transport];
+        spawn(async move {
+            let folder = rfd::AsyncFileDialog::new().pick_folder().await;
 
-                    if let Some(folder) = folder {
-                        let path = folder.path().to_owned();
-                        let items = read_folder_as_items(&path).await.unwrap_or_default();
-                        *tree.write() = Some(TreeItem::Folder {
-                            path,
-                            state: FolderState::Opened(items),
-                        });
-                        radio_app_state
-                            .write_channel(Channel::Global)
-                            .set_focused_view(EditorView::FilesExplorer);
-                    }
-                }
-            });
-        }
+            if let Some(folder) = folder {
+                let path = folder.path().to_owned();
+                let items = read_folder_as_items(&path, &transport)
+                    .await
+                    .unwrap_or_default();
+                *tree.write() = Some(TreeItem::Folder {
+                    path,
+                    state: FolderState::Opened(items),
+                });
+                radio_app_state
+                    .write_channel(Channel::Global)
+                    .set_focused_view(EditorView::FilesExplorer);
+            }
+        });
     };
 
     let onkeydown = move |ev: KeyboardEvent| {

@@ -1,10 +1,7 @@
 use std::sync::Arc;
 
 use freya::prelude::*;
-use lsp_types::{
-    Hover, HoverParams, Position, TextDocumentIdentifier, TextDocumentPositionParams, Url,
-    WorkDoneProgressParams,
-};
+use lsp_types::{Hover, Position};
 
 use crate::tabs::editor::hooks::LspAction;
 use crate::tabs::editor::hover_box::HoverBox;
@@ -19,7 +16,6 @@ pub type BuilderProps = (
     hooks::UseMetrics,
     hooks::UseEdit,
     UseLsp,
-    Url,
     Rope,
     Signal<Option<(u32, Hover)>>,
     Signal<CursorPoint>,
@@ -58,7 +54,6 @@ pub fn EditorLine(
         metrics,
         mut editable,
         lsp,
-        file_uri,
         rope,
         hover_location,
         mut cursor_coords,
@@ -80,7 +75,7 @@ pub fn EditorLine(
     };
 
     let onmouseover = {
-        to_owned![file_uri, rope];
+        to_owned![rope];
         move |e: MouseEvent| {
             let line_str = rope.line(line_index).to_string();
             let coords = e.get_element_coordinates();
@@ -97,21 +92,15 @@ pub fn EditorLine(
             let paragraph = create_paragraph(&line_str, font_size);
 
             if (coords.x as f32) < paragraph.max_intrinsic_width() {
-                to_owned![file_uri];
                 debouncer.action(move || {
                     let coords = cursor_coords.read();
                     let glyph = paragraph
                         .get_glyph_position_at_coordinate((coords.x as i32, coords.y as i32));
 
-                    lsp.send(LspAction::Hover(HoverParams {
-                        text_document_position_params: TextDocumentPositionParams {
-                            text_document: TextDocumentIdentifier {
-                                uri: file_uri.clone(),
-                            },
-                            position: Position::new(line_index as u32, glyph.position as u32),
-                        },
-                        work_done_progress_params: WorkDoneProgressParams::default(),
-                    }));
+                    lsp.send(LspAction::Hover(Position::new(
+                        line_index as u32,
+                        glyph.position as u32,
+                    )));
                 });
             } else {
                 lsp.send(LspAction::Clear);

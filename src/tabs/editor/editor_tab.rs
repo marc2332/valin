@@ -1,8 +1,6 @@
-use std::path::PathBuf;
 use std::time::Duration;
 
 use crate::hooks::*;
-use crate::lsp::LanguageId;
 use crate::state::EditorView;
 use crate::tabs::editor::hooks::use_lsp;
 use crate::tabs::editor::BuilderProps;
@@ -15,7 +13,6 @@ use freya::prelude::keyboard::Key;
 use freya::prelude::keyboard::Modifiers;
 use freya::prelude::*;
 
-use lsp_types::Url;
 use winit::window::CursorIcon;
 
 static LINES_JUMP_ALT: usize = 5;
@@ -35,8 +32,7 @@ pub enum EditorStatus {
 pub struct EditorTabProps {
     pub panel_index: usize,
     pub editor_index: usize,
-    pub language_id: LanguageId,
-    pub root_path: PathBuf,
+    pub editor_type: EditorType,
 }
 
 #[allow(non_snake_case)]
@@ -54,8 +50,7 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
     let cursor_coords = use_signal(CursorPoint::default);
     let mut scroll_offsets = use_signal(|| (0, 0));
     let lsp = use_lsp(
-        props.root_path,
-        props.language_id,
+        props.editor_type,
         props.panel_index,
         props.editor_index,
         radio_app_state,
@@ -194,19 +189,17 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
     };
 
     let editor = panel.tab(props.editor_index).as_text_editor().unwrap();
-    let path = editor.path();
     let cursor = editor.cursor();
-    let file_uri = Url::from_file_path(path).unwrap();
 
     rsx!(
         rect {
             width: "100%",
             height: "100%",
-            onmouseenter: onmouseenter,
-            onmouseleave: onmouseleave,
-            onkeydown: onkeydown,
-            onglobalclick: onglobalclick,
-            onclick: onclick,
+            onmouseenter,
+            onmouseleave,
+            onkeydown,
+            onglobalclick,
+            onclick,
             cursor_reference,
             direction: "horizontal",
             background: "rgb(40, 40, 40)",
@@ -214,10 +207,10 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
             EditorScrollView {
                 offset_x: scroll_offsets.read().0,
                 offset_y: scroll_offsets.read().1,
-                onscroll: onscroll,
+                onscroll,
                 length: metrics.get().0.len(),
                 item_size: manual_line_height,
-                builder_args: (cursor, metrics, editable, lsp, file_uri, editor.rope().clone(), hover_location, cursor_coords, debouncer, font_size),
+                builder_args: (cursor, metrics, editable, lsp, editor.rope().clone(), hover_location, cursor_coords, debouncer, font_size),
                 builder: move |i: usize, options: &BuilderProps| rsx!(
                     EditorLine {
                         key: "{i}",

@@ -7,6 +7,7 @@ mod app;
 mod commands;
 mod components;
 mod constants;
+mod fs;
 mod hooks;
 mod lsp;
 mod parser;

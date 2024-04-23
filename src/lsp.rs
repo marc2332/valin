@@ -1,5 +1,4 @@
 use std::ops::ControlFlow;
-use std::path::PathBuf;
 use std::process::Stdio;
 use std::sync::{Arc, Mutex};
 
@@ -21,30 +20,34 @@ use lsp_types::{
 use tower::ServiceBuilder;
 use tracing::info;
 
-use crate::LspStatusSender;
+use crate::{EditorType, LspStatusSender};
 
 struct ClientState {
-    indexed: Arc<Mutex<bool>>,
-    lsp_sender: LspStatusSender,
-    language_server: String,
+    pub(crate) indexed: Arc<Mutex<bool>>,
+    pub(crate) lsp_sender: LspStatusSender,
+    pub(crate) language_server: String,
 }
 
 struct Stop;
 
 #[derive(Clone)]
 pub struct LSPBridge {
-    pub indexed: Arc<Mutex<bool>>,
-    pub server_socket: ServerSocket,
+    pub(crate) indexed: Arc<Mutex<bool>>,
+    pub(crate) server_socket: ServerSocket,
+    pub(crate) language_id: LanguageId,
 }
 
 impl LSPBridge {
-    pub fn open_file(&mut self, language_id: LanguageId, file_uri: Url, file_text: String) {
-        info!("Opened document [uri={file_uri}] from [lsp={language_id:?}]");
+    pub fn open_file(&mut self, file_uri: Url, file_text: String) {
+        info!(
+            "Opened document [uri={file_uri}] from [lsp={:?}]",
+            self.language_id
+        );
         self.server_socket
             .did_open(DidOpenTextDocumentParams {
                 text_document: TextDocumentItem {
                     uri: file_uri,
-                    language_id: language_id.to_string(),
+                    language_id: self.language_id.to_string(),
                     version: 0,
                     text: file_text,
                 },
@@ -71,16 +74,16 @@ impl LSPBridge {
 
 #[derive(Clone)]
 pub struct LspConfig {
-    root_dir: PathBuf,
-    pub language_server: String,
+    pub(crate) editor_type: EditorType,
+    pub(crate) language_server: String,
 }
 
 impl LspConfig {
-    pub fn new(root_dir: PathBuf, language_id: LanguageId) -> Option<Self> {
-        let language_server = language_id.language_server()?.to_string();
+    pub fn new(editor_type: EditorType) -> Option<Self> {
+        let language_server = editor_type.language_id().language_server()?.to_string();
 
         Some(Self {
-            root_dir,
+            editor_type,
             language_server,
         })
     }
@@ -88,6 +91,7 @@ impl LspConfig {
 
 pub async fn create_lsp(config: LspConfig, lsp_sender: LspStatusSender) -> LSPBridge {
     let indexed = Arc::new(Mutex::new(false));
+    let (_, root_path) = config.editor_type.paths().expect("Something went wrong.");
 
     let (mainloop, mut server) =
         async_lsp::MainLoop::new_client(|_server| {
@@ -139,7 +143,7 @@ pub async fn create_lsp(config: LspConfig, lsp_sender: LspStatusSender) -> LSPBr
         });
 
     let child = Command::new(config.language_server)
-        .current_dir(&config.root_dir)
+        .current_dir(root_path)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
@@ -153,7 +157,7 @@ pub async fn create_lsp(config: LspConfig, lsp_sender: LspStatusSender) -> LSPBr
     });
 
     // Initialize.
-    let root_uri = Url::from_file_path(&config.root_dir).unwrap();
+    let root_uri = Url::from_file_path(root_path).unwrap();
     let _init_ret = server
         .initialize(InitializeParams {
             root_uri: Some(root_uri),
@@ -173,6 +177,7 @@ pub async fn create_lsp(config: LspConfig, lsp_sender: LspStatusSender) -> LSPBr
     LSPBridge {
         indexed,
         server_socket: server,
+        language_id: config.editor_type.language_id(),
     }
 }
 

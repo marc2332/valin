@@ -128,8 +128,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                                             key: "{tab_data.id}",
                                             panel_index,
                                             editor_index: active_tab_index,
-                                            language_id: editor.language_id,
-                                            root_path: editor.root_path.clone()
+                                            editor_type: editor.editor_type.clone()
                                         }
                                     )
                                 }

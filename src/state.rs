@@ -5,6 +5,7 @@ use freya::prelude::Rope;
 use tracing::info;
 
 use crate::{
+    fs::FSTransport,
     lsp::{create_lsp, LSPBridge, LspConfig},
     LspStatusSender,
 };
@@ -14,7 +15,11 @@ pub type RadioAppState = Radio<AppState, Channel>;
 pub trait AppStateUtils {
     fn get_focused_data(&self) -> (EditorView, usize, Option<usize>);
 
-    fn editor_mut_data(&self, panel: usize, editor_id: usize) -> Option<(PathBuf, Rope)>;
+    fn editor_mut_data(
+        &self,
+        panel: usize,
+        editor_id: usize,
+    ) -> Option<(Option<PathBuf>, Rope, FSTransport)>;
 }
 
 impl AppStateUtils for RadioAppState {
@@ -27,11 +32,21 @@ impl AppStateUtils for RadioAppState {
         )
     }
 
-    fn editor_mut_data(&self, panel: usize, editor_id: usize) -> Option<(PathBuf, Rope)> {
+    fn editor_mut_data(
+        &self,
+        panel: usize,
+        editor_id: usize,
+    ) -> Option<(Option<PathBuf>, Rope, FSTransport)> {
         let app_state = self.read();
         let panel: &Panel = app_state.panel(panel);
         let editor = panel.tab(editor_id).as_text_editor();
-        editor.map(|editor| (editor.path.clone(), editor.rope.clone()))
+        editor.map(|editor| {
+            (
+                editor.path().cloned(),
+                editor.rope.clone(),
+                editor.transport.clone(),
+            )
+        })
     }
 }
 
@@ -128,17 +143,14 @@ impl PanelTab {
                 title: "Config".to_string(),
                 edited: false,
             },
-            PanelTab::TextEditor(editor) => PanelTabData {
-                id: editor.path().to_str().unwrap().to_owned(),
-                title: editor
-                    .path()
-                    .file_name()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-                    .to_owned(),
-                edited: editor.is_edited(),
-            },
+            PanelTab::TextEditor(editor) => {
+                let (title, id) = editor.editor_type.title_and_id();
+                PanelTabData {
+                    id,
+                    title,
+                    edited: editor.is_edited(),
+                }
+            }
             PanelTab::Welcome => PanelTabData {
                 id: "welcome".to_string(),
                 title: "Welcome".to_string(),
@@ -345,7 +357,8 @@ impl AppState {
 
         // Notify the language server that a document was closed
         if let Some(text_editor) = panel_tab.as_text_editor_mut() {
-            let language_server_id = text_editor.language_id.language_server();
+            let language_id = text_editor.editor_type.language_id();
+            let language_server_id = language_id.language_server();
 
             // Only if it ever hard LSP support
             if let Some(language_server_id) = language_server_id {
@@ -354,7 +367,9 @@ impl AppState {
                 // And there was an actual language server running
                 if let Some(language_server) = language_server {
                     let file_uri = text_editor.uri();
-                    language_server.close_file(file_uri);
+                    if let Some(file_uri) = file_uri {
+                        language_server.close_file(file_uri);
+                    }
                 }
             }
         }

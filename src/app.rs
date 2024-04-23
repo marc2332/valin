@@ -1,12 +1,15 @@
-use crate::components::*;
 use crate::constants::{BASE_FONT_SIZE, MAX_FONT_SIZE};
 use crate::hooks::*;
 use crate::utils::*;
+use crate::{
+    components::*,
+    fs::{FSLocal, FSTransport},
+};
 use dioxus_radio::prelude::*;
 use freya::prelude::keyboard::{Key, Modifiers};
 use freya::prelude::*;
-use std::rc::Rc;
-use tokio::{fs, io::AsyncWriteExt};
+use std::{rc::Rc, sync::Arc};
+use tokio::{fs::OpenOptions, io::AsyncWriteExt};
 
 use crate::state::{AppStateUtils, EditorSidePanel, EditorView, PanelTab};
 use crate::{
@@ -85,10 +88,12 @@ pub fn App() -> Element {
                     if let Some(active_tab) = active_tab {
                         let editor_data = radio_app_state.editor_mut_data(panel, active_tab);
 
-                        if let Some((path, rope)) = editor_data {
+                        if let Some((Some(file_path), rope, transport)) = editor_data {
                             spawn(async move {
-                                let mut writer =
-                                    fs::File::options().write(true).open(path).await.unwrap();
+                                let mut writer = transport
+                                    .open(&file_path, OpenOptions::default().write(true))
+                                    .await
+                                    .unwrap();
                                 for chunk in rope.chunks() {
                                     writer.write_all(chunk.as_bytes()).await.unwrap();
                                 }
@@ -121,6 +126,8 @@ pub fn App() -> Element {
     let panels_len = radio_app_state.read().panels().len();
     let panes_width = 100.0 / panels_len as f32;
 
+    let default_transport = use_hook::<FSTransport>(|| Arc::new(Box::new(FSLocal)));
+
     rsx!(
         rect {
             font_size: "14",
@@ -146,7 +153,9 @@ pub fn App() -> Element {
                         match side_panel {
                             EditorSidePanel::FileExplorer => {
                                 rsx!(
-                                    FileExplorer {}
+                                    FileExplorer {
+                                        transport: default_transport
+                                    }
                                 )
                             }
                         }

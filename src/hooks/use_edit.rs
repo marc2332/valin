@@ -18,7 +18,7 @@ use std::{
 use tokio::sync::mpsc::unbounded_channel;
 use uuid::Uuid;
 
-use crate::{lsp::LanguageId, state::RadioAppState};
+use crate::{fs::FSTransport, lsp::LanguageId, state::RadioAppState};
 
 use super::UseMetrics;
 
@@ -37,47 +37,83 @@ impl<'a> Iterator for LinesIterator<'a> {
     }
 }
 
+#[derive(Clone, PartialEq)]
+pub enum EditorType {
+    #[allow(dead_code)]
+    Memory {
+        title: String,
+        id: String,
+    },
+    FS {
+        path: PathBuf,
+        root_path: PathBuf,
+    },
+}
+
+impl EditorType {
+    pub fn title_and_id(&self) -> (String, String) {
+        match self {
+            Self::Memory { title, id } => (title.clone(), id.clone()),
+            Self::FS { path, .. } => (
+                path.file_name().unwrap().to_str().unwrap().to_owned(),
+                path.to_str().unwrap().to_owned(),
+            ),
+        }
+    }
+
+    pub fn paths(&self) -> Option<(&PathBuf, &PathBuf)> {
+        match self {
+            #[allow(unused_variables)]
+            Self::Memory { title, id } => None,
+            Self::FS { path, root_path } => Some((path, root_path)),
+        }
+    }
+
+    pub fn language_id(&self) -> LanguageId {
+        if let Some(ext) = self.paths().and_then(|(path, _)| path.extension()) {
+            LanguageId::parse(ext.to_str().unwrap())
+        } else {
+            LanguageId::default()
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct EditorData {
+    pub(crate) editor_type: EditorType,
     pub(crate) cursor: TextCursor,
     pub(crate) history: EditorHistory,
     pub(crate) rope: Rope,
-    pub(crate) path: PathBuf,
-    pub(crate) root_path: PathBuf,
-    pub(crate) language_id: LanguageId,
     pub(crate) selected: Option<(usize, usize)>,
     pub(crate) clipboard: UseClipboard,
     pub(crate) last_saved_history_change: usize,
+    pub(crate) transport: FSTransport,
 }
 
 impl EditorData {
     pub fn new(
-        path: PathBuf,
+        editor_type: EditorType,
         rope: Rope,
         (row, col): (usize, usize),
-        root_path: PathBuf,
         clipboard: UseClipboard,
+        transport: FSTransport,
     ) -> Self {
-        let language_id = if let Some(ext) = path.extension() {
-            LanguageId::parse(ext.to_str().unwrap())
-        } else {
-            LanguageId::default()
-        };
         Self {
-            path,
+            editor_type,
             rope,
             cursor: TextCursor::new(row, col),
             selected: None,
-            language_id,
-            root_path,
             history: EditorHistory::new(),
             last_saved_history_change: 0,
             clipboard,
+            transport,
         }
     }
 
-    pub fn uri(&self) -> Url {
-        Url::from_file_path(&self.path).unwrap()
+    pub fn uri(&self) -> Option<Url> {
+        self.editor_type
+            .paths()
+            .and_then(|(path, _)| Url::from_file_path(path).ok())
     }
 
     pub fn text(&self) -> String {
@@ -99,8 +135,8 @@ impl EditorData {
         self.last_saved_history_change = self.history.current_change();
     }
 
-    pub fn path(&self) -> &PathBuf {
-        &self.path
+    pub fn path(&self) -> Option<&PathBuf> {
+        self.editor_type.paths().map(|(path, _)| path)
     }
 
     pub fn cursor(&self) -> TextCursor {
