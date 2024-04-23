@@ -145,13 +145,12 @@ pub fn FileExplorer(FileExplorerProps { transport }: FileExplorerProps) -> Eleme
     let mut focused_item = use_signal(|| 0);
     let mut tree = TREE.signal();
 
-    let items = use_memo(use_reactive(&tree, move |tree| {
-        if let Some(tree) = tree.read().as_ref() {
-            tree.flat(0)
-        } else {
-            vec![]
-        }
-    }));
+    let items = use_memo(move || {
+        tree.read()
+            .as_ref()
+            .map(|tree| tree.flat(0))
+            .unwrap_or_default()
+    });
 
     let channel = use_coroutine({
         to_owned![transport];
