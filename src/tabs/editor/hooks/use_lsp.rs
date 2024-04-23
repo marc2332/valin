@@ -21,12 +21,18 @@ pub enum LspAction {
 
 #[derive(Clone, PartialEq, Copy)]
 pub struct UseLsp {
-    lsp_coroutine: Coroutine<LspAction>,
+    pub(crate) lsp_coroutine: Option<Coroutine<LspAction>>,
 }
 
 impl UseLsp {
+    pub fn is_supported(&self) -> bool {
+        self.lsp_coroutine.is_some()
+    }
+
     pub fn send(&self, action: LspAction) {
-        self.lsp_coroutine.send(action)
+        if let Some(lsp_coroutine) = self.lsp_coroutine {
+            lsp_coroutine.send(action)
+        }
     }
 }
 
@@ -40,10 +46,10 @@ pub fn use_lsp(
     let args = use_context::<Arc<Args>>();
     let lsp_config = args.lsp.then(|| LspConfig::new(editor_type)).flatten();
 
-    use_hook(|| {
-        to_owned![lsp_config];
+    let lsp_coroutine = if let Some(lsp_config) = lsp_config {
+        use_hook(|| {
+            to_owned![lsp_config];
 
-        if let Some(lsp_config) = lsp_config {
             let (file_uri, file_text) = {
                 let app_state = radio.read();
                 let editor = app_state.editor(panel_index, editor_index);
@@ -57,13 +63,10 @@ pub fn use_lsp(
                     lsp.open_file(file_uri, file_text);
                 });
             }
-        }
-    });
+        });
 
-    let lsp_coroutine = use_coroutine(|mut rx: UnboundedReceiver<LspAction>| {
-        to_owned![lsp_config];
-        async move {
-            if let Some(lsp_config) = lsp_config {
+        Some(use_coroutine(
+            move |mut rx: UnboundedReceiver<LspAction>| async move {
                 let (file_path, _) = lsp_config
                     .editor_type
                     .paths()
@@ -111,9 +114,11 @@ pub fn use_lsp(
                         }
                     }
                 }
-            }
-        }
-    });
+            },
+        ))
+    } else {
+        None
+    };
 
     UseLsp { lsp_coroutine }
 }

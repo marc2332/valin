@@ -1,20 +1,20 @@
-use std::sync::Arc;
-
 use freya::prelude::*;
 use lsp_types::{Hover, Position};
 
 use crate::tabs::editor::hooks::LspAction;
 use crate::tabs::editor::hover_box::HoverBox;
 use crate::tabs::editor::lsp::HoverToText;
-use crate::{hooks, Args};
-use crate::{hooks::UseDebouncer, utils::create_paragraph};
+use crate::{
+    hooks::{UseDebouncer, UseEdit, UseMetrics},
+    utils::create_paragraph,
+};
 
 use super::hooks::UseLsp;
 
 pub type BuilderProps = (
     TextCursor,
-    hooks::UseMetrics,
-    hooks::UseEdit,
+    UseMetrics,
+    UseEdit,
     UseLsp,
     Rope,
     Signal<Option<(u32, Hover)>>,
@@ -48,7 +48,6 @@ pub fn EditorLine(
         line_height,
     }: EditorLineProps,
 ) -> Element {
-    let args = use_context::<Arc<Args>>();
     let (
         cursor,
         metrics,
@@ -65,12 +64,9 @@ pub fn EditorLine(
         editable.process_event(&EditableEvent::MouseDown(e.data, line_index));
     };
 
-    let onmouseleave = {
-        to_owned![args];
-        move |_| {
-            if args.lsp {
-                lsp.send(LspAction::Clear);
-            }
+    let onmouseleave = move |_| {
+        if lsp.is_supported() {
+            lsp.send(LspAction::Clear);
         }
     };
 
@@ -83,7 +79,7 @@ pub fn EditorLine(
 
             editable.process_event(&EditableEvent::MouseOver(data, line_index));
 
-            if !args.lsp {
+            if !lsp.is_supported() {
                 return;
             }
 
