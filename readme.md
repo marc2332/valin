@@ -1,12 +1,14 @@
 [![Discord Server](https://img.shields.io/discord/1015005816094478347.svg?logo=discord&style=flat-square)](https://discord.gg/SNcFbYmzbq)
 
-# freya-editor 
+# Valin ⚒️
 
-⚠️ This is a **work in progress experimental** code editor using [Freya 🦀](https://github.com/marc2332/freya).
+**Valin** ⚒️ is a **Work-In-Progress** cross-platform code editor, made with [Freya 🦀](https://github.com/marc2332/freya) and Rust.
+
+> **Valin** name is derived from [Dvalinn](https://en.wikipedia.org/wiki/Dvalinn) and it was previously known as `freya-editor`.
 
 ![Demo](./demo.png)
 
-You can download it from the [Releases](https://github.com/marc2332/freya-editor/releases) page or run it from source code, with `--release` mode if you want max performance.
+You can download it from the [Releases](https://github.com/marc2332/valin/releases) page or run it from source code, with `--release` mode if you want max performance.
 
 ## Features
 

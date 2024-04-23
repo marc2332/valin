@@ -1815,37 +1815,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "freya-editor"
-version = "0.1.0"
-dependencies = [
- "async-lsp",
- "async-process",
- "async-trait",
- "clap",
- "debounced",
- "dioxus",
- "dioxus-radio",
- "dioxus-sdk",
- "freya",
- "freya-hooks",
- "freya-node-state",
- "futures",
- "futures-channel",
- "lsp-types",
- "rfd",
- "ropey",
- "skia-safe",
- "smallvec",
- "tokio",
- "tokio-stream",
- "tower",
- "tracing",
- "tracing-subscriber",
- "uuid",
- "winit",
-]
-
-[[package]]
 name = "freya-elements"
 version = "0.1.0"
 source = "git+https://github.com/marc2332/freya?rev=1b1eb3ea7179dfc3b1840f9ba306c4e58d7ca4b1#1b1eb3ea7179dfc3b1840f9ba306c4e58d7ca4b1"
@@ -4792,6 +4761,37 @@ checksum = "5e395fcf16a7a3d8127ec99782007af141946b4795001f876d54fb0d55978560"
 dependencies = [
  "getrandom",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "valin"
+version = "0.1.0"
+dependencies = [
+ "async-lsp",
+ "async-process",
+ "async-trait",
+ "clap",
+ "debounced",
+ "dioxus",
+ "dioxus-radio",
+ "dioxus-sdk",
+ "freya",
+ "freya-hooks",
+ "freya-node-state",
+ "futures",
+ "futures-channel",
+ "lsp-types",
+ "rfd",
+ "ropey",
+ "skia-safe",
+ "smallvec",
+ "tokio",
+ "tokio-stream",
+ "tower",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "winit",
 ]
 
 [[package]]

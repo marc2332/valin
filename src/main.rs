@@ -45,7 +45,7 @@ fn main() {
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(
             EnvFilter::builder()
-                .with_default_directive("freya_editor=debug".parse().unwrap())
+                .with_default_directive("valin=debug".parse().unwrap())
                 .from_env()
                 .unwrap(),
         )
@@ -55,7 +55,7 @@ fn main() {
 
     let args = Args::parse();
 
-    info!("Starting freya-editor. \n{args:#?}");
+    info!("Starting valin. \n{args:#?}");
 
     launch_cfg(
         || {
@@ -66,7 +66,7 @@ fn main() {
         LaunchConfig::<Arc<Args>>::builder()
             .with_width(900.0)
             .with_height(600.0)
-            .with_title("freya-editor")
+            .with_title("Valin")
             .with_state(Arc::new(args))
             .build(),
     );

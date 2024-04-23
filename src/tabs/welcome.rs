@@ -16,10 +16,10 @@ pub fn WelcomeTab() -> Element {
                 }
             }
             Link {
-                to: "https://github.com/marc2332/freya-editor",
+                to: "https://github.com/marc2332/valin",
                 tooltip: LinkTooltip::None,
                 label {
-                    "freya-editor source code"
+                    "Valin source code"
                 }
             }
         }
