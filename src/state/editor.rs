@@ -3,9 +3,10 @@ use std::{cmp::Ordering, fmt::Display, ops::Range, path::PathBuf};
 use dioxus_sdk::clipboard::UseClipboard;
 use freya::hooks::{EditorHistory, HistoryChange, Line, TextCursor, TextEditor};
 use freya::prelude::Rope;
+use freya_hooks::LinesIterator;
 use lsp_types::Url;
 
-use crate::{fs::FSTransport, hooks::LinesIterator, lsp::LanguageId};
+use crate::{fs::FSTransport, lsp::LanguageId};
 
 #[derive(Clone, PartialEq)]
 pub enum EditorType {

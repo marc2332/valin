@@ -7,7 +7,6 @@ use freya::prelude::{
 };
 use freya_node_state::CursorReference;
 
-use ropey::iter::Lines;
 use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::unbounded_channel;
 use uuid::Uuid;
@@ -15,21 +14,6 @@ use uuid::Uuid;
 use crate::state::RadioAppState;
 
 use super::UseMetrics;
-
-/// Iterator over text lines.
-pub struct LinesIterator<'a> {
-    pub(crate) lines: Lines<'a>,
-}
-
-impl<'a> Iterator for LinesIterator<'a> {
-    type Item = Line<'a>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let line = self.lines.next();
-
-        line.map(|line| Line { text: line.into() })
-    }
-}
 
 /// Manage an editable content.
 #[derive(Clone, Copy, PartialEq)]
