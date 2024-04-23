@@ -103,30 +103,46 @@ pub async fn create_lsp(config: LspConfig, lsp_sender: LspStatusSender) -> LSPBr
             router
             .notification::<Progress>(|client_state, prog| {
                 if matches!(prog.token, NumberOrString::String(s) if s == "rustAnalyzer/Indexing") {
-                    if let ProgressParamsValue::WorkDone(WorkDoneProgress::Report(report)) =
-                        &prog.value
-                    {
-                        let percentage = report.percentage.map(|v| {
-                            if v < 100 {
-                                format!("{v}%")
-                            } else {
-                                String::default()
+                    match prog.value {
+                        ProgressParamsValue::WorkDone(WorkDoneProgress::Begin(begin)) => {
+                            *client_state.indexed.lock().unwrap() = false;
+
+                            let mut content =  begin.title;
+
+                            if let Some(message) = begin.message {
+                                content.push(' ');
+                                content.push_str(&message);
                             }
-                        });
-                        client_state.lsp_sender.send((
-                            client_state.language_server.clone(),
-                            format!(
-                                "{} {}",
-                                percentage.unwrap_or_default(),
-                                report.message.clone().unwrap_or_default()
-                            ),
-                        )).ok();
-                    }
-                    if matches!(
-                        prog.value,
-                        ProgressParamsValue::WorkDone(WorkDoneProgress::End(_))
-                    ) {
-                        *client_state.indexed.lock().unwrap() = true;
+
+                            client_state.lsp_sender.send((
+                                client_state.language_server.clone(),
+                                content
+                            )).ok();
+                        }
+                        ProgressParamsValue::WorkDone(WorkDoneProgress::Report(report)) => {
+                            let percentage = report.percentage.map(|v| {
+                                if v < 100 {
+                                    format!("{v}%")
+                                } else {
+                                    String::default()
+                                }
+                            });
+                            client_state.lsp_sender.send((
+                                client_state.language_server.clone(),
+                                format!(
+                                    "{} {}",
+                                    percentage.unwrap_or_default(),
+                                    report.message.clone().unwrap_or_default()
+                                ),
+                            )).ok();
+                        }
+                        ProgressParamsValue::WorkDone(WorkDoneProgress::End(end)) => {
+                            *client_state.indexed.lock().unwrap() = true;
+                            client_state.lsp_sender.send((
+                                client_state.language_server.clone(),
+                                end.message.unwrap_or_default()
+                            )).ok();
+                        }
                     }
                 }
                 ControlFlow::Continue(())
