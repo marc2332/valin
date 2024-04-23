@@ -22,7 +22,7 @@ pub struct UseEdit {
     pub(crate) cursor_reference: Memo<CursorReference>,
     pub(crate) selecting_text_with_mouse: Signal<Option<CursorPoint>>,
     pub(crate) platform: UsePlatform,
-    pub(crate) pane_index: usize,
+    pub(crate) panel_index: usize,
     pub(crate) editor_index: usize,
     pub(crate) metrics: UseMetrics,
 }
@@ -38,11 +38,7 @@ impl UseEdit {
     /// Create a highlights attribute.
     pub fn highlights_attr(&self, editor_id: usize) -> AttributeValue {
         let app_state = self.radio.read();
-        let editor = app_state
-            .panel(self.pane_index)
-            .tab(self.editor_index)
-            .as_text_editor()
-            .unwrap();
+        let editor = app_state.editor(self.panel_index, self.editor_index);
         AttributeValue::any_value(CustomAttributeValues::TextHighlights(
             editor
                 .highlights(editor_id)
@@ -64,7 +60,7 @@ impl UseEdit {
                     .set_cursor_position(Some(coords));
                 let mut app_state = self.radio.write();
 
-                let editor = app_state.editor_mut(self.pane_index, self.editor_index);
+                let editor = app_state.editor_mut(self.panel_index, self.editor_index);
                 editor.unhighlight();
             }
             EditableEvent::MouseOver(e, id) => {
@@ -97,7 +93,7 @@ impl UseEdit {
 
                 let event = 'key_matcher: {
                     let mut app_state = self.radio.write();
-                    let editor = app_state.editor_mut(self.pane_index, self.editor_index);
+                    let editor = app_state.editor_mut(self.panel_index, self.editor_index);
 
                     if e.modifiers.contains(Modifiers::CONTROL) {
                         if e.code == Code::KeyZ {
@@ -132,7 +128,7 @@ impl UseEdit {
 
 pub fn use_edit(
     radio: &RadioAppState,
-    pane_index: usize,
+    panel_index: usize,
     editor_index: usize,
     metrics: &UseMetrics,
 ) -> UseEdit {
@@ -140,9 +136,9 @@ pub fn use_edit(
     let platform = use_platform();
     let mut cursor_receiver_task = use_signal::<Option<Task>>(|| None);
 
-    let cursor_reference = use_memo(use_reactive(&(pane_index, editor_index), {
+    let cursor_reference = use_memo(use_reactive(&(panel_index, editor_index), {
         to_owned![radio];
-        move |(pane_index, editor_index)| {
+        move |(panel_index, editor_index)| {
             if let Some(cursor_receiver_task) = cursor_receiver_task.write_unchecked().take() {
                 cursor_receiver_task.cancel();
             }
@@ -166,7 +162,7 @@ pub fn use_edit(
                             // Update the cursor position calculated by the layout
                             CursorLayoutResponse::CursorPosition { position, id } => {
                                 let mut app_state = radio.write();
-                                let editor = app_state.editor(pane_index, editor_index);
+                                let editor = app_state.editor(panel_index, editor_index);
 
                                 let new_current_line = editor.rope.line(id);
 
@@ -179,7 +175,7 @@ pub fn use_edit(
 
                                 // Only update if it's actually different
                                 if editor.cursor.as_tuple() != new_cursor {
-                                    let editor = app_state.editor_mut(pane_index, editor_index);
+                                    let editor = app_state.editor_mut(panel_index, editor_index);
                                     editor.cursor.set_col(new_cursor.0);
                                     editor.cursor.set_row(new_cursor.1);
                                     editor.unhighlight();
@@ -191,7 +187,7 @@ pub fn use_edit(
                             // Update the text selections calculated by the layout
                             CursorLayoutResponse::TextSelection { from, to, id } => {
                                 let mut app_state = radio.write();
-                                let editor = app_state.editor_mut(pane_index, editor_index);
+                                let editor = app_state.editor_mut(panel_index, editor_index);
                                 editor.highlight_text(from, to, id);
                                 cursor_reference.set_cursor_selections(None);
                             }
@@ -211,7 +207,7 @@ pub fn use_edit(
         cursor_reference,
         selecting_text_with_mouse,
         platform,
-        pane_index,
+        panel_index,
         editor_index,
         metrics: *metrics,
     }

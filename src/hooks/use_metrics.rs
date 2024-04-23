@@ -17,7 +17,7 @@ pub struct UseMetrics {
     font_collection: Signal<FontCollection>,
     metrics: Signal<(SyntaxBlocks, f32)>,
     radio_app_state: RadioAppState,
-    pane_index: usize,
+    panel_index: usize,
     editor_index: usize,
 }
 
@@ -25,7 +25,7 @@ impl UseMetrics {
     pub fn new(
         radio_app_state: RadioAppState,
         metrics: Signal<(SyntaxBlocks, f32)>,
-        pane_index: usize,
+        panel_index: usize,
         editor_index: usize,
     ) -> Self {
         let mut font_collection = FontCollection::new();
@@ -41,7 +41,7 @@ impl UseMetrics {
             font_collection: Signal::new(font_collection),
             metrics,
             radio_app_state,
-            pane_index,
+            panel_index,
             editor_index,
         }
     }
@@ -58,7 +58,7 @@ impl UseMetrics {
 
         let app_state = self.radio_app_state.read();
 
-        let editor = app_state.editor(self.pane_index, self.editor_index);
+        let editor = app_state.editor(self.panel_index, self.editor_index);
 
         for line in editor.lines() {
             let current_longest_width = longest_line.first().map(|l| l.len()).unwrap_or_default();
@@ -90,18 +90,18 @@ impl UseMetrics {
     }
 }
 
-pub fn use_metrics(radio: &RadioAppState, pane_index: usize, editor_index: usize) -> UseMetrics {
+pub fn use_metrics(radio: &RadioAppState, panel_index: usize, editor_index: usize) -> UseMetrics {
     let metrics_ref = use_signal::<(SyntaxBlocks, f32)>(|| (SyntaxBlocks::default(), 0.0));
 
     let mut metrics = use_hook(|| {
-        let mut metrics = UseMetrics::new(*radio, metrics_ref, pane_index, editor_index);
+        let mut metrics = UseMetrics::new(*radio, metrics_ref, panel_index, editor_index);
 
         metrics.run_metrics();
 
         metrics
     });
 
-    metrics.pane_index = pane_index;
+    metrics.panel_index = panel_index;
     metrics.editor_index = editor_index;
 
     metrics
