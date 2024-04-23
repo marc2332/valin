@@ -20,7 +20,7 @@ use lsp_types::{
 use tower::ServiceBuilder;
 use tracing::info;
 
-use crate::{EditorType, LspStatusSender};
+use crate::{state::EditorType, LspStatusSender};
 
 struct ClientState {
     pub(crate) indexed: Arc<Mutex<bool>>,

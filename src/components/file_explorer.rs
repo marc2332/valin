@@ -13,9 +13,7 @@ use tokio::io;
 
 use crate::{
     fs::FSTransport,
-    hooks::EditorData,
-    state::{AppState, Channel, EditorView, PanelTab},
-    EditorType,
+    state::{AppState, Channel, EditorData, EditorType, EditorView, PanelTab},
 };
 
 #[derive(Debug, Clone, PartialEq)]

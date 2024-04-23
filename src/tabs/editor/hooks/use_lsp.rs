@@ -9,8 +9,8 @@ use tracing::info;
 
 use crate::{
     lsp::LspConfig,
-    state::{AppState, RadioAppState},
-    Args, EditorType,
+    state::{AppState, EditorType, RadioAppState},
+    Args,
 };
 
 #[derive(Clone, PartialEq)]

@@ -25,7 +25,10 @@ pub fn App() -> Element {
     // Initialize the State Manager
     use_init_radio_station::<AppState, Channel>(|| {
         let mut state = AppState::new(lsp_sender);
+
+        // Default tab
         state.push_tab(PanelTab::Welcome, 0, true);
+
         state
     });
 

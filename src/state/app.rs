@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf};
 
 use dioxus_radio::prelude::{Radio, RadioChannel};
 use freya::prelude::Rope;
@@ -9,6 +9,8 @@ use crate::{
     lsp::{create_lsp, LSPBridge, LspConfig},
     LspStatusSender,
 };
+
+use super::{EditorData, EditorView, Panel, PanelTab};
 
 pub type RadioAppState = Radio<AppState, Channel>;
 
@@ -119,120 +121,12 @@ impl Channel {
     }
 }
 
-use super::EditorData;
-
-#[derive(Clone)]
-pub enum PanelTab {
-    TextEditor(EditorData),
-    Config,
-    Welcome,
-}
-
-#[derive(PartialEq, Eq)]
-pub struct PanelTabData {
-    pub edited: bool,
-    pub title: String,
-    pub id: String,
-}
-
-impl PanelTab {
-    pub fn get_data(&self) -> PanelTabData {
-        match self {
-            PanelTab::Config => PanelTabData {
-                id: "config".to_string(),
-                title: "Config".to_string(),
-                edited: false,
-            },
-            PanelTab::TextEditor(editor) => {
-                let (title, id) = editor.editor_type.title_and_id();
-                PanelTabData {
-                    id,
-                    title,
-                    edited: editor.is_edited(),
-                }
-            }
-            PanelTab::Welcome => PanelTabData {
-                id: "welcome".to_string(),
-                title: "Welcome".to_string(),
-                edited: false,
-            },
-        }
-    }
-
-    pub fn as_text_editor(&self) -> Option<&EditorData> {
-        if let PanelTab::TextEditor(editor_data) = self {
-            Some(editor_data)
-        } else {
-            None
-        }
-    }
-
-    pub fn as_text_editor_mut(&mut self) -> Option<&mut EditorData> {
-        if let PanelTab::TextEditor(editor_data) = self {
-            Some(editor_data)
-        } else {
-            None
-        }
-    }
-}
-
-#[derive(Clone, Default)]
-pub struct Panel {
-    pub active_tab: Option<usize>,
-    pub tabs: Vec<PanelTab>,
-}
-
-impl Panel {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn active_tab(&self) -> Option<usize> {
-        self.active_tab
-    }
-
-    pub fn tab(&self, editor: usize) -> &PanelTab {
-        &self.tabs[editor]
-    }
-
-    pub fn tab_mut(&mut self, editor: usize) -> &mut PanelTab {
-        &mut self.tabs[editor]
-    }
-
-    pub fn tabs(&self) -> &[PanelTab] {
-        &self.tabs
-    }
-
-    pub fn set_active_tab(&mut self, active_tab: usize) {
-        self.active_tab = Some(active_tab);
-    }
-}
-
-#[derive(Clone, Default, PartialEq, Copy)]
-pub enum EditorView {
-    #[default]
-    CodeEditor,
-    FilesExplorer,
-    Commander,
-}
-
-impl Display for EditorView {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::CodeEditor => f.write_str("Code Editor"),
-            Self::FilesExplorer => f.write_str("Files Explorer"),
-            Self::Commander => f.write_str("Commander"),
-        }
-    }
-}
-
 #[derive(Clone, Default, PartialEq, Copy)]
 pub enum EditorSidePanel {
     #[default]
     FileExplorer,
 }
 
-#[derive(Clone)]
 pub struct AppState {
     pub previous_focused_view: Option<EditorView>,
     pub focused_view: EditorView,
