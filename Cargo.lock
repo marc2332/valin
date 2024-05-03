@@ -1358,7 +1358,7 @@ dependencies = [
 [[package]]
 name = "dioxus-sdk"
 version = "0.5.0"
-source = "git+https://github.com/DogeDark/sdk?branch=debounce#fa68a4717eaedaf766149cd4f476f3afde57667f"
+source = "git+https://github.com/DioxusLabs/sdk?rev=57ab3fa972c6d4a7acc25e82a0aafc3ff9e63403#57ab3fa972c6d4a7acc25e82a0aafc3ff9e63403"
 dependencies = [
  "cfg-if",
  "copypasta",
