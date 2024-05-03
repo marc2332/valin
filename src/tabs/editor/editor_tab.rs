@@ -1,18 +1,21 @@
 use std::time::Duration;
 
-use crate::state::EditorView;
 use crate::tabs::editor::hooks::use_lsp;
 use crate::tabs::editor::BuilderProps;
 use crate::tabs::editor::EditorLine;
 use crate::{components::*, state::Channel};
 use crate::{hooks::*, state::EditorType};
+use crate::{state::EditorView, tabs::editor::hooks::LspAction};
 
 use dioxus_radio::prelude::use_radio;
+use dioxus_sdk::utils::timing::use_debounce;
 use freya::events::KeyboardEvent;
 use freya::prelude::keyboard::Key;
 use freya::prelude::keyboard::Modifiers;
 use freya::prelude::*;
+use lsp_types::Position;
 
+use skia_safe::textlayout::Paragraph;
 use winit::window::CursorIcon;
 
 static LINES_JUMP_ALT: usize = 5;
@@ -38,7 +41,6 @@ pub struct EditorTabProps {
 #[allow(non_snake_case)]
 pub fn EditorTab(props: EditorTabProps) -> Element {
     let mut radio_app_state = use_radio(Channel::follow_tab(props.panel_index, props.editor_index));
-    let debouncer = use_debouncer(Duration::from_millis(300));
     let hover_location = use_signal(|| None);
     let metrics = use_metrics(&radio_app_state, props.panel_index, props.editor_index);
     let mut editable = use_edit(
@@ -55,6 +57,18 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
         props.editor_index,
         radio_app_state,
         hover_location,
+    );
+    let debouncer = use_debounce(
+        Duration::from_millis(300),
+        move |(coords, line_index, paragraph): (CursorPoint, u32, Paragraph)| {
+            let glyph =
+                paragraph.get_glyph_position_at_coordinate((coords.x as i32, coords.y as i32));
+
+            lsp.send(LspAction::Hover(Position::new(
+                line_index,
+                glyph.position as u32,
+            )));
+        },
     );
     let platform = use_platform();
     let mut status = use_signal(EditorStatus::default);

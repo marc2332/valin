@@ -3,6 +3,9 @@ name = "valin"
 version = "0.0.3"
 edition = "2021"
 
+[patch.crates-io]
+dioxus-sdk = { git = "https://github.com/DogeDark/sdk", branch = "debounce", features = ["clipboard", "timing"] }
+
 [dependencies]
 freya-node-state = { git = "https://github.com/marc2332/freya", rev = "1b1eb3ea7179dfc3b1840f9ba306c4e58d7ca4b1" }
 freya = { git = "https://github.com/marc2332/freya", rev = "1b1eb3ea7179dfc3b1840f9ba306c4e58d7ca4b1" }
@@ -10,7 +13,7 @@ freya-hooks = { git = "https://github.com/marc2332/freya", rev = "1b1eb3ea7179df
 
 dioxus-radio = "0.2.4"
 dioxus = "0.5"
-dioxus-sdk = { version = "0.5", features = ["clipboard"]}
+dioxus-sdk = { git = "https://github.com/DogeDark/sdk", branch = "debounce", features = ["clipboard", "timing"] }
 
 tokio = { version = "1.33.0", features = ["fs", "process"]}
 winit = "0.29.9"
@@ -26,8 +29,6 @@ lsp-types = "0.94.0"
 async-lsp = { git = "https://github.com/marc2332/async-lsp", rev="f885653777e61b97202949120c2b60c318492252" }
 futures = "0.3.28"
 async-process = "1.7.0"
-debounced = "0.1.0"
-futures-channel = "0.3.28"
 clap = { version = "4.5.4", features = ["derive"]}
 async-trait = "0.1.80"
 

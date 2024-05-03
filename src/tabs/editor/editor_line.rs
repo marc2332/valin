@@ -1,11 +1,13 @@
+use dioxus_sdk::utils::timing::UseDebounce;
 use freya::prelude::*;
-use lsp_types::{Hover, Position};
+use lsp_types::Hover;
+use skia_safe::textlayout::Paragraph;
 
 use crate::tabs::editor::hooks::LspAction;
 use crate::tabs::editor::hover_box::HoverBox;
 use crate::tabs::editor::lsp::HoverToText;
 use crate::{
-    hooks::{UseDebouncer, UseEdit, UseMetrics},
+    hooks::{UseEdit, UseMetrics},
     utils::create_paragraph,
 };
 
@@ -19,7 +21,7 @@ pub type BuilderProps = (
     Rope,
     Signal<Option<(u32, Hover)>>,
     Signal<CursorPoint>,
-    UseDebouncer,
+    UseDebounce<(CursorPoint, u32, Paragraph)>,
     f32,
 );
 
@@ -88,16 +90,8 @@ pub fn EditorLine(
             let paragraph = create_paragraph(&line_str, font_size);
 
             if (coords.x as f32) < paragraph.max_intrinsic_width() {
-                debouncer.action(move || {
-                    let coords = cursor_coords.read();
-                    let glyph = paragraph
-                        .get_glyph_position_at_coordinate((coords.x as i32, coords.y as i32));
-
-                    lsp.send(LspAction::Hover(Position::new(
-                        line_index as u32,
-                        glyph.position as u32,
-                    )));
-                });
+                let coords = cursor_coords.read();
+                debouncer.action((*coords, line_index as u32, paragraph));
             } else {
                 lsp.send(LspAction::Clear);
             }
