@@ -3,15 +3,12 @@ use freya::prelude::*;
 use lsp_types::Hover;
 use skia_safe::textlayout::Paragraph;
 
-use crate::tabs::editor::hooks::LspAction;
+use crate::lsp::{HoverToText, LspAction, UseLsp};
 use crate::tabs::editor::hover_box::HoverBox;
-use crate::tabs::editor::lsp::HoverToText;
 use crate::{
     hooks::{UseEdit, UseMetrics},
     utils::create_paragraph,
 };
-
-use super::hooks::UseLsp;
 
 pub type BuilderProps = (
     TextCursor,

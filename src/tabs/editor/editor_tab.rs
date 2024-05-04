@@ -1,11 +1,11 @@
 use std::time::Duration;
 
-use crate::tabs::editor::hooks::use_lsp;
+use crate::lsp::{use_lsp, LspAction};
+use crate::state::EditorView;
 use crate::tabs::editor::BuilderProps;
 use crate::tabs::editor::EditorLine;
 use crate::{components::*, state::Channel};
 use crate::{hooks::*, state::EditorType};
-use crate::{state::EditorView, tabs::editor::hooks::LspAction};
 
 use dioxus_radio::prelude::use_radio;
 use dioxus_sdk::utils::timing::use_debounce;

@@ -59,8 +59,9 @@ pub fn use_lsp(
             if let Some(file_uri) = file_uri {
                 // Notify language server the file has been opened
                 spawn(async move {
-                    let mut lsp = AppState::get_or_insert_lsp(radio, &lsp_config).await;
-                    lsp.open_file(file_uri, file_text);
+                    let mut lsp_client =
+                        AppState::get_or_create_lsp_client(radio, &lsp_config).await;
+                    lsp_client.open_file(file_uri, file_text);
                 });
             }
         });

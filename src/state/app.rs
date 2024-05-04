@@ -6,7 +6,7 @@ use tracing::info;
 
 use crate::{
     fs::FSTransport,
-    lsp::{create_lsp, LSPBridge, LspConfig},
+    lsp::{create_lsp_client, LSPClient, LspConfig},
     LspStatusSender,
 };
 
@@ -134,7 +134,7 @@ pub struct AppState {
     pub panels: Vec<Panel>,
     pub font_size: f32,
     pub line_height: f32,
-    pub language_servers: HashMap<String, LSPBridge>,
+    pub language_servers: HashMap<String, LSPClient>,
     pub lsp_sender: LspStatusSender,
     pub side_panel: Option<EditorSidePanel>,
 }
@@ -298,25 +298,28 @@ impl AppState {
         }
     }
 
-    pub fn lsp(&self, lsp_config: &LspConfig) -> Option<&LSPBridge> {
+    pub fn lsp(&self, lsp_config: &LspConfig) -> Option<&LSPClient> {
         self.language_servers.get(&lsp_config.language_server)
     }
 
-    pub fn insert_lsp(&mut self, language_server: String, server: LSPBridge) {
-        self.language_servers.insert(language_server, server);
+    pub fn insert_lsp_client(&mut self, language_server: String, client: LSPClient) {
+        self.language_servers.insert(language_server, client);
     }
 
-    pub async fn get_or_insert_lsp(mut radio: RadioAppState, lsp_config: &LspConfig) -> LSPBridge {
+    pub async fn get_or_create_lsp_client(
+        mut radio: RadioAppState,
+        lsp_config: &LspConfig,
+    ) -> LSPClient {
         let server = radio.read().lsp(lsp_config).cloned();
         match server {
             Some(server) => server,
             None => {
                 let lsp_sender = radio.read().lsp_sender.clone();
-                let server = create_lsp(lsp_config.clone(), lsp_sender).await;
+                let client = create_lsp_client(lsp_config.clone(), lsp_sender).await;
                 radio
                     .write_channel(Channel::Global)
-                    .insert_lsp(lsp_config.language_server.clone(), server.clone());
-                server
+                    .insert_lsp_client(lsp_config.language_server.clone(), client.clone());
+                client
             }
         }
     }

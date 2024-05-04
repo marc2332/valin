@@ -1,6 +1,6 @@
-use std::ops::ControlFlow;
 use std::process::Stdio;
 use std::sync::{Arc, Mutex};
+use std::{fmt::Display, ops::ControlFlow};
 
 use async_lsp::concurrency::ConcurrencyLayer;
 use async_lsp::panic::CatchUnwindLayer;
@@ -22,7 +22,7 @@ use tracing::info;
 
 use crate::{state::EditorType, LspStatusSender};
 
-struct ClientState {
+struct RouterState {
     pub(crate) indexed: Arc<Mutex<bool>>,
     pub(crate) lsp_sender: LspStatusSender,
     pub(crate) language_server: String,
@@ -31,13 +31,13 @@ struct ClientState {
 struct Stop;
 
 #[derive(Clone)]
-pub struct LSPBridge {
+pub struct LSPClient {
     pub(crate) indexed: Arc<Mutex<bool>>,
     pub(crate) server_socket: ServerSocket,
     pub(crate) language_id: LanguageId,
 }
 
-impl LSPBridge {
+impl LSPClient {
     pub fn open_file(&mut self, file_uri: Url, file_text: String) {
         info!(
             "Opened document [uri={file_uri}] from [lsp={:?}]",
@@ -89,13 +89,13 @@ impl LspConfig {
     }
 }
 
-pub async fn create_lsp(config: LspConfig, lsp_sender: LspStatusSender) -> LSPBridge {
+pub async fn create_lsp_client(config: LspConfig, lsp_sender: LspStatusSender) -> LSPClient {
     let indexed = Arc::new(Mutex::new(false));
     let (_, root_path) = config.editor_type.paths().expect("Something went wrong.");
 
     let (mainloop, mut server) =
         async_lsp::MainLoop::new_client(|_server| {
-            let mut router = Router::new(ClientState {
+            let mut router = Router::new(RouterState {
                 indexed: indexed.clone(),
                 lsp_sender,
                 language_server: config.language_server.clone(),
@@ -190,7 +190,7 @@ pub async fn create_lsp(config: LspConfig, lsp_sender: LspStatusSender) -> LSPBr
         .unwrap();
     server.initialized(InitializedParams {}).unwrap();
 
-    LSPBridge {
+    LSPClient {
         indexed,
         server_socket: server,
         language_id: config.editor_type.language_id(),
@@ -207,16 +207,15 @@ pub enum LanguageId {
     Unknown,
 }
 
-impl ToString for LanguageId {
-    fn to_string(&self) -> String {
+impl Display for LanguageId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Rust => "rust",
-            Self::Python => "python",
-            Self::JavaScript => "javascript",
-            Self::TypeScript => "typescript",
-            Self::Unknown => "unknown",
+            Self::Rust => f.write_str("rust"),
+            Self::Python => f.write_str("python"),
+            Self::JavaScript => f.write_str("javascript"),
+            Self::TypeScript => f.write_str("typescript"),
+            Self::Unknown => f.write_str("unknown"),
         }
-        .to_string()
     }
 }
 
