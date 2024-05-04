@@ -2,6 +2,7 @@ use std::{collections::HashMap, path::PathBuf};
 
 use dioxus_radio::prelude::{Radio, RadioChannel};
 use freya::prelude::Rope;
+use skia_safe::{textlayout::FontCollection, FontMgr};
 use tracing::info;
 
 use crate::{
@@ -137,10 +138,14 @@ pub struct AppState {
     pub language_servers: HashMap<String, LSPClient>,
     pub lsp_sender: LspStatusSender,
     pub side_panel: Option<EditorSidePanel>,
+    pub font_collection: FontCollection,
 }
 
 impl AppState {
     pub fn new(lsp_sender: LspStatusSender) -> Self {
+        let mut font_collection = FontCollection::new();
+        font_collection.set_default_font_manager(FontMgr::default(), "Jetbrains Mono");
+
         Self {
             previous_focused_view: None,
             focused_view: EditorView::default(),
@@ -151,6 +156,7 @@ impl AppState {
             language_servers: HashMap::default(),
             lsp_sender,
             side_panel: Some(EditorSidePanel::default()),
+            font_collection,
         }
     }
 
@@ -171,7 +177,7 @@ impl AppState {
         for panel in &mut self.panels {
             for tab in &mut panel.tabs {
                 if let Some(editor) = tab.as_text_editor_mut() {
-                    editor.measure_longest_line(font_size);
+                    editor.measure_longest_line(font_size, &self.font_collection);
                 }
             }
         }

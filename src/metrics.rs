@@ -7,34 +7,33 @@ use skia_safe::textlayout::FontCollection;
 use skia_safe::textlayout::ParagraphBuilder;
 use skia_safe::textlayout::ParagraphStyle;
 use skia_safe::textlayout::TextStyle;
-use skia_safe::FontMgr;
 
 use crate::parser::*;
 
 pub struct EditorMetrics {
-    pub(crate) font_collection: FontCollection,
     pub(crate) syntax_blocks: SyntaxBlocks,
     pub(crate) longest_width: f32,
 }
 
 impl EditorMetrics {
     pub fn new() -> Self {
-        let mut font_collection = FontCollection::new();
-        font_collection.set_default_font_manager(FontMgr::default(), "Jetbrains Mono");
-
         Self {
-            font_collection,
             syntax_blocks: SyntaxBlocks::default(),
             longest_width: 0.0,
         }
     }
 
-    pub fn measure_longest_line(&mut self, font_size: f32, rope: &Rope) {
+    pub fn measure_longest_line(
+        &mut self,
+        font_size: f32,
+        rope: &Rope,
+        font_collection: &FontCollection,
+    ) {
         let mut paragraph_style = ParagraphStyle::default();
         let mut text_style = TextStyle::default();
         text_style.set_font_size(font_size);
         paragraph_style.set_text_style(&text_style);
-        let mut paragraph_builder = ParagraphBuilder::new(&paragraph_style, &self.font_collection);
+        let mut paragraph_builder = ParagraphBuilder::new(&paragraph_style, font_collection);
 
         let mut longest_line: Vec<Cow<str>> = vec![];
 

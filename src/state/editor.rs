@@ -5,6 +5,7 @@ use freya::hooks::{EditorHistory, HistoryChange, Line, TextCursor, TextEditor};
 use freya::prelude::Rope;
 use freya_hooks::LinesIterator;
 use lsp_types::Url;
+use skia_safe::textlayout::FontCollection;
 
 use crate::{fs::FSTransport, lsp::LanguageId, metrics::EditorMetrics};
 
@@ -69,9 +70,10 @@ impl EditorData {
         clipboard: UseClipboard,
         transport: FSTransport,
         font_size: f32,
+        font_collection: &FontCollection,
     ) -> Self {
         let mut metrics = EditorMetrics::new();
-        metrics.measure_longest_line(font_size, &rope);
+        metrics.measure_longest_line(font_size, &rope, font_collection);
         metrics.run_parser(&rope);
 
         Self {
@@ -128,8 +130,9 @@ impl EditorData {
         self.metrics.run_parser(&self.rope);
     }
 
-    pub fn measure_longest_line(&mut self, font_size: f32) {
-        self.metrics.measure_longest_line(font_size, &self.rope);
+    pub fn measure_longest_line(&mut self, font_size: f32, font_collection: &FontCollection) {
+        self.metrics
+            .measure_longest_line(font_size, &self.rope, font_collection);
     }
 }
 

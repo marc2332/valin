@@ -189,6 +189,7 @@ pub fn FileExplorer(FileExplorerProps { transport }: FileExplorerProps) -> Eleme
                                 let focused_panel = radio_app_state.read().focused_panel();
                                 let mut app_state = radio_app_state.write_channel(Channel::Global);
                                 let font_size = app_state.font_size();
+                                let font_collection = app_state.font_collection.clone();
                                 app_state.push_tab(
                                     PanelTab::TextEditor(EditorData::new(
                                         EditorType::FS {
@@ -200,6 +201,7 @@ pub fn FileExplorer(FileExplorerProps { transport }: FileExplorerProps) -> Eleme
                                         clipboard,
                                         transport.clone(),
                                         font_size,
+                                        &font_collection,
                                     )),
                                     focused_panel,
                                     true,
