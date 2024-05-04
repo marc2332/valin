@@ -165,8 +165,16 @@ impl AppState {
         self.side_panel = Some(side_panel);
     }
 
-    pub fn set_fontsize(&mut self, fontsize: f32) {
-        self.font_size = fontsize;
+    pub fn set_fontsize(&mut self, font_size: f32) {
+        self.font_size = font_size;
+
+        for panel in &mut self.panels {
+            for tab in &mut panel.tabs {
+                if let Some(editor) = tab.as_text_editor_mut() {
+                    editor.measure_longest_line(font_size);
+                }
+            }
+        }
     }
 
     pub fn set_focused_view(&mut self, focused_view: EditorView) {

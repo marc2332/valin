@@ -1,18 +1,19 @@
+use dioxus_radio::hooks::use_radio;
 use dioxus_sdk::utils::timing::UseDebounce;
 use freya::prelude::*;
 use lsp_types::Hover;
 use skia_safe::textlayout::Paragraph;
 
-use crate::lsp::{HoverToText, LspAction, UseLsp};
 use crate::tabs::editor::hover_box::HoverBox;
+use crate::{hooks::UseEdit, utils::create_paragraph};
 use crate::{
-    hooks::{UseEdit, UseMetrics},
-    utils::create_paragraph,
+    lsp::{HoverToText, LspAction, UseLsp},
+    state::Channel,
 };
 
 pub type BuilderProps = (
-    TextCursor,
-    UseMetrics,
+    usize,
+    usize,
     UseEdit,
     UseLsp,
     Rope,
@@ -32,6 +33,7 @@ pub struct EditorLineProps {
 impl PartialEq for EditorLineProps {
     fn eq(&self, other: &Self) -> bool {
         self.options.0 == other.options.0
+            && self.options.1 == other.options.1
             && self.options.2 == other.options.2
             && self.options.4 == other.options.4
             && self.line_index == other.line_index
@@ -48,8 +50,8 @@ pub fn EditorLine(
     }: EditorLineProps,
 ) -> Element {
     let (
-        cursor,
-        metrics,
+        panel_index,
+        editor_index,
         mut editable,
         lsp,
         rope,
@@ -58,6 +60,7 @@ pub fn EditorLine(
         mut debouncer,
         font_size,
     ) = options;
+    let radio_app_state = use_radio(Channel::follow_tab(panel_index, editor_index));
 
     let onmousedown = move |e: MouseEvent| {
         editable.process_event(&EditableEvent::MouseDown(e.data, line_index));
@@ -95,10 +98,13 @@ pub fn EditorLine(
         }
     };
 
-    let gutter_width = font_size * 3.0;
-    let (syntax_blocks, width) = &*metrics.get();
-    let line = syntax_blocks.get_line(line_index);
+    let app_state = radio_app_state.read();
+    let editor = app_state.editor(panel_index, editor_index);
+    let cursor = editor.cursor();
+    let longest_width = editor.metrics.longest_width;
+    let line = editor.metrics.syntax_blocks.get_line(line_index);
     let highlights = editable.highlights_attr(line_index);
+    let gutter_width = font_size * 3.0;
 
     let is_line_selected = cursor.row() == line_index;
 
@@ -162,7 +168,7 @@ pub fn EditorLine(
             }
             paragraph {
                 min_width: "calc(100% - {gutter_width})",
-                width: "{width}",
+                width: "{longest_width}",
                 cursor_index: "{character_index}",
                 cursor_color: "white",
                 max_lines: "1",

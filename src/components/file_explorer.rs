@@ -187,7 +187,9 @@ pub fn FileExplorer(FileExplorerProps { transport }: FileExplorerProps) -> Eleme
                             if let Ok(content) = content {
                                 let root_path = tree.read().as_ref().unwrap().path().clone();
                                 let focused_panel = radio_app_state.read().focused_panel();
-                                radio_app_state.write_channel(Channel::Global).push_tab(
+                                let mut app_state = radio_app_state.write_channel(Channel::Global);
+                                let font_size = app_state.font_size();
+                                app_state.push_tab(
                                     PanelTab::TextEditor(EditorData::new(
                                         EditorType::FS {
                                             path: file_path.to_path_buf(),
@@ -197,6 +199,7 @@ pub fn FileExplorer(FileExplorerProps { transport }: FileExplorerProps) -> Eleme
                                         (0, 0),
                                         clipboard,
                                         transport.clone(),
+                                        font_size,
                                     )),
                                     focused_panel,
                                     true,
