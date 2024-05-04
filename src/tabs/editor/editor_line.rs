@@ -11,55 +11,45 @@ use crate::{
     state::Channel,
 };
 
-pub type BuilderProps = (
-    usize,
-    usize,
-    UseEdit,
-    UseLsp,
-    Rope,
-    Signal<Option<(u32, Hover)>>,
-    Signal<CursorPoint>,
-    UseDebounce<(CursorPoint, u32, Paragraph)>,
-    f32,
-);
-
-#[derive(Props, Clone)]
-pub struct EditorLineProps {
-    options: BuilderProps,
-    line_index: usize,
-    line_height: f32,
+#[derive(Props, Clone, PartialEq)]
+pub struct BuilderArgs {
+    pub(crate) panel_index: usize,
+    pub(crate) editor_index: usize,
+    pub(crate) font_size: f32,
+    pub(crate) rope: Rope,
 }
 
-impl PartialEq for EditorLineProps {
-    fn eq(&self, other: &Self) -> bool {
-        self.options.0 == other.options.0
-            && self.options.1 == other.options.1
-            && self.options.2 == other.options.2
-            && self.options.4 == other.options.4
-            && self.line_index == other.line_index
-            && self.line_height == other.line_height
-    }
+#[derive(Props, Clone, PartialEq)]
+pub struct EditorLineProps {
+    builder_args: BuilderArgs,
+    line_index: usize,
+    line_height: f32,
+    editable: UseEdit,
+    lsp: UseLsp,
+    hover_location: Signal<Option<(u32, Hover)>>,
+    cursor_coords: Signal<CursorPoint>,
+    debouncer: UseDebounce<(CursorPoint, u32, Paragraph)>,
 }
 
 #[allow(non_snake_case)]
 pub fn EditorLine(
     EditorLineProps {
-        options,
+        builder_args:
+            BuilderArgs {
+                panel_index,
+                editor_index,
+                font_size,
+                rope,
+            },
         line_index,
         line_height,
-    }: EditorLineProps,
-) -> Element {
-    let (
-        panel_index,
-        editor_index,
         mut editable,
         lsp,
-        rope,
         hover_location,
         mut cursor_coords,
         mut debouncer,
-        font_size,
-    ) = options;
+    }: EditorLineProps,
+) -> Element {
     let radio_app_state = use_radio(Channel::follow_tab(panel_index, editor_index));
 
     let onmousedown = move |e: MouseEvent| {

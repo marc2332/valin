@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::lsp::{use_lsp, LspAction};
 use crate::state::EditorView;
-use crate::tabs::editor::BuilderProps;
+use crate::tabs::editor::BuilderArgs;
 use crate::tabs::editor::EditorLine;
 use crate::{components::*, state::Channel};
 use crate::{hooks::*, state::EditorType};
@@ -216,13 +216,23 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
                 onscroll,
                 length: syntax_blocks_len,
                 item_size: manual_line_height,
-                builder_args: (props.panel_index, props.editor_index, editable, lsp, editor.rope().clone(), hover_location, cursor_coords, debouncer, font_size),
-                builder: move |i: usize, options: &BuilderProps| rsx!(
+                builder_args: BuilderArgs {
+                    panel_index: props.panel_index,
+                    editor_index:  props.editor_index,
+                    font_size,
+                    rope: editor.rope().clone(),
+                },
+                builder: move |i: usize, builder_args: &BuilderArgs| rsx!(
                     EditorLine {
                         key: "{i}",
                         line_index: i,
-                        options: options.clone(),
+                        builder_args: builder_args.clone(),
                         line_height: manual_line_height,
+                        editable,
+                        hover_location,
+                        debouncer,
+                        lsp,
+                        cursor_coords,
                     }
                 )
             }
