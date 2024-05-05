@@ -64,13 +64,13 @@ pub fn App() -> Element {
                 match ch.as_str() {
                     "+" => {
                         let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
-                        let font_size = app_state.font_size;
+                        let font_size = app_state.font_size();
                         app_state
                             .set_fontsize((font_size + 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE))
                     }
                     "-" => {
                         let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
-                        let font_size = app_state.font_size;
+                        let font_size = app_state.font_size();
                         app_state
                             .set_fontsize((font_size - 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE))
                     }

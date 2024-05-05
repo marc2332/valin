@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf, vec};
 
 use dioxus_radio::prelude::{Radio, RadioChannel};
 use freya::prelude::Rope;
@@ -10,7 +10,7 @@ use crate::{
     LspStatusSender,
 };
 
-use super::{EditorData, EditorView, Panel, PanelTab};
+use super::{AppSettings, EditorData, EditorView, Panel, PanelTab};
 
 pub type RadioAppState = Radio<AppState, Channel>;
 
@@ -65,6 +65,8 @@ pub enum Channel {
     },
     /// Only affects the active tab
     ActiveTab,
+    /// Affects the settings
+    Settings
 }
 
 impl RadioChannel<AppState> for Channel {
@@ -107,6 +109,11 @@ impl RadioChannel<AppState> for Channel {
                 }
                 channels
             }
+            Self::Settings => {
+                let mut channels = vec![self];
+                channels.extend(Channel::AllTabs.derive_channel(app_state));
+                channels
+            }
             _ => vec![self],
         }
     }
@@ -132,8 +139,7 @@ pub struct AppState {
     pub focused_view: EditorView,
     pub focused_panel: usize,
     pub panels: Vec<Panel>,
-    pub font_size: f32,
-    pub line_height: f32,
+    pub settings: AppSettings,
     pub language_servers: HashMap<String, LSPClient>,
     pub lsp_sender: LspStatusSender,
     pub side_panel: Option<EditorSidePanel>,
@@ -146,8 +152,7 @@ impl AppState {
             focused_view: EditorView::default(),
             focused_panel: 0,
             panels: vec![Panel::new()],
-            font_size: 17.0,
-            line_height: 1.2,
+            settings: AppSettings::load(),
             language_servers: HashMap::default(),
             lsp_sender,
             side_panel: Some(EditorSidePanel::default()),
@@ -166,7 +171,7 @@ impl AppState {
     }
 
     pub fn set_fontsize(&mut self, fontsize: f32) {
-        self.font_size = fontsize;
+        self.settings.editor.font_size = fontsize;
     }
 
     pub fn set_focused_view(&mut self, focused_view: EditorView) {
@@ -187,11 +192,11 @@ impl AppState {
     }
 
     pub fn font_size(&self) -> f32 {
-        self.font_size
+        self.settings.editor.font_size
     }
 
     pub fn line_height(&self) -> f32 {
-        self.line_height
+        self.settings.editor.line_height
     }
 
     pub fn focused_panel(&self) -> usize {

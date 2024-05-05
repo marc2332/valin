@@ -14,6 +14,7 @@ mod parser;
 mod state;
 mod tabs;
 mod utils;
+mod settings;
 
 use std::sync::Arc;
 

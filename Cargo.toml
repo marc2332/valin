@@ -31,6 +31,9 @@ futures = "0.3.28"
 async-process = "1.7.0"
 clap = { version = "4.5.4", features = ["derive"]}
 async-trait = "0.1.80"
+toml = "0.8.12"
+serde = "1.0.200"
+home = "0.5.9"
 
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }

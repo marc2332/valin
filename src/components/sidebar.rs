@@ -8,12 +8,8 @@ pub fn EditorSidebar() -> Element {
     let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Global);
 
     let open_settings = move |_| {
-        let focused_panel = radio_app_state.read().focused_panel();
-        radio_app_state.write_channel(Channel::Global).push_tab(
-            PanelTab::Config,
-            focused_panel,
-            true,
-        );
+        let app_state = radio_app_state.write();
+        //app_state.open_file();
     };
 
     let toggle_file_explorer = move |_| {
