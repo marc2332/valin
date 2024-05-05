@@ -78,7 +78,7 @@ pub fn EditorLine(
 
             cursor_coords.set(coords);
 
-            let paragraph = create_paragraph(&line_str, font_size);
+            let paragraph = create_paragraph(&line_str, font_size, radio_app_state);
 
             if (coords.x as f32) < paragraph.max_intrinsic_width() {
                 let coords = cursor_coords.read();

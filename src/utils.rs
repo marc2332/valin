@@ -1,9 +1,10 @@
 use freya::prelude::*;
 use skia_safe::{
     scalar,
-    textlayout::{FontCollection, Paragraph, ParagraphBuilder, ParagraphStyle, TextStyle},
-    FontMgr,
+    textlayout::{Paragraph, ParagraphBuilder, ParagraphStyle, TextStyle},
 };
+
+use crate::state::RadioAppState;
 
 #[allow(non_snake_case)]
 pub fn Divider() -> Element {
@@ -23,16 +24,15 @@ pub fn VerticalDivider() -> Element {
     })
 }
 
-pub fn create_paragraph(text: &str, font_size: f32) -> Paragraph {
-    let mut font_collection = FontCollection::new();
-    font_collection.set_default_font_manager(FontMgr::default(), "Jetbrains Mono");
+pub fn create_paragraph(text: &str, font_size: f32, radio_app_state: RadioAppState) -> Paragraph {
+    let app_state = radio_app_state.read();
 
     let mut style = ParagraphStyle::default();
     let mut text_style = TextStyle::default();
     text_style.set_font_size(font_size);
     style.set_text_style(&text_style);
 
-    let mut paragraph_builder = ParagraphBuilder::new(&style, font_collection);
+    let mut paragraph_builder = ParagraphBuilder::new(&style, &app_state.font_collection);
 
     paragraph_builder.add_text(text);
 
