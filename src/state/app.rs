@@ -1,6 +1,7 @@
 use std::{collections::HashMap, path::PathBuf};
 
 use dioxus_radio::prelude::{Radio, RadioChannel};
+use dioxus_sdk::clipboard::UseClipboard;
 use freya::prelude::Rope;
 use skia_safe::{textlayout::FontCollection, FontMgr};
 use tracing::info;
@@ -8,10 +9,10 @@ use tracing::info;
 use crate::{
     fs::FSTransport,
     lsp::{create_lsp_client, LSPClient, LspConfig},
-    LspStatusSender,
+    LspStatusSender, TreeItem,
 };
 
-use super::{EditorData, EditorView, Panel, PanelTab};
+use super::{EditorData, EditorType, EditorView, Panel, PanelTab};
 
 pub type RadioAppState = Radio<AppState, Channel>;
 
@@ -66,6 +67,8 @@ pub enum Channel {
     },
     /// Only affects the active tab
     ActiveTab,
+    // Only affects the file explorer
+    FileExplorer,
 }
 
 impl RadioChannel<AppState> for Channel {
@@ -138,6 +141,7 @@ pub struct AppState {
     pub language_servers: HashMap<String, LSPClient>,
     pub lsp_sender: LspStatusSender,
     pub side_panel: Option<EditorSidePanel>,
+    pub file_explorer_folders: Vec<TreeItem>,
     pub font_collection: FontCollection,
 }
 
@@ -156,6 +160,7 @@ impl AppState {
             language_servers: HashMap::default(),
             lsp_sender,
             side_panel: Some(EditorSidePanel::default()),
+            file_explorer_folders: Vec::new(),
             font_collection,
         }
     }
@@ -353,5 +358,35 @@ impl AppState {
         self.panel_mut(panel)
             .tab_mut(editor_id)
             .as_text_editor_mut()
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub fn open_file(
+        &mut self,
+        path: PathBuf,
+        root_path: PathBuf,
+        clipboard: UseClipboard,
+        content: String,
+        transport: FSTransport,
+        font_size: f32,
+        font_collection: &FontCollection,
+    ) {
+        self.push_tab(
+            PanelTab::TextEditor(EditorData::new(
+                EditorType::FS { path, root_path },
+                Rope::from(content),
+                (0, 0),
+                clipboard,
+                transport,
+                font_size,
+                font_collection,
+            )),
+            self.focused_panel,
+            true,
+        );
+    }
+
+    pub fn open_folder(&mut self, item: TreeItem) {
+        self.file_explorer_folders.push(item)
     }
 }
