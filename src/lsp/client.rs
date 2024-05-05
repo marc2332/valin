@@ -7,7 +7,6 @@ use async_lsp::panic::CatchUnwindLayer;
 use async_lsp::router::Router;
 use async_lsp::tracing::TracingLayer;
 use async_lsp::{LanguageServer, ServerSocket};
-use async_process::Command;
 use lsp_types::{
     notification::{Progress, PublishDiagnostics, ShowMessage},
     DidCloseTextDocumentParams, DidOpenTextDocumentParams, HoverParams, TextDocumentIdentifier,
@@ -17,6 +16,7 @@ use lsp_types::{
     ClientCapabilities, InitializeParams, InitializedParams, NumberOrString, ProgressParamsValue,
     Url, WindowClientCapabilities, WorkDoneProgress,
 };
+use tokio::process::Command;
 use tower::ServiceBuilder;
 use tracing::info;
 
@@ -165,8 +165,8 @@ pub async fn create_lsp_client(config: LspConfig, lsp_sender: LspStatusSender) -
         .stderr(Stdio::inherit())
         .spawn()
         .expect("Failed to start Language Server.");
-    let stdout = child.stdout.unwrap();
-    let stdin = child.stdin.unwrap();
+    let stdout = tokio_util::compat::TokioAsyncReadCompatExt::compat(child.stdout.unwrap());
+    let stdin = tokio_util::compat::TokioAsyncWriteCompatExt::compat_write(child.stdin.unwrap());
 
     let _mainloop_fut = tokio::spawn(async move {
         mainloop.run_bufferred(stdout, stdin).await.ok();
