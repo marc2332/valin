@@ -107,6 +107,7 @@ fn flush_generic_stack(
             return;
         }
 
+        let word_pos = generic_stack.take().unwrap();
         let next_char = rope
             .get_slice(word_pos.end + 1..word_pos.end + 2)
             .and_then(|s| s.as_str());
