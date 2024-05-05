@@ -115,9 +115,11 @@ fn flush_generic_stack(
         }
 
         let word_pos = generic_stack.take().unwrap();
-        let next_char = rope.slice(word_pos.end + 1..word_pos.end + 2);
+        let next_char = rope
+            .get_slice(word_pos.end + 1..word_pos.end + 2)
+            .and_then(|s| s.as_str());
 
-        if ch == ':' && next_char == ":" {
+        if ch == ':' && Some(":") == next_char {
             syntax_blocks.push((SyntaxType::Module, TextNode::Range(word_pos)));
         }
         // Match special keywords

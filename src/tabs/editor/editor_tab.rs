@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use crate::lsp::{use_lsp, LspAction};
 use crate::state::EditorView;
-use crate::tabs::editor::BuilderProps;
+use crate::tabs::editor::BuilderArgs;
 use crate::tabs::editor::EditorLine;
 use crate::{components::*, state::Channel};
 use crate::{hooks::*, state::EditorType};
@@ -42,13 +42,7 @@ pub struct EditorTabProps {
 pub fn EditorTab(props: EditorTabProps) -> Element {
     let mut radio_app_state = use_radio(Channel::follow_tab(props.panel_index, props.editor_index));
     let hover_location = use_signal(|| None);
-    let metrics = use_metrics(&radio_app_state, props.panel_index, props.editor_index);
-    let mut editable = use_edit(
-        &radio_app_state,
-        props.panel_index,
-        props.editor_index,
-        &metrics,
-    );
+    let mut editable = use_edit(&radio_app_state, props.panel_index, props.editor_index);
     let cursor_coords = use_signal(CursorPoint::default);
     let mut scroll_offsets = use_signal(|| (0, 0));
     let lsp = use_lsp(
@@ -151,10 +145,11 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
 
     let app_state = radio_app_state.read();
     let cursor_reference = editable.cursor_attr();
-    let font_size = app_state.font_size();
     let line_height = app_state.line_height();
+    let font_size = app_state.font_size();
+    let editor = app_state.editor(props.panel_index, props.editor_index);
     let manual_line_height = (font_size * line_height).floor();
-    let panel = app_state.panel(props.panel_index);
+    let syntax_blocks_len = editor.metrics.syntax_blocks.len();
 
     let onkeydown = move |e: KeyboardEvent| {
         let (is_panel_focused, is_editor_focused) = {
@@ -169,7 +164,7 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
         if is_panel_focused && is_editor_focused {
             let current_scroll = scroll_offsets.read().1;
             let lines_jump = (manual_line_height * LINES_JUMP_ALT as f32).ceil() as i32;
-            let min_height = -(metrics.get().0.len() as f32 * manual_line_height) as i32;
+            let min_height = -(syntax_blocks_len as f32 * manual_line_height) as i32;
             let max_height = 0; // TODO, this should be the height of the viewport
 
             let events = match &e.key {
@@ -202,9 +197,6 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
         }
     };
 
-    let editor = panel.tab(props.editor_index).as_text_editor().unwrap();
-    let cursor = editor.cursor();
-
     rsx!(
         rect {
             width: "100%",
@@ -222,15 +214,25 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
                 offset_x: scroll_offsets.read().0,
                 offset_y: scroll_offsets.read().1,
                 onscroll,
-                length: metrics.get().0.len(),
+                length: syntax_blocks_len,
                 item_size: manual_line_height,
-                builder_args: (cursor, metrics, editable, lsp, editor.rope().clone(), hover_location, cursor_coords, debouncer, font_size),
-                builder: move |i: usize, options: &BuilderProps| rsx!(
+                builder_args: BuilderArgs {
+                    panel_index: props.panel_index,
+                    editor_index:  props.editor_index,
+                    font_size,
+                    rope: editor.rope().clone(),
+                },
+                builder: move |i: usize, builder_args: &BuilderArgs| rsx!(
                     EditorLine {
                         key: "{i}",
                         line_index: i,
-                        options: options.clone(),
+                        builder_args: builder_args.clone(),
                         line_height: manual_line_height,
+                        editable,
+                        hover_location,
+                        debouncer,
+                        lsp,
+                        cursor_coords,
                     }
                 )
             }
