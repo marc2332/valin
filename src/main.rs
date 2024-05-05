@@ -9,6 +9,7 @@ mod components;
 mod constants;
 mod fs;
 mod hooks;
+mod keyboard_navigation;
 mod lsp;
 mod metrics;
 mod parser;
@@ -20,6 +21,7 @@ mod utils;
 use std::{path::PathBuf, sync::Arc};
 
 use crate::app::App;
+use crate::keyboard_navigation::KeyboardNavigationProvider;
 use clap::Parser;
 use components::*;
 use freya::prelude::*;
@@ -66,7 +68,12 @@ fn main() {
     launch_cfg(
         || {
             rsx!(
-                ThemeProvider { theme: CUSTOM_THEME, App {} }
+                ThemeProvider {
+                    theme: CUSTOM_THEME,
+                    KeyboardNavigationProvider {
+                        App {}
+                    }
+                }
             )
         },
         LaunchConfig::<Arc<Args>>::builder()

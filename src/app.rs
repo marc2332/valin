@@ -5,6 +5,7 @@ use crate::{
 };
 use crate::{
     constants::{BASE_FONT_SIZE, MAX_FONT_SIZE},
+    keyboard_navigation::use_keyboard_navigation,
     Args,
 };
 use crate::{hooks::*, settings::watch_settings};
@@ -114,8 +115,10 @@ pub fn App() -> Element {
         ])
     });
 
+    let mut keyboard_navigation = use_keyboard_navigation();
+
     let onsubmitcommander = move |_| {
-        after_tick(move || {
+        keyboard_navigation.callback(move || {
             let mut app_state = radio_app_state.write_channel(Channel::Global);
             app_state.set_focused_view_to_previous();
         })
