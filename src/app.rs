@@ -1,11 +1,15 @@
-use crate::constants::{BASE_FONT_SIZE, MAX_FONT_SIZE};
 use crate::hooks::*;
 use crate::utils::*;
 use crate::{
     components::*,
     fs::{FSLocal, FSTransport},
 };
+use crate::{
+    constants::{BASE_FONT_SIZE, MAX_FONT_SIZE},
+    Args,
+};
 use dioxus_radio::prelude::*;
+use dioxus_sdk::clipboard::use_clipboard;
 use freya::prelude::keyboard::{Key, Modifiers};
 use freya::prelude::*;
 use std::{rc::Rc, sync::Arc};
@@ -22,18 +26,69 @@ pub fn App() -> Element {
     // Initialize the Language Server Status reporters
     let (lsp_statuses, lsp_sender) = use_lsp_status();
 
+    // Initialize the default FS Transport
+    let default_transport = use_hook::<FSTransport>(|| Arc::new(Box::new(FSLocal)));
+
+    // Initilize the clipboard context
+    let clipboard = use_clipboard();
+
     // Initialize the State Manager
-    use_init_radio_station::<AppState, Channel>(|| {
+    use_init_radio_station::<AppState, Channel>(move || {
+        let args = consume_context::<Arc<Args>>();
+
         let mut state = AppState::new(lsp_sender);
 
-        // Default tab
-        state.push_tab(PanelTab::Welcome, 0, true);
+        if args.paths.is_empty() {
+            // Default tab
+            state.push_tab(PanelTab::Welcome, 0, true);
+        }
 
         state
     });
 
     // Subscribe to the State Manager
     let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Global);
+
+    // Load specified files and folders asynchronously
+    use_hook({
+        to_owned![default_transport];
+        move || {
+            let args = consume_context::<Arc<Args>>();
+            spawn(async move {
+                for path in &args.paths {
+                    // Files
+                    if path.is_file() {
+                        let root_path = path.parent().unwrap_or(&path).to_path_buf();
+                        let content = default_transport.read_to_string(&path).await;
+                        if let Ok(content) = content {
+                            let mut app_state = radio_app_state.write();
+                            app_state.open_file(
+                                path.clone(),
+                                root_path,
+                                clipboard,
+                                content,
+                                default_transport.clone(),
+                            );
+                        }
+                    }
+                    // Folders
+                    else if path.is_dir() {
+                        let folder_path = default_transport.canonicalize(path).await.unwrap();
+
+                        let items = read_folder_as_items(&folder_path, &default_transport).await;
+                        if let Ok(items) = items {
+                            let mut app_state =
+                                radio_app_state.write_channel(Channel::FileExplorer);
+                            app_state.open_folder(TreeItem::Folder {
+                                path: folder_path,
+                                state: FolderState::Opened(items),
+                            });
+                        }
+                    }
+                }
+            });
+        }
+    });
 
     // Initialize the Commands
     let commands = use_hook::<Rc<Vec<Box<dyn EditorCommand>>>>(|| {
@@ -128,8 +183,6 @@ pub fn App() -> Element {
     let focused_view = radio_app_state.read().focused_view;
     let panels_len = radio_app_state.read().panels().len();
     let panes_width = 100.0 / panels_len as f32;
-
-    let default_transport = use_hook::<FSTransport>(|| Arc::new(Box::new(FSLocal)));
 
     rsx!(
         rect {
