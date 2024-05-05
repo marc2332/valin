@@ -1,12 +1,9 @@
-use std::time::Duration;
-
 use freya::prelude::*;
 use skia_safe::{
     scalar,
     textlayout::{FontCollection, Paragraph, ParagraphBuilder, ParagraphStyle, TextStyle},
     FontMgr,
 };
-use tokio::time::sleep;
 
 #[allow(non_snake_case)]
 pub fn Divider() -> Element {
@@ -44,11 +41,4 @@ pub fn create_paragraph(text: &str, font_size: f32) -> Paragraph {
     paragraph.layout(scalar::MAX);
 
     paragraph
-}
-
-pub fn after_tick(cb: impl FnOnce() + 'static) {
-    spawn(async move {
-        sleep(Duration::from_nanos(0)).await;
-        cb();
-    });
 }
