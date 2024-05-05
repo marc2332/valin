@@ -1,4 +1,3 @@
-use crate::hooks::*;
 use crate::utils::*;
 use crate::{
     components::*,
@@ -9,12 +8,14 @@ use crate::{
     keyboard_navigation::use_keyboard_navigation,
     Args,
 };
+use crate::{hooks::*, settings::watch_settings};
 use dioxus_radio::prelude::*;
 use dioxus_sdk::clipboard::use_clipboard;
 use freya::prelude::keyboard::{Key, Modifiers};
 use freya::prelude::*;
 use std::{rc::Rc, sync::Arc};
 use tokio::{fs::OpenOptions, io::AsyncWriteExt};
+use tracing::info;
 
 use crate::state::{AppStateUtils, EditorSidePanel, EditorView, PanelTab};
 use crate::{
@@ -27,17 +28,15 @@ pub fn App() -> Element {
     // Initialize the Language Server Status reporters
     let (lsp_statuses, lsp_sender) = use_lsp_status();
 
-    // Initialize the default FS Transport
-    let default_transport = use_hook::<FSTransport>(|| Arc::new(Box::new(FSLocal)));
-
     // Initilize the clipboard context
     let clipboard = use_clipboard();
 
     // Initialize the State Manager
     use_init_radio_station::<AppState, Channel>(move || {
         let args = consume_context::<Arc<Args>>();
+        let default_transport: FSTransport = Arc::new(Box::new(FSLocal));
 
-        let mut state = AppState::new(lsp_sender);
+        let mut state = AppState::new(lsp_sender, default_transport);
 
         if args.paths.is_empty() {
             // Default tab
@@ -51,49 +50,61 @@ pub fn App() -> Element {
     let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Global);
 
     // Load specified files and folders asynchronously
-    use_hook({
-        to_owned![default_transport];
-        move || {
-            let args = consume_context::<Arc<Args>>();
-            spawn(async move {
-                for path in &args.paths {
-                    // Files
-                    if path.is_file() {
-                        let root_path = path.parent().unwrap_or(path).to_path_buf();
-                        let content = default_transport.read_to_string(path).await;
-                        if let Ok(content) = content {
-                            let mut app_state =
-                                radio_app_state.write_channel(Channel::FileExplorer);
-                            let font_size = app_state.font_size();
-                            let font_collection = app_state.font_collection.clone();
-                            app_state.open_file(
-                                path.clone(),
-                                root_path,
-                                clipboard,
-                                content,
-                                default_transport.clone(),
-                                font_size,
-                                &font_collection,
-                            );
-                        }
-                    }
-                    // Folders
-                    else if path.is_dir() {
-                        let folder_path = default_transport.canonicalize(path).await.unwrap();
+    use_hook(move || {
+        let args = consume_context::<Arc<Args>>();
+        spawn(async move {
+            for path in &args.paths {
+                // Files
+                if path.is_file() {
+                    let root_path = path.parent().unwrap_or(path).to_path_buf();
+                    let transport = radio_app_state.read().default_transport.clone();
 
-                        let items = read_folder_as_items(&folder_path, &default_transport).await;
-                        if let Ok(items) = items {
-                            let mut app_state =
-                                radio_app_state.write_channel(Channel::FileExplorer);
-                            app_state.open_folder(TreeItem::Folder {
-                                path: folder_path,
-                                state: FolderState::Opened(items),
-                            });
-                        }
+                    let content = transport.read_to_string(path).await;
+                    if let Ok(content) = content {
+                        let mut app_state = radio_app_state.write();
+                        let font_size = app_state.font_size();
+                        let font_collection = app_state.font_collection.clone();
+                        app_state.open_file(
+                            path.clone(),
+                            root_path,
+                            clipboard,
+                            content,
+                            transport,
+                            font_size,
+                            &font_collection,
+                        );
                     }
                 }
-            });
-        }
+                // Folders
+                else if path.is_dir() {
+                    let mut app_state = radio_app_state.write_channel(Channel::FileExplorer);
+                    let folder_path = app_state
+                        .default_transport
+                        .canonicalize(path)
+                        .await
+                        .unwrap();
+
+                    let items =
+                        read_folder_as_items(&folder_path, &app_state.default_transport).await;
+                    if let Ok(items) = items {
+                        app_state.open_folder(TreeItem::Folder {
+                            path: folder_path,
+                            state: FolderState::Opened(items),
+                        });
+                    }
+                }
+            }
+        });
+    });
+
+    use_hook(|| {
+        spawn(async move {
+            let res = watch_settings(radio_app_state).await;
+            if res.is_none() {
+                info!("Failed to watch the settings in background.");
+            }
+            println!("{res:?}");
+        })
     });
 
     // Initialize the Commands
@@ -127,13 +138,13 @@ pub fn App() -> Element {
                 match ch.as_str() {
                     "+" => {
                         let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
-                        let font_size = app_state.font_size;
+                        let font_size = app_state.font_size();
                         app_state
                             .set_fontsize((font_size + 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE))
                     }
                     "-" => {
                         let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
-                        let font_size = app_state.font_size;
+                        let font_size = app_state.font_size();
                         app_state
                             .set_fontsize((font_size - 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE))
                     }
@@ -217,9 +228,7 @@ pub fn App() -> Element {
                         match side_panel {
                             EditorSidePanel::FileExplorer => {
                                 rsx!(
-                                    FileExplorer {
-                                        transport: default_transport
-                                    }
+                                    FileExplorer {  }
                                 )
                             }
                         }

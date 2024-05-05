@@ -1,19 +1,17 @@
 use dioxus_radio::prelude::use_radio;
+use dioxus_sdk::clipboard::use_clipboard;
 use freya::prelude::*;
 
-use crate::state::{AppState, Channel, EditorSidePanel, PanelTab};
+use crate::state::{AppState, Channel, EditorSidePanel};
 
 #[allow(non_snake_case)]
 pub fn EditorSidebar() -> Element {
     let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Global);
+    let clipboard = use_clipboard();
 
     let open_settings = move |_| {
-        let focused_panel = radio_app_state.read().focused_panel();
-        radio_app_state.write_channel(Channel::Global).push_tab(
-            PanelTab::Config,
-            focused_panel,
-            true,
-        );
+        let mut app_state = radio_app_state.write();
+        app_state.open_settings(clipboard);
     };
 
     let toggle_file_explorer = move |_| {

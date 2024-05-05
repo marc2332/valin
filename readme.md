@@ -23,6 +23,7 @@ You can download it from the [Releases](https://github.com/marc2332/valin/releas
 - [x] Undo
 - [x] Redo
 - [x] Files explorer
+- [x] Settings
 - [ ] Intellisense (Enable with `--lsp`)
   - [x] Hover (exprimental, only rust-analyzer atm)
   - [ ] Autocomplete

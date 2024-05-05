@@ -1,7 +1,6 @@
 use super::icons::*;
 use super::tab::*;
 use crate::state::{AppState, Channel, Panel, PanelTab};
-use crate::tabs::config::*;
 use crate::tabs::editor::*;
 use crate::tabs::welcome::*;
 use crate::utils::*;
@@ -129,13 +128,6 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                                             panel_index,
                                             editor_index: active_tab_index,
                                             editor_type: editor.editor_type.clone()
-                                        }
-                                    )
-                                }
-                                PanelTab::Config => {
-                                    rsx!(
-                                        ConfigTab {
-                                            key: "{tab_data.id}",
                                         }
                                     )
                                 }

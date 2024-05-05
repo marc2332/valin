@@ -1,4 +1,4 @@
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf, vec};
 
 use dioxus_radio::prelude::{Radio, RadioChannel};
 use dioxus_sdk::clipboard::UseClipboard;
@@ -9,10 +9,11 @@ use tracing::info;
 use crate::{
     fs::FSTransport,
     lsp::{create_lsp_client, LSPClient, LspConfig},
+    settings::settings_path,
     LspStatusSender, TreeItem,
 };
 
-use super::{EditorData, EditorType, EditorView, Panel, PanelTab};
+use super::{AppSettings, EditorData, EditorType, EditorView, Panel, PanelTab};
 
 pub type RadioAppState = Radio<AppState, Channel>;
 
@@ -67,6 +68,8 @@ pub enum Channel {
     },
     /// Only affects the active tab
     ActiveTab,
+    /// Affects the settings
+    Settings,
     // Only affects the file explorer
     FileExplorer,
 }
@@ -111,6 +114,11 @@ impl RadioChannel<AppState> for Channel {
                 }
                 channels
             }
+            Self::Settings => {
+                let mut channels = vec![self];
+                channels.extend(Channel::AllTabs.derive_channel(app_state));
+                channels
+            }
             _ => vec![self],
         }
     }
@@ -136,17 +144,17 @@ pub struct AppState {
     pub focused_view: EditorView,
     pub focused_panel: usize,
     pub panels: Vec<Panel>,
-    pub font_size: f32,
-    pub line_height: f32,
+    pub settings: AppSettings,
     pub language_servers: HashMap<String, LSPClient>,
     pub lsp_sender: LspStatusSender,
     pub side_panel: Option<EditorSidePanel>,
     pub file_explorer_folders: Vec<TreeItem>,
+    pub default_transport: FSTransport,
     pub font_collection: FontCollection,
 }
 
 impl AppState {
-    pub fn new(lsp_sender: LspStatusSender) -> Self {
+    pub fn new(lsp_sender: LspStatusSender, default_transport: FSTransport) -> Self {
         let mut font_collection = FontCollection::new();
         font_collection.set_default_font_manager(FontMgr::default(), "Jetbrains Mono");
 
@@ -155,12 +163,12 @@ impl AppState {
             focused_view: EditorView::default(),
             focused_panel: 0,
             panels: vec![Panel::new()],
-            font_size: 17.0,
-            line_height: 1.2,
+            settings: AppSettings::load(),
             language_servers: HashMap::default(),
             lsp_sender,
             side_panel: Some(EditorSidePanel::default()),
             file_explorer_folders: Vec::new(),
+            default_transport,
             font_collection,
         }
     }
@@ -176,13 +184,25 @@ impl AppState {
         self.side_panel = Some(side_panel);
     }
 
-    pub fn set_fontsize(&mut self, font_size: f32) {
-        self.font_size = font_size;
+    pub fn set_settings(&mut self, settins: AppSettings) {
+        self.settings = settins;
+        self.apply_settings();
+    }
 
+    pub fn set_fontsize(&mut self, font_size: f32) {
+        self.settings.editor.font_size = font_size;
+        self.apply_settings()
+    }
+
+    /// There are a few things that need to revaluated when the settings are changed
+    pub fn apply_settings(&mut self) {
         for panel in &mut self.panels {
             for tab in &mut panel.tabs {
                 if let Some(editor) = tab.as_text_editor_mut() {
-                    editor.measure_longest_line(font_size, &self.font_collection);
+                    editor.measure_longest_line(
+                        self.settings.editor.font_size,
+                        &self.font_collection,
+                    );
                 }
             }
         }
@@ -206,11 +226,11 @@ impl AppState {
     }
 
     pub fn font_size(&self) -> f32 {
-        self.font_size
+        self.settings.editor.font_size
     }
 
     pub fn line_height(&self) -> f32 {
-        self.line_height
+        self.settings.editor.line_height
     }
 
     pub fn focused_panel(&self) -> usize {
@@ -388,5 +408,17 @@ impl AppState {
 
     pub fn open_folder(&mut self, item: TreeItem) {
         self.file_explorer_folders.push(item)
+    }
+
+    pub fn open_settings(&mut self, clipboard: UseClipboard) {
+        self.open_file(
+            settings_path().unwrap(),
+            settings_path().unwrap(),
+            clipboard,
+            toml::to_string(&self.settings).unwrap(),
+            self.default_transport.clone(),
+            self.settings.editor.font_size,
+            &self.font_collection.clone(),
+        )
     }
 }

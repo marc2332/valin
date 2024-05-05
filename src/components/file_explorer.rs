@@ -1,7 +1,4 @@
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::path::{Path, PathBuf};
 
 use dioxus_radio::hooks::use_radio;
 use dioxus_sdk::clipboard::use_clipboard;
@@ -138,19 +135,8 @@ enum TreeTask {
     },
 }
 
-#[derive(Clone, Props)]
-pub struct FileExplorerProps {
-    transport: FSTransport,
-}
-
-impl PartialEq for FileExplorerProps {
-    fn eq(&self, other: &Self) -> bool {
-        Arc::ptr_eq(&self.transport, &other.transport)
-    }
-}
-
 #[allow(non_snake_case)]
-pub fn FileExplorer(FileExplorerProps { transport }: FileExplorerProps) -> Element {
+pub fn FileExplorer() -> Element {
     let clipboard = use_clipboard();
     let mut radio_app_state = use_radio::<AppState, Channel>(Channel::FileExplorer);
     let app_state = radio_app_state.read();
@@ -164,87 +150,88 @@ pub fn FileExplorer(FileExplorerProps { transport }: FileExplorerProps) -> Eleme
         .collect::<Vec<FlatItem>>();
     let items_len = items.len();
 
-    let channel = use_coroutine({
-        to_owned![transport];
-        move |mut rx| {
-            async move {
-                while let Some((task, item_index)) = rx.next().await {
-                    // Focus the FilesExplorer view if it wasn't focused already
-                    let focused_view = *radio_app_state.read().focused_view();
-                    if focused_view != EditorView::FilesExplorer {
-                        radio_app_state
-                            .write_channel(Channel::Global)
-                            .set_focused_view(EditorView::FilesExplorer);
-                    }
+    let channel = use_coroutine(move |mut rx| {
+        async move {
+            while let Some((task, item_index)) = rx.next().await {
+                // Focus the FilesExplorer view if it wasn't focused already
+                let focused_view = *radio_app_state.read().focused_view();
+                if focused_view != EditorView::FilesExplorer {
+                    radio_app_state
+                        .write_channel(Channel::Global)
+                        .set_focused_view(EditorView::FilesExplorer);
+                }
 
-                    match task {
-                        TreeTask::OpenFolder {
-                            folder_path,
-                            root_path,
-                        } => {
-                            if let Ok(items) = read_folder_as_items(&folder_path, &transport).await
-                            {
-                                let mut app_state = radio_app_state.write();
-                                let folder = app_state
-                                    .file_explorer_folders
-                                    .iter_mut()
-                                    .find(|folder| folder.path() == &root_path)
-                                    .unwrap();
-                                folder.set_folder_state(&folder_path, &FolderState::Opened(items));
-                            }
-                        }
-                        TreeTask::CloseFolder {
-                            folder_path,
-                            root_path,
-                        } => {
+                match task {
+                    TreeTask::OpenFolder {
+                        folder_path,
+                        root_path,
+                    } => {
+                        let transport = radio_app_state.read().default_transport.clone();
+                        if let Ok(items) = read_folder_as_items(&folder_path, &transport).await {
                             let mut app_state = radio_app_state.write();
                             let folder = app_state
                                 .file_explorer_folders
                                 .iter_mut()
                                 .find(|folder| folder.path() == &root_path)
                                 .unwrap();
-                            folder.set_folder_state(&folder_path, &FolderState::Closed);
-                        }
-                        TreeTask::OpenFile {
-                            file_path,
-                            root_path,
-                        } => {
-                            let content = transport.read_to_string(&file_path).await;
-                            if let Ok(content) = content {
-                                let mut app_state = radio_app_state.write_channel(Channel::Global);
-                                let font_size = app_state.font_size();
-                                let font_collection = app_state.font_collection.clone();
-                                app_state.open_file(
-                                    file_path,
-                                    root_path,
-                                    clipboard,
-                                    content,
-                                    transport.clone(),
-                                    font_size,
-                                    &font_collection,
-                                );
-                            } else if let Err(err) = content {
-                                println!("Error reading file: {err:?}");
-                            }
+                            folder.set_folder_state(&folder_path, &FolderState::Opened(items));
                         }
                     }
-                    focused_item.set(item_index);
+                    TreeTask::CloseFolder {
+                        folder_path,
+                        root_path,
+                    } => {
+                        let mut app_state = radio_app_state.write();
+                        let folder = app_state
+                            .file_explorer_folders
+                            .iter_mut()
+                            .find(|folder| folder.path() == &root_path)
+                            .unwrap();
+                        folder.set_folder_state(&folder_path, &FolderState::Closed);
+                    }
+                    TreeTask::OpenFile {
+                        file_path,
+                        root_path,
+                    } => {
+                        let transport = radio_app_state.read().default_transport.clone();
+                        let content = transport.read_to_string(&file_path).await;
+                        if let Ok(content) = content {
+                            let mut app_state = radio_app_state.write_channel(Channel::Global);
+                            let font_size = app_state.font_size();
+                            let font_collection = app_state.font_collection.clone();
+                            app_state.open_file(
+                                file_path,
+                                root_path,
+                                clipboard,
+                                content,
+                                transport,
+                                font_size,
+                                &font_collection,
+                            );
+                        } else if let Err(err) = content {
+                            println!("Error reading file: {err:?}");
+                        }
+                    }
                 }
+                focused_item.set(item_index);
             }
         }
     });
 
     let open_dialog = move |_| {
-        to_owned![transport];
         spawn(async move {
             let folder = rfd::AsyncFileDialog::new().pick_folder().await;
 
             if let Some(folder) = folder {
+                let transport = radio_app_state.read().default_transport.clone();
+
                 let path = folder.path().to_owned();
                 let items = read_folder_as_items(&path, &transport)
                     .await
                     .unwrap_or_default();
+
                 let mut app_state = radio_app_state.write();
+
                 app_state.open_folder(TreeItem::Folder {
                     path,
                     state: FolderState::Opened(items),

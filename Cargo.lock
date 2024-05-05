@@ -1249,7 +1249,7 @@ dependencies = [
  "execute",
  "ignore",
  "interprocess-docfix",
- "notify",
+ "notify 5.2.0",
  "once_cell",
  "serde",
  "serde_json",
@@ -3156,6 +3156,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "notify"
+version = "6.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6205bd8bb1e454ad2e27422015fb5e4f2bcc7e08fa8f27058670d208324a4d2d"
+dependencies = [
+ "bitflags 2.5.0",
+ "crossbeam-channel",
+ "filetime",
+ "fsevent-sys",
+ "inotify",
+ "kqueue",
+ "libc",
+ "log",
+ "mio",
+ "walkdir",
+ "windows-sys 0.48.0",
+]
+
+[[package]]
 name = "nu-ansi-term"
 version = "0.46.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4835,14 +4854,18 @@ dependencies = [
  "freya-hooks",
  "freya-node-state",
  "futures",
+ "home",
  "lsp-types",
+ "notify 6.1.1",
  "rfd",
  "ropey",
+ "serde",
  "skia-safe",
  "smallvec",
  "tokio",
  "tokio-stream",
  "tokio-util",
+ "toml",
  "tower",
  "tracing",
  "tracing-subscriber",

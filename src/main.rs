@@ -13,6 +13,7 @@ mod keyboard_navigation;
 mod lsp;
 mod metrics;
 mod parser;
+mod settings;
 mod state;
 mod tabs;
 mod utils;
