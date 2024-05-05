@@ -119,6 +119,9 @@ impl RadioChannel<AppState> for Channel {
                 channels.extend(Channel::AllTabs.derive_channel(app_state));
                 channels
             }
+            Self::Global => {
+                vec![self, Self::FileExplorer]
+            }
             _ => vec![self],
         }
     }
