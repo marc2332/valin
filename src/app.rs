@@ -1,4 +1,3 @@
-use crate::hooks::*;
 use crate::utils::*;
 use crate::{
     components::*,
@@ -8,12 +7,14 @@ use crate::{
     constants::{BASE_FONT_SIZE, MAX_FONT_SIZE},
     Args,
 };
+use crate::{hooks::*, settings::watch_settings};
 use dioxus_radio::prelude::*;
 use dioxus_sdk::clipboard::use_clipboard;
 use freya::prelude::keyboard::{Key, Modifiers};
 use freya::prelude::*;
 use std::{rc::Rc, sync::Arc};
 use tokio::{fs::OpenOptions, io::AsyncWriteExt};
+use tracing::info;
 
 use crate::state::{AppStateUtils, EditorSidePanel, EditorView, PanelTab};
 use crate::{
@@ -93,6 +94,16 @@ pub fn App() -> Element {
                 }
             }
         });
+    });
+
+    use_hook(|| {
+        spawn(async move {
+            let res = watch_settings(radio_app_state).await;
+            if res.is_none() {
+                info!("Failed to watch the settings in background.");
+            }
+            println!("{res:?}");
+        })
     });
 
     // Initialize the Commands

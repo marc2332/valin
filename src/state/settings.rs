@@ -18,17 +18,9 @@ impl Default for EditorSettings {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct AppSettings {
     pub(crate) editor: EditorSettings,
-}
-
-impl Default for AppSettings {
-    fn default() -> Self {
-        Self {
-            editor: EditorSettings::default(),
-        }
-    }
 }
 
 impl AppSettings {

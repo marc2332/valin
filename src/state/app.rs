@@ -184,13 +184,25 @@ impl AppState {
         self.side_panel = Some(side_panel);
     }
 
+    pub fn set_settings(&mut self, settins: AppSettings) {
+        self.settings = settins;
+        self.apply_settings();
+    }
+
     pub fn set_fontsize(&mut self, font_size: f32) {
         self.settings.editor.font_size = font_size;
+        self.apply_settings()
+    }
 
+    /// There are a few things that need to revaluated when the settings are changed
+    pub fn apply_settings(&mut self) {
         for panel in &mut self.panels {
             for tab in &mut panel.tabs {
                 if let Some(editor) = tab.as_text_editor_mut() {
-                    editor.measure_longest_line(font_size, &self.font_collection);
+                    editor.measure_longest_line(
+                        self.settings.editor.font_size,
+                        &self.font_collection,
+                    );
                 }
             }
         }

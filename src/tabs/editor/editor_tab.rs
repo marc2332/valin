@@ -220,6 +220,7 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
                     panel_index: props.panel_index,
                     editor_index:  props.editor_index,
                     font_size,
+                    line_height: manual_line_height,
                     rope: editor.rope().clone(),
                 },
                 builder: move |i: usize, builder_args: &BuilderArgs| rsx!(
@@ -227,7 +228,6 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
                         key: "{i}",
                         line_index: i,
                         builder_args: builder_args.clone(),
-                        line_height: manual_line_height,
                         editable,
                         hover_location,
                         debouncer,

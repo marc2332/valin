@@ -17,13 +17,13 @@ pub struct BuilderArgs {
     pub(crate) editor_index: usize,
     pub(crate) font_size: f32,
     pub(crate) rope: Rope,
+    pub(crate) line_height: f32,
 }
 
 #[derive(Props, Clone, PartialEq)]
 pub struct EditorLineProps {
     builder_args: BuilderArgs,
     line_index: usize,
-    line_height: f32,
     editable: UseEdit,
     lsp: UseLsp,
     hover_location: Signal<Option<(u32, Hover)>>,
@@ -40,9 +40,9 @@ pub fn EditorLine(
                 editor_index,
                 font_size,
                 rope,
+                line_height,
             },
         line_index,
-        line_height,
         mut editable,
         lsp,
         hover_location,
