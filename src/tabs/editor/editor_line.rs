@@ -174,29 +174,22 @@ pub fn EditorLine(
                 font_size: "{font_size}",
                 font_family: "Jetbrains Mono",
                 {line.iter().enumerate().map(|(i, (syntax_type, text))| {
-                    match text {
+                    let text = match text {
                         TextNode::Range(word_pos) => {
-                            let text = rope.slice(word_pos.clone());
-                            rsx!(
-                                text {
-                                    key: "{i}",
-                                    color: "{syntax_type.color()}",
-                                    "{text}"
-                                }
-                            )
-
+                            rope.slice(word_pos.clone()).to_string()
                         },
                         TextNode::LineOfChars { len, char } => {
-                            let text = format!("{char}").repeat(*len);
-                            rsx!(
-                                text {
-                                    key: "{i}",
-                                    color: "{syntax_type.color()}",
-                                    "{text}"
-                                }
-                            )
+                            format!("{char}").repeat(*len)
                         }
-                    }
+                    };
+
+                    rsx!(
+                        text {
+                            key: "{i}",
+                            color: "{syntax_type.color()}",
+                            "{text}"
+                        }
+                    )
                 })}
             }
         }
