@@ -212,12 +212,16 @@ pub fn FileExplorer(FileExplorerProps { transport }: FileExplorerProps) -> Eleme
                             let content = transport.read_to_string(&file_path).await;
                             if let Ok(content) = content {
                                 let mut app_state = radio_app_state.write_channel(Channel::Global);
+                                let font_size = app_state.font_size();
+                                let font_collection = app_state.font_collection.clone();
                                 app_state.open_file(
                                     file_path,
                                     root_path,
                                     clipboard,
                                     content,
                                     transport.clone(),
+                                    font_size,
+                                    font_collection,
                                 );
                             } else if let Err(err) = content {
                                 println!("Error reading file: {err:?}");

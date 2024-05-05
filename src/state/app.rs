@@ -3,6 +3,7 @@ use std::{collections::HashMap, path::PathBuf};
 use dioxus_radio::prelude::{Radio, RadioChannel};
 use dioxus_sdk::clipboard::UseClipboard;
 use freya::prelude::Rope;
+use skia_safe::{textlayout::FontCollection, FontMgr};
 use tracing::info;
 
 use crate::{
@@ -141,10 +142,14 @@ pub struct AppState {
     pub lsp_sender: LspStatusSender,
     pub side_panel: Option<EditorSidePanel>,
     pub file_explorer_folders: Vec<TreeItem>,
+    pub font_collection: FontCollection,
 }
 
 impl AppState {
     pub fn new(lsp_sender: LspStatusSender) -> Self {
+        let mut font_collection = FontCollection::new();
+        font_collection.set_default_font_manager(FontMgr::default(), "Jetbrains Mono");
+
         Self {
             previous_focused_view: None,
             focused_view: EditorView::default(),
@@ -156,6 +161,7 @@ impl AppState {
             lsp_sender,
             side_panel: Some(EditorSidePanel::default()),
             file_explorer_folders: Vec::new(),
+            font_collection,
         }
     }
 
@@ -170,8 +176,16 @@ impl AppState {
         self.side_panel = Some(side_panel);
     }
 
-    pub fn set_fontsize(&mut self, fontsize: f32) {
-        self.font_size = fontsize;
+    pub fn set_fontsize(&mut self, font_size: f32) {
+        self.font_size = font_size;
+
+        for panel in &mut self.panels {
+            for tab in &mut panel.tabs {
+                if let Some(editor) = tab.as_text_editor_mut() {
+                    editor.measure_longest_line(font_size, &self.font_collection);
+                }
+            }
+        }
     }
 
     pub fn set_focused_view(&mut self, focused_view: EditorView) {
@@ -353,6 +367,8 @@ impl AppState {
         clipboard: UseClipboard,
         content: String,
         transport: FSTransport,
+        font_size: f32,
+        font_collection: &FontCollection,
     ) {
         self.push_tab(
             PanelTab::TextEditor(EditorData::new(
@@ -361,6 +377,8 @@ impl AppState {
                 (0, 0),
                 clipboard,
                 transport,
+                font_size,
+                font_collection,
             )),
             self.focused_panel,
             true,
