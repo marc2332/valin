@@ -10,6 +10,7 @@ mod constants;
 mod fs;
 mod hooks;
 mod lsp;
+mod metrics;
 mod parser;
 mod settings;
 mod state;

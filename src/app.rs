@@ -54,13 +54,23 @@ pub fn App() -> Element {
             for path in &args.paths {
                 // Files
                 if path.is_file() {
-                    let root_path = path.parent().unwrap_or(&path).to_path_buf();
+                    let root_path = path.parent().unwrap_or(path).to_path_buf();
                     let transport = radio_app_state.read().default_transport.clone();
 
-                    let content = transport.read_to_string(&path).await;
+                    let content = transport.read_to_string(path).await;
                     if let Ok(content) = content {
                         let mut app_state = radio_app_state.write();
-                        app_state.open_file(path.clone(), root_path, clipboard, content, transport);
+                        let font_size = app_state.font_size();
+                        let font_collection = app_state.font_collection.clone();
+                        app_state.open_file(
+                            path.clone(),
+                            root_path,
+                            clipboard,
+                            content,
+                            transport,
+                            font_size,
+                            &font_collection,
+                        );
                     }
                 }
                 // Folders

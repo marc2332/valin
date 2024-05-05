@@ -3,6 +3,7 @@ use std::{collections::HashMap, path::PathBuf, vec};
 use dioxus_radio::prelude::{Radio, RadioChannel};
 use dioxus_sdk::clipboard::UseClipboard;
 use freya::prelude::Rope;
+use skia_safe::{textlayout::FontCollection, FontMgr};
 use tracing::info;
 
 use crate::{
@@ -149,10 +150,14 @@ pub struct AppState {
     pub side_panel: Option<EditorSidePanel>,
     pub file_explorer_folders: Vec<TreeItem>,
     pub default_transport: FSTransport,
+    pub font_collection: FontCollection,
 }
 
 impl AppState {
     pub fn new(lsp_sender: LspStatusSender, default_transport: FSTransport) -> Self {
+        let mut font_collection = FontCollection::new();
+        font_collection.set_default_font_manager(FontMgr::default(), "Jetbrains Mono");
+
         Self {
             previous_focused_view: None,
             focused_view: EditorView::default(),
@@ -164,6 +169,7 @@ impl AppState {
             side_panel: Some(EditorSidePanel::default()),
             file_explorer_folders: Vec::new(),
             default_transport,
+            font_collection,
         }
     }
 
@@ -178,8 +184,16 @@ impl AppState {
         self.side_panel = Some(side_panel);
     }
 
-    pub fn set_fontsize(&mut self, fontsize: f32) {
-        self.settings.editor.font_size = fontsize;
+    pub fn set_fontsize(&mut self, font_size: f32) {
+        self.settings.editor.font_size = font_size;
+
+        for panel in &mut self.panels {
+            for tab in &mut panel.tabs {
+                if let Some(editor) = tab.as_text_editor_mut() {
+                    editor.measure_longest_line(font_size, &self.font_collection);
+                }
+            }
+        }
     }
 
     pub fn set_focused_view(&mut self, focused_view: EditorView) {
@@ -354,6 +368,7 @@ impl AppState {
             .as_text_editor_mut()
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn open_file(
         &mut self,
         path: PathBuf,
@@ -361,6 +376,8 @@ impl AppState {
         clipboard: UseClipboard,
         content: String,
         transport: FSTransport,
+        font_size: f32,
+        font_collection: &FontCollection,
     ) {
         self.push_tab(
             PanelTab::TextEditor(EditorData::new(
@@ -369,6 +386,8 @@ impl AppState {
                 (0, 0),
                 clipboard,
                 transport,
+                font_size,
+                font_collection,
             )),
             self.focused_panel,
             true,
@@ -386,6 +405,8 @@ impl AppState {
             clipboard,
             toml::to_string(&self.settings).unwrap(),
             self.default_transport.clone(),
+            self.settings.editor.font_size,
+            &self.font_collection.clone(),
         )
     }
 }
