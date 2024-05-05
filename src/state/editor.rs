@@ -5,8 +5,9 @@ use freya::hooks::{EditorHistory, HistoryChange, Line, TextCursor, TextEditor};
 use freya::prelude::Rope;
 use freya_hooks::LinesIterator;
 use lsp_types::Url;
+use skia_safe::textlayout::FontCollection;
 
-use crate::{fs::FSTransport, lsp::LanguageId};
+use crate::{fs::FSTransport, lsp::LanguageId, metrics::EditorMetrics};
 
 #[derive(Clone, PartialEq)]
 pub enum EditorType {
@@ -58,6 +59,7 @@ pub struct EditorData {
     pub(crate) clipboard: UseClipboard,
     pub(crate) last_saved_history_change: usize,
     pub(crate) transport: FSTransport,
+    pub(crate) metrics: EditorMetrics,
 }
 
 impl EditorData {
@@ -67,7 +69,13 @@ impl EditorData {
         (row, col): (usize, usize),
         clipboard: UseClipboard,
         transport: FSTransport,
+        font_size: f32,
+        font_collection: &FontCollection,
     ) -> Self {
+        let mut metrics = EditorMetrics::new();
+        metrics.measure_longest_line(font_size, &rope, font_collection);
+        metrics.run_parser(&rope);
+
         Self {
             editor_type,
             rope,
@@ -77,6 +85,7 @@ impl EditorData {
             last_saved_history_change: 0,
             clipboard,
             transport,
+            metrics,
         }
     }
 
@@ -115,6 +124,15 @@ impl EditorData {
 
     pub fn rope(&self) -> &Rope {
         &self.rope
+    }
+
+    pub fn run_parser(&mut self) {
+        self.metrics.run_parser(&self.rope);
+    }
+
+    pub fn measure_longest_line(&mut self, font_size: f32, font_collection: &FontCollection) {
+        self.metrics
+            .measure_longest_line(font_size, &self.rope, font_collection);
     }
 }
 
