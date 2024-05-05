@@ -1,9 +1,12 @@
-use crate::constants::{BASE_FONT_SIZE, MAX_FONT_SIZE};
 use crate::hooks::*;
 use crate::utils::*;
 use crate::{
     components::*,
     fs::{FSLocal, FSTransport},
+};
+use crate::{
+    constants::{BASE_FONT_SIZE, MAX_FONT_SIZE},
+    keyboard_navigation::use_keyboard_navigation,
 };
 use dioxus_radio::prelude::*;
 use freya::prelude::keyboard::{Key, Modifiers};
@@ -43,8 +46,10 @@ pub fn App() -> Element {
         ])
     });
 
+    let mut keyboard_navigation = use_keyboard_navigation();
+
     let onsubmitcommander = move |_| {
-        after_tick(move || {
+        keyboard_navigation.callback(move || {
             let mut app_state = radio_app_state.write_channel(Channel::Global);
             app_state.set_focused_view_to_previous();
         })
