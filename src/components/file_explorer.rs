@@ -221,7 +221,7 @@ pub fn FileExplorer(FileExplorerProps { transport }: FileExplorerProps) -> Eleme
                                     content,
                                     transport.clone(),
                                     font_size,
-                                    font_collection,
+                                    &font_collection,
                                 );
                             } else if let Err(err) = content {
                                 println!("Error reading file: {err:?}");
@@ -244,7 +244,7 @@ pub fn FileExplorer(FileExplorerProps { transport }: FileExplorerProps) -> Eleme
                 let items = read_folder_as_items(&path, &transport)
                     .await
                     .unwrap_or_default();
-                let mut app_state = radio_app_state.write_channel(Channel::Global);
+                let mut app_state = radio_app_state.write();
                 app_state.open_folder(TreeItem::Folder {
                     path,
                     state: FolderState::Opened(items),

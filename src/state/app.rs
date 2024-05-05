@@ -360,6 +360,7 @@ impl AppState {
             .as_text_editor_mut()
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub fn open_file(
         &mut self,
         path: PathBuf,

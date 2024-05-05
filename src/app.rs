@@ -58,16 +58,21 @@ pub fn App() -> Element {
                 for path in &args.paths {
                     // Files
                     if path.is_file() {
-                        let root_path = path.parent().unwrap_or(&path).to_path_buf();
-                        let content = default_transport.read_to_string(&path).await;
+                        let root_path = path.parent().unwrap_or(path).to_path_buf();
+                        let content = default_transport.read_to_string(path).await;
                         if let Ok(content) = content {
-                            let mut app_state = radio_app_state.write();
+                            let mut app_state =
+                                radio_app_state.write_channel(Channel::FileExplorer);
+                            let font_size = app_state.font_size();
+                            let font_collection = app_state.font_collection.clone();
                             app_state.open_file(
                                 path.clone(),
                                 root_path,
                                 clipboard,
                                 content,
                                 default_transport.clone(),
+                                font_size,
+                                &font_collection,
                             );
                         }
                     }
