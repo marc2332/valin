@@ -22,12 +22,6 @@ pub enum FolderState {
     Closed,
 }
 
-#[derive(PartialEq)]
-pub enum SetFolderStateResult {
-    Found,
-    NotFound,
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum TreeItem {
     Folder { path: PathBuf, state: FolderState },
@@ -42,27 +36,18 @@ impl TreeItem {
         }
     }
 
-    pub fn set_folder_state(
-        &mut self,
-        folder_path: &PathBuf,
-        folder_state: &FolderState,
-    ) -> SetFolderStateResult {
+    pub fn set_folder_state(&mut self, folder_path: &PathBuf, folder_state: &FolderState) {
         if let TreeItem::Folder { path, state } = self {
             if path == folder_path {
                 *state = folder_state.clone(); // Ugly
-                return SetFolderStateResult::Found;
             } else if folder_path.starts_with(path) {
                 if let FolderState::Opened(items) = state {
                     for item in items {
-                        let res = item.set_folder_state(folder_path, folder_state);
-                        if res == SetFolderStateResult::Found {
-                            return res;
-                        }
+                        item.set_folder_state(folder_path, folder_state);
                     }
                 }
             }
         }
-        return SetFolderStateResult::NotFound;
     }
 
     pub fn flat(&self, depth: usize, root_path: &PathBuf) -> Vec<FlatItem> {
@@ -139,9 +124,18 @@ pub async fn read_folder_as_items(
 
 #[derive(Debug, Clone, PartialEq)]
 enum TreeTask {
-    OpenFolder(PathBuf),
-    CloseFolder(PathBuf),
-    OpenFile { path: PathBuf, root_path: PathBuf },
+    OpenFolder {
+        folder_path: PathBuf,
+        root_path: PathBuf,
+    },
+    CloseFolder {
+        folder_path: PathBuf,
+        root_path: PathBuf,
+    },
+    OpenFile {
+        file_path: PathBuf,
+        root_path: PathBuf,
+    },
 }
 
 #[derive(Clone, Props)]
@@ -184,39 +178,42 @@ pub fn FileExplorer(FileExplorerProps { transport }: FileExplorerProps) -> Eleme
                     }
 
                     match task {
-                        TreeTask::OpenFolder(folder_path) => {
+                        TreeTask::OpenFolder {
+                            folder_path,
+                            root_path,
+                        } => {
                             if let Ok(items) = read_folder_as_items(&folder_path, &transport).await
                             {
                                 let mut app_state = radio_app_state.write();
-                                for folder in &mut app_state.file_explorer_folders {
-                                    let res = folder.set_folder_state(
-                                        &folder_path,
-                                        &FolderState::Opened(items.clone()), // Ugly
-                                    );
-
-                                    if res == SetFolderStateResult::Found {
-                                        break;
-                                    }
-                                }
+                                let folder = app_state
+                                    .file_explorer_folders
+                                    .iter_mut()
+                                    .find(|folder| folder.path() == &root_path)
+                                    .unwrap();
+                                folder.set_folder_state(&folder_path, &FolderState::Opened(items));
                             }
                         }
-                        TreeTask::CloseFolder(folder_path) => {
+                        TreeTask::CloseFolder {
+                            folder_path,
+                            root_path,
+                        } => {
                             let mut app_state = radio_app_state.write();
-                            for folder in &mut app_state.file_explorer_folders {
-                                let res =
-                                    folder.set_folder_state(&folder_path, &FolderState::Closed);
-
-                                if res == SetFolderStateResult::Found {
-                                    break;
-                                }
-                            }
+                            let folder = app_state
+                                .file_explorer_folders
+                                .iter_mut()
+                                .find(|folder| folder.path() == &root_path)
+                                .unwrap();
+                            folder.set_folder_state(&folder_path, &FolderState::Closed);
                         }
-                        TreeTask::OpenFile { path, root_path } => {
-                            let content = transport.read_to_string(&path).await;
+                        TreeTask::OpenFile {
+                            file_path,
+                            root_path,
+                        } => {
+                            let content = transport.read_to_string(&file_path).await;
                             if let Ok(content) = content {
                                 let mut app_state = radio_app_state.write_channel(Channel::Global);
                                 app_state.open_file(
-                                    path,
+                                    file_path,
                                     root_path,
                                     clipboard,
                                     content,
@@ -343,7 +340,7 @@ fn file_explorer_item_builder(index: usize, values: &Option<TreeBuilderOptions>)
         let onclick = move |_| {
             channel.send((
                 TreeTask::OpenFile {
-                    path: item.path.clone(),
+                    file_path: item.path.clone(),
                     root_path: item.root_path.clone(),
                 },
                 index,
@@ -367,9 +364,21 @@ fn file_explorer_item_builder(index: usize, values: &Option<TreeBuilderOptions>)
         to_owned![channel, item];
         let onclick = move |_| {
             if item.is_opened {
-                channel.send((TreeTask::CloseFolder(item.path.clone()), index));
+                channel.send((
+                    TreeTask::CloseFolder {
+                        folder_path: item.path.clone(),
+                        root_path: item.root_path.clone(),
+                    },
+                    index,
+                ));
             } else {
-                channel.send((TreeTask::OpenFolder(item.path.clone()), index));
+                channel.send((
+                    TreeTask::OpenFolder {
+                        folder_path: item.path.clone(),
+                        root_path: item.root_path.clone(),
+                    },
+                    index,
+                ));
             }
         };
 
