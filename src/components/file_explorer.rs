@@ -22,6 +22,12 @@ pub enum FolderState {
     Closed,
 }
 
+#[derive(PartialEq)]
+pub enum SetFolderStateResult {
+    Found,
+    NotFound,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum TreeItem {
     Folder { path: PathBuf, state: FolderState },
@@ -36,23 +42,27 @@ impl TreeItem {
         }
     }
 
-    pub fn set_folder_state(&mut self, folder_path: &PathBuf, folder_state: &FolderState) -> bool {
+    pub fn set_folder_state(
+        &mut self,
+        folder_path: &PathBuf,
+        folder_state: &FolderState,
+    ) -> SetFolderStateResult {
         if let TreeItem::Folder { path, state } = self {
             if path == folder_path {
                 *state = folder_state.clone(); // Ugly
-                return true;
+                return SetFolderStateResult::Found;
             } else if folder_path.starts_with(path) {
                 if let FolderState::Opened(items) = state {
                     for item in items {
                         let res = item.set_folder_state(folder_path, folder_state);
-                        if res {
+                        if res == SetFolderStateResult::Found {
                             return res;
                         }
                     }
                 }
             }
         }
-        return false;
+        return SetFolderStateResult::NotFound;
     }
 
     pub fn flat(&self, depth: usize, root_path: &PathBuf) -> Vec<FlatItem> {
@@ -184,7 +194,7 @@ pub fn FileExplorer(FileExplorerProps { transport }: FileExplorerProps) -> Eleme
                                         &FolderState::Opened(items.clone()), // Ugly
                                     );
 
-                                    if res {
+                                    if res == SetFolderStateResult::Found {
                                         break;
                                     }
                                 }
@@ -196,7 +206,7 @@ pub fn FileExplorer(FileExplorerProps { transport }: FileExplorerProps) -> Eleme
                                 let res =
                                     folder.set_folder_state(&folder_path, &FolderState::Closed);
 
-                                if res {
+                                if res == SetFolderStateResult::Found {
                                     break;
                                 }
                             }
