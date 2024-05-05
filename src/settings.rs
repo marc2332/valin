@@ -1,13 +1,22 @@
-use std::fs::{read_to_string, write};
+use std::{
+    fs::{read_to_string, write},
+    path::PathBuf,
+};
 
 use freya::prelude::use_hook;
 
 use crate::state::{AppSettings, RadioAppState};
 
-pub fn load_settings() -> Option<AppSettings> {
+pub fn settings_path() -> Option<PathBuf> {
     let home_dir = home::home_dir()?;
 
     let settings_path = home_dir.join("valin.toml");
+
+    Some(settings_path)
+}
+
+pub fn load_settings() -> Option<AppSettings> {
+    let settings_path = settings_path()?;
 
     // Create if it doesn't exist
     if std::fs::metadata(&settings_path).is_err() {
@@ -20,8 +29,4 @@ pub fn load_settings() -> Option<AppSettings> {
     let settings: AppSettings = toml::from_str(&settings_content).ok()?;
 
     Some(settings)
-}
-
-pub fn use_start_watching_settings(radio_app_state: RadioAppState) {
-    use_hook(|| {});
 }

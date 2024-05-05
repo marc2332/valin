@@ -2,18 +2,12 @@ use super::EditorData;
 
 pub enum PanelTab {
     TextEditor(EditorData),
-    Config,
     Welcome,
 }
 
 impl PanelTab {
     pub fn get_data(&self) -> PanelTabData {
         match self {
-            PanelTab::Config => PanelTabData {
-                id: "config".to_string(),
-                title: "Config".to_string(),
-                edited: false,
-            },
             PanelTab::TextEditor(editor) => {
                 let (title, id) = editor.editor_type.title_and_id();
                 PanelTabData {

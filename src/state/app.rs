@@ -1,16 +1,18 @@
 use std::{collections::HashMap, path::PathBuf, vec};
 
 use dioxus_radio::prelude::{Radio, RadioChannel};
+use dioxus_sdk::clipboard::UseClipboard;
 use freya::prelude::Rope;
 use tracing::info;
 
 use crate::{
     fs::FSTransport,
     lsp::{create_lsp_client, LSPClient, LspConfig},
-    LspStatusSender,
+    settings::settings_path,
+    LspStatusSender, TreeItem,
 };
 
-use super::{AppSettings, EditorData, EditorView, Panel, PanelTab};
+use super::{AppSettings, EditorData, EditorType, EditorView, Panel, PanelTab};
 
 pub type RadioAppState = Radio<AppState, Channel>;
 
@@ -66,7 +68,9 @@ pub enum Channel {
     /// Only affects the active tab
     ActiveTab,
     /// Affects the settings
-    Settings
+    Settings,
+    // Only affects the file explorer
+    FileExplorer,
 }
 
 impl RadioChannel<AppState> for Channel {
@@ -143,10 +147,12 @@ pub struct AppState {
     pub language_servers: HashMap<String, LSPClient>,
     pub lsp_sender: LspStatusSender,
     pub side_panel: Option<EditorSidePanel>,
+    pub file_explorer_folders: Vec<TreeItem>,
+    pub default_transport: FSTransport,
 }
 
 impl AppState {
-    pub fn new(lsp_sender: LspStatusSender) -> Self {
+    pub fn new(lsp_sender: LspStatusSender, default_transport: FSTransport) -> Self {
         Self {
             previous_focused_view: None,
             focused_view: EditorView::default(),
@@ -156,6 +162,8 @@ impl AppState {
             language_servers: HashMap::default(),
             lsp_sender,
             side_panel: Some(EditorSidePanel::default()),
+            file_explorer_folders: Vec::new(),
+            default_transport,
         }
     }
 
@@ -344,5 +352,40 @@ impl AppState {
         self.panel_mut(panel)
             .tab_mut(editor_id)
             .as_text_editor_mut()
+    }
+
+    pub fn open_file(
+        &mut self,
+        path: PathBuf,
+        root_path: PathBuf,
+        clipboard: UseClipboard,
+        content: String,
+        transport: FSTransport,
+    ) {
+        self.push_tab(
+            PanelTab::TextEditor(EditorData::new(
+                EditorType::FS { path, root_path },
+                Rope::from(content),
+                (0, 0),
+                clipboard,
+                transport,
+            )),
+            self.focused_panel,
+            true,
+        );
+    }
+
+    pub fn open_folder(&mut self, item: TreeItem) {
+        self.file_explorer_folders.push(item)
+    }
+
+    pub fn open_settings(&mut self, clipboard: UseClipboard) {
+        self.open_file(
+            settings_path().unwrap(),
+            settings_path().unwrap(),
+            clipboard,
+            toml::to_string(&self.settings).unwrap(),
+            self.default_transport.clone(),
+        )
     }
 }

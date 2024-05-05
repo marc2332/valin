@@ -3,7 +3,6 @@ use tracing::info;
 
 use crate::settings::load_settings;
 
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EditorSettings {
     pub(crate) font_size: f32,
@@ -14,21 +13,20 @@ impl Default for EditorSettings {
     fn default() -> Self {
         Self {
             font_size: 17.0,
-            line_height: 1.2
+            line_height: 1.2,
         }
     }
 }
 
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct AppSettings {
-    pub(crate) editor: EditorSettings
+    pub(crate) editor: EditorSettings,
 }
 
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
-            editor: EditorSettings::default()
+            editor: EditorSettings::default(),
         }
     }
 }
