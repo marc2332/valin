@@ -21,4 +21,8 @@ impl FSTransportInterface for FSLocal {
     async fn read_dir(&self, path: &std::path::Path) -> tokio::io::Result<tokio::fs::ReadDir> {
         tokio::fs::read_dir(path).await
     }
+
+    async fn canonicalize(&self, path: &std::path::Path) -> tokio::io::Result<std::path::PathBuf> {
+        tokio::fs::canonicalize(path).await
+    }
 }

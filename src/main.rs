@@ -11,12 +11,13 @@ mod fs;
 mod hooks;
 mod keyboard_navigation;
 mod lsp;
+mod metrics;
 mod parser;
 mod state;
 mod tabs;
 mod utils;
 
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use crate::app::App;
 use crate::keyboard_navigation::KeyboardNavigationProvider;
@@ -41,6 +42,10 @@ struct Args {
     /// Enable Support for language servers.
     #[arg(short, long)]
     lsp: bool,
+
+    // Open certain folders or files.
+    #[arg(num_args(0..))]
+    paths: Vec<PathBuf>,
 }
 
 fn main() {

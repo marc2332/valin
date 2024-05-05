@@ -13,8 +13,6 @@ use uuid::Uuid;
 
 use crate::state::RadioAppState;
 
-use super::UseMetrics;
-
 /// Manage an editable content.
 #[derive(Clone, Copy, PartialEq)]
 pub struct UseEdit {
@@ -24,7 +22,6 @@ pub struct UseEdit {
     pub(crate) platform: UsePlatform,
     pub(crate) panel_index: usize,
     pub(crate) editor_index: usize,
-    pub(crate) metrics: UseMetrics,
 }
 
 impl UseEdit {
@@ -91,10 +88,9 @@ impl UseEdit {
                     return;
                 }
 
+                let mut app_state = self.radio.write();
+                let editor = app_state.editor_mut(self.panel_index, self.editor_index);
                 let event = 'key_matcher: {
-                    let mut app_state = self.radio.write();
-                    let editor = app_state.editor_mut(self.panel_index, self.editor_index);
-
                     if e.modifiers.contains(Modifiers::CONTROL) {
                         if e.code == Code::KeyZ {
                             editor.undo();
@@ -108,7 +104,7 @@ impl UseEdit {
                     editor.process_key(&e.key, &e.code, &e.modifiers)
                 };
                 if event.contains(TextEvent::TEXT_CHANGED) {
-                    self.metrics.run_metrics();
+                    editor.run_parser();
                     *self.selecting_text_with_mouse.write() = None;
                 } else if event.contains(TextEvent::SELECTION_CHANGED) {
                     self.selecting_text_with_mouse.write();
@@ -126,12 +122,7 @@ impl UseEdit {
     }
 }
 
-pub fn use_edit(
-    radio: &RadioAppState,
-    panel_index: usize,
-    editor_index: usize,
-    metrics: &UseMetrics,
-) -> UseEdit {
+pub fn use_edit(radio: &RadioAppState, panel_index: usize, editor_index: usize) -> UseEdit {
     let selecting_text_with_mouse = use_signal(|| None);
     let platform = use_platform();
     let mut cursor_receiver_task = use_signal::<Option<Task>>(|| None);
@@ -209,6 +200,5 @@ pub fn use_edit(
         platform,
         panel_index,
         editor_index,
-        metrics: *metrics,
     }
 }

@@ -14,6 +14,7 @@ pub enum SyntaxType {
     Punctuation2,
     Unknown,
     Property,
+    Module,
     Comment,
 }
 
@@ -26,13 +27,14 @@ impl SyntaxType {
             SyntaxType::Punctuation2 => "rgb(252, 188, 61)",
             SyntaxType::Unknown => "rgb(223, 191, 142)",
             SyntaxType::Property => "rgb(152, 192, 124)",
+            SyntaxType::Module => "rgb(250, 189, 40)",
             SyntaxType::SpecialKeyword => "rgb(211, 134, 155)",
             SyntaxType::Comment => "gray",
         }
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 enum SyntaxSemantic {
     Unknown,
     PropertyAccess,
@@ -73,14 +75,14 @@ impl SyntaxBlocks {
 }
 
 const GENERIC_KEYWORDS: &[&str] = &[
-    "use", "impl", "if", "let", "fn", "struct", "enum", "const", "pub", "crate", "else", "mut",
-    "for", "i8", "u8", "i16", "u16", "i32", "u32", "f32", "i64", "u64", "f64", "i128", "u128",
-    "usize", "isize", "move", "async", "in", "of", "dyn", "type",
+    "mod", "use", "impl", "if", "let", "fn", "struct", "enum", "const", "pub", "crate", "else",
+    "mut", "for", "i8", "u8", "i16", "u16", "i32", "u32", "f32", "i64", "u64", "f64", "i128",
+    "u128", "usize", "isize", "move", "async", "in", "of", "dyn", "type", "match",
 ];
 
 const SPECIAL_KEYWORDS: &[&str] = &["self", "Self", "false", "true"];
 
-const SPECIAL_CHARACTER: &[char] = &['.', '=', ';', '\'', ',', '#', '&', '-', '+', '^', '\\'];
+const SPECIAL_CHARACTER: &[char] = &['.', '=', ';', ':', '\'', ',', '#', '&', '-', '+', '^', '\\'];
 
 const SPECIAL_CHARACTER_2: &[char] = &['{', '}', '(', ')', '>', '<', '[', ']'];
 
@@ -96,6 +98,7 @@ fn flush_generic_stack(
     generic_stack: &mut Option<Range<usize>>,
     syntax_blocks: &mut SyntaxLine,
     last_semantic: &mut SyntaxSemantic,
+    ch: char,
 ) {
     if let Some(word_pos) = generic_stack {
         let word: Cow<str> = rope.slice(word_pos.clone()).into();
@@ -105,9 +108,15 @@ fn flush_generic_stack(
         }
 
         let word_pos = generic_stack.take().unwrap();
+        let next_char = rope
+            .get_slice(word_pos.end + 1..word_pos.end + 2)
+            .and_then(|s| s.as_str());
 
+        if ch == ':' && Some(":") == next_char {
+            syntax_blocks.push((SyntaxType::Module, word_pos));
+        }
         // Match special keywords
-        if GENERIC_KEYWORDS.contains(&trimmed) {
+        else if GENERIC_KEYWORDS.contains(&trimmed) {
             syntax_blocks.push((SyntaxType::Keyword, word_pos));
         }
         // Match other special keyword, CONSTANTS and numbers
@@ -182,7 +191,7 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
 
         // Stop tracking a string
         if tracking_string && ch == '"' {
-            flush_generic_stack(rope, &mut generic_stack, &mut line, &mut last_semantic);
+            flush_generic_stack(rope, &mut generic_stack, &mut line, &mut last_semantic, ch);
 
             let mut st = string_stack.take().unwrap_or_default();
             st.end += 1;
@@ -219,21 +228,23 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
         }
         // If is a special character
         else if SPECIAL_CHARACTER.contains(&ch) {
-            flush_generic_stack(rope, &mut generic_stack, &mut line, &mut last_semantic);
+            flush_generic_stack(rope, &mut generic_stack, &mut line, &mut last_semantic, ch);
 
-            if ch == '.' && last_semantic != SyntaxSemantic::PropertyAccess {
+            if ch == '.' {
                 last_semantic = SyntaxSemantic::PropertyAccess;
             }
+
             // Punctuation
             line.push((SyntaxType::Punctuation, i..i + 1));
         }
         // If is a special character 2
         else if SPECIAL_CHARACTER_2.contains(&ch) {
-            flush_generic_stack(rope, &mut generic_stack, &mut line, &mut last_semantic);
+            flush_generic_stack(rope, &mut generic_stack, &mut line, &mut last_semantic, ch);
 
-            if ch == '.' && last_semantic != SyntaxSemantic::PropertyAccess {
+            if ch == '.' {
                 last_semantic = SyntaxSemantic::PropertyAccess;
             }
+
             // Punctuation
             line.push((SyntaxType::Punctuation2, i..i + 1));
         }
@@ -259,7 +270,7 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
 
             // Flush the generic stack before adding the space
             if ch.is_whitespace() {
-                flush_generic_stack(rope, &mut generic_stack, &mut line, &mut last_semantic);
+                flush_generic_stack(rope, &mut generic_stack, &mut line, &mut last_semantic, ch);
             }
 
             push_to_stack(&mut generic_stack, i);
@@ -278,7 +289,7 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
                 }
             }
 
-            flush_generic_stack(rope, &mut generic_stack, &mut line, &mut last_semantic);
+            flush_generic_stack(rope, &mut generic_stack, &mut line, &mut last_semantic, ch);
             flush_spaces_stack(rope, &mut generic_stack, &mut line);
 
             if let Some(st) = string_stack.take() {
@@ -296,6 +307,7 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
 }
 
 // Push if exists otherwise create the stack
+#[inline(always)]
 fn push_to_stack(stack: &mut Option<Range<usize>>, idx: usize) {
     if let Some(stack) = stack.as_mut() {
         stack.end = idx + 1;
