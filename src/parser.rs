@@ -16,6 +16,7 @@ pub enum SyntaxType {
     Property,
     Module,
     Comment,
+    SpaceMark,
 }
 
 impl SyntaxType {
@@ -30,6 +31,7 @@ impl SyntaxType {
             SyntaxType::Module => "rgb(250, 189, 40)",
             SyntaxType::SpecialKeyword => "rgb(211, 134, 155)",
             SyntaxType::Comment => "gray",
+            SyntaxType::SpaceMark => "rgb(223, 191, 142, 0.2)",
         }
     }
 }
@@ -49,7 +51,12 @@ impl From<SyntaxSemantic> for SyntaxType {
     }
 }
 
-pub type SyntaxLine = SmallVec<[(SyntaxType, Range<usize>); 4]>;
+pub enum TextNode {
+    Range(Range<usize>),
+    LineOfChars { len: usize, char: char },
+}
+
+pub type SyntaxLine = SmallVec<[(SyntaxType, TextNode); 4]>;
 
 #[derive(Default)]
 pub struct SyntaxBlocks {
@@ -61,7 +68,7 @@ impl SyntaxBlocks {
         self.blocks.push(line);
     }
 
-    pub fn get_line(&self, line: usize) -> &[(SyntaxType, Range<usize>)] {
+    pub fn get_line(&self, line: usize) -> &[(SyntaxType, TextNode)] {
         &self.blocks[line]
     }
 
@@ -113,19 +120,19 @@ fn flush_generic_stack(
             .and_then(|s| s.as_str());
 
         if ch == ':' && Some(":") == next_char {
-            syntax_blocks.push((SyntaxType::Module, word_pos));
+            syntax_blocks.push((SyntaxType::Module, TextNode::Range(word_pos)));
         }
         // Match special keywords
         else if GENERIC_KEYWORDS.contains(&trimmed) {
-            syntax_blocks.push((SyntaxType::Keyword, word_pos));
+            syntax_blocks.push((SyntaxType::Keyword, TextNode::Range(word_pos)));
         }
         // Match other special keyword, CONSTANTS and numbers
         else if SPECIAL_KEYWORDS.contains(&trimmed) || word.to_uppercase() == word {
-            syntax_blocks.push((SyntaxType::SpecialKeyword, word_pos));
+            syntax_blocks.push((SyntaxType::SpecialKeyword, TextNode::Range(word_pos)));
         }
         // Match anything else
         else {
-            syntax_blocks.push(((*last_semantic).into(), word_pos));
+            syntax_blocks.push(((*last_semantic).into(), TextNode::Range(word_pos)));
         }
 
         *last_semantic = SyntaxSemantic::Unknown;
@@ -136,12 +143,27 @@ fn flush_spaces_stack(
     rope: &Rope,
     generic_stack: &mut Option<Range<usize>>,
     syntax_blocks: &mut SyntaxLine,
+    begining_of_line: bool,
+    line_is_ending: bool,
 ) {
     if let Some(word_pos) = &generic_stack {
         let word: Cow<str> = rope.slice(word_pos.clone()).into();
         let trimmed = word.trim();
         if trimmed.is_empty() {
-            syntax_blocks.push((SyntaxType::Unknown, generic_stack.take().unwrap()));
+            let range = generic_stack.take().unwrap();
+            if !line_is_ending {
+                if begining_of_line {
+                    syntax_blocks.push((
+                        SyntaxType::SpaceMark,
+                        TextNode::LineOfChars {
+                            len: range.end - range.start,
+                            char: '·',
+                        },
+                    ));
+                } else {
+                    syntax_blocks.push((SyntaxType::Unknown, TextNode::Range(range)));
+                };
+            }
         }
     }
 }
@@ -155,7 +177,7 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
             let mut line_blocks = SmallVec::default();
             let start = rope.line_to_char(n);
             let end = line.len_chars();
-            line_blocks.push((SyntaxType::Unknown, start..start + end));
+            line_blocks.push((SyntaxType::Unknown, TextNode::Range(start..start + end)));
             syntax_blocks.push_line(line_blocks);
         }
         return;
@@ -175,6 +197,7 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
 
     // Elements of the current line
     let mut line = SyntaxLine::new();
+    let mut begining_of_line = true;
 
     for (i, ch) in rope.chars().enumerate() {
         let is_last_character = rope.len_chars() - 1 == i;
@@ -186,7 +209,15 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
 
         // Flush all whitespaces from the backback if the character is not an space
         if !ch.is_whitespace() {
-            flush_spaces_stack(rope, &mut generic_stack, &mut line);
+            flush_spaces_stack(
+                rope,
+                &mut generic_stack,
+                &mut line,
+                begining_of_line,
+                is_last_character,
+            );
+
+            begining_of_line = false;
         }
 
         // Stop tracking a string
@@ -197,7 +228,7 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
             st.end += 1;
 
             // Strings
-            line.push((SyntaxType::String, st));
+            line.push((SyntaxType::String, TextNode::Range(st)));
             tracking_string = false;
         }
         // Start tracking a string
@@ -215,7 +246,10 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
                 // Stop a multi line comment
                 if ch == '/' && current_comment.ends_with("*/") {
                     generic_stack.take();
-                    line.push((SyntaxType::Comment, comment_stack.take().unwrap()));
+                    line.push((
+                        SyntaxType::Comment,
+                        TextNode::Range(comment_stack.take().unwrap()),
+                    ));
                     tracking_comment = CommentTracking::None;
                 }
             } else {
@@ -235,7 +269,7 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
             }
 
             // Punctuation
-            line.push((SyntaxType::Punctuation, i..i + 1));
+            line.push((SyntaxType::Punctuation, TextNode::Range(i..i + 1)));
         }
         // If is a special character 2
         else if SPECIAL_CHARACTER_2.contains(&ch) {
@@ -246,7 +280,7 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
             }
 
             // Punctuation
-            line.push((SyntaxType::Punctuation2, i..i + 1));
+            line.push((SyntaxType::Punctuation2, TextNode::Range(i..i + 1)));
         }
         // Unknown (for now at least) characters
         else {
@@ -280,7 +314,7 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
             // Flush OneLine and MultiLine comments
             if tracking_comment != CommentTracking::None {
                 if let Some(ct) = comment_stack.take() {
-                    line.push((SyntaxType::Comment, ct));
+                    line.push((SyntaxType::Comment, TextNode::Range(ct)));
                 }
 
                 // Stop tracking one line comments on line ending
@@ -290,10 +324,10 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
             }
 
             flush_generic_stack(rope, &mut generic_stack, &mut line, &mut last_semantic, ch);
-            flush_spaces_stack(rope, &mut generic_stack, &mut line);
+            flush_spaces_stack(rope, &mut generic_stack, &mut line, begining_of_line, true);
 
             if let Some(st) = string_stack.take() {
-                line.push((SyntaxType::String, st));
+                line.push((SyntaxType::String, TextNode::Range(st)));
             }
 
             syntax_blocks.push_line(line.drain(0..).collect());
@@ -302,6 +336,8 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
             if ch == '\n' && is_last_character {
                 syntax_blocks.push_line(SmallVec::default());
             }
+
+            begining_of_line = true;
         }
     }
 }
