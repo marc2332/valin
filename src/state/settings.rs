@@ -7,9 +7,8 @@ fn human_number_serializer<S>(value: &f32, serializer: S) -> Result<S::Ok, S::Er
 where
     S: Serializer,
 {
-    serializer.serialize_str(&value.to_string())
+    serializer.serialize_f64((*value as f64 * 100.0).trunc() / 100.0)
 }
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EditorSettings {
     #[serde(serialize_with = "human_number_serializer")]
