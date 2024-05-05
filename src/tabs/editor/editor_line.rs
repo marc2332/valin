@@ -4,6 +4,7 @@ use lsp_types::Hover;
 use skia_safe::textlayout::Paragraph;
 
 use crate::lsp::{HoverToText, LspAction, UseLsp};
+use crate::parser::TextNode;
 use crate::tabs::editor::hover_box::HoverBox;
 use crate::{
     hooks::{UseEdit, UseMetrics},
@@ -177,14 +178,29 @@ pub fn EditorLine(
                 font_size: "{font_size}",
                 font_family: "Jetbrains Mono",
                 {line.iter().enumerate().map(|(i, (syntax_type, text))| {
-                    let text = rope.slice(text.clone());
-                    rsx!(
-                        text {
-                            key: "{i}",
-                            color: "{syntax_type.color()}",
-                            "{text}"
+                    match text {
+                        TextNode::Range(word_pos) => {
+                            let text = rope.slice(word_pos.clone());
+                            rsx!(
+                                text {
+                                    key: "{i}",
+                                    color: "{syntax_type.color()}",
+                                    "{text}"
+                                }
+                            )
+
+                        },
+                        TextNode::LineOfChars { len, char } => {
+                            let text = format!("{char}").repeat(*len);
+                            rsx!(
+                                text {
+                                    key: "{i}",
+                                    color: "{syntax_type.color()}",
+                                    "{text}"
+                                }
+                            )
                         }
-                    )
+                    }
                 })}
             }
         }
