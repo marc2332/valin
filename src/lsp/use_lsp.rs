@@ -39,7 +39,7 @@ impl UseLsp {
 pub fn use_lsp(
     editor_type: EditorType,
     panel_index: usize,
-    editor_index: usize,
+    tab_index: usize,
     radio: RadioAppState,
     mut hover_location: Signal<Option<(u32, Hover)>>,
 ) -> UseLsp {
@@ -52,7 +52,7 @@ pub fn use_lsp(
 
             let (file_uri, file_text) = {
                 let app_state = radio.read();
-                let editor = app_state.editor(panel_index, editor_index);
+                let editor = app_state.editor(panel_index, tab_index);
                 (editor.uri(), editor.text())
             };
 

@@ -64,7 +64,7 @@ pub enum Channel {
     /// Affects individual tab
     Tab {
         panel_index: usize,
-        editor_index: usize,
+        tab_index: usize,
     },
     /// Only affects the active tab
     ActiveTab,
@@ -89,9 +89,9 @@ impl RadioChannel<AppState> for Channel {
                                 .tabs()
                                 .iter()
                                 .enumerate()
-                                .map(move |(editor_index, _)| Self::Tab {
+                                .map(move |(tab_index, _)| Self::Tab {
                                     panel_index,
-                                    editor_index,
+                                    tab_index: tab_index,
                                 })
                         })
                         .collect::<Vec<Self>>(),
@@ -101,13 +101,13 @@ impl RadioChannel<AppState> for Channel {
             }
             Self::Tab {
                 panel_index,
-                editor_index,
+                tab_index,
             } => {
                 let mut channels = vec![self];
                 if app_state.focused_panel == panel_index {
                     let panel = app_state.panel(panel_index);
                     if let Some(active_tab) = panel.active_tab {
-                        if active_tab == editor_index {
+                        if active_tab == tab_index {
                             channels.push(Self::ActiveTab);
                         }
                     }
@@ -131,7 +131,7 @@ impl Channel {
     pub fn follow_tab(panel: usize, editor: usize) -> Self {
         Self::Tab {
             panel_index: panel,
-            editor_index: editor,
+            tab_index: editor,
         }
     }
 }

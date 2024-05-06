@@ -15,7 +15,7 @@ use crate::{
 #[derive(Props, Clone, PartialEq)]
 pub struct BuilderArgs {
     pub(crate) panel_index: usize,
-    pub(crate) editor_index: usize,
+    pub(crate) tab_index: usize,
     pub(crate) font_size: f32,
     pub(crate) rope: Rope,
     pub(crate) line_height: f32,
@@ -38,7 +38,7 @@ pub fn EditorLine(
         builder_args:
             BuilderArgs {
                 panel_index,
-                editor_index,
+                tab_index,
                 font_size,
                 rope,
                 line_height,
@@ -51,7 +51,7 @@ pub fn EditorLine(
         mut debouncer,
     }: EditorLineProps,
 ) -> Element {
-    let radio_app_state = use_radio(Channel::follow_tab(panel_index, editor_index));
+    let radio_app_state = use_radio(Channel::follow_tab(panel_index, tab_index));
 
     let onmousedown = move |e: MouseEvent| {
         editable.process_event(&EditableEvent::MouseDown(e.data, line_index));
@@ -90,7 +90,7 @@ pub fn EditorLine(
     };
 
     let app_state = radio_app_state.read();
-    let editor = app_state.editor(panel_index, editor_index);
+    let editor = app_state.editor(panel_index, tab_index);
     let cursor = editor.cursor();
     let longest_width = editor.metrics.longest_width;
     let line = editor.metrics.syntax_blocks.get_line(line_index);

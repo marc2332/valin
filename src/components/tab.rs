@@ -45,12 +45,15 @@ pub fn Tab(
 
     rsx!(
         rect {
-            width: "130",
-            height: "100%",
+            margin: "2",
+            width: "100%",
+            height: "36",
+            direction: "horizontal",
             rect {
-                height: "2",
-                width: "100%",
-                background: "{selected_color}"
+                width: "2",
+                height: "100%",
+                background: "{selected_color}",
+                corner_radius: "8 0 8 0",
             }
             rect {
                 color: "{color}",
@@ -60,10 +63,11 @@ pub fn Tab(
                 onmouseleave: onmouseleave,
                 padding: "0 12",
                 height: "fill",
-                width: "130",
+                width: "100%",
                 main_align: "center",
                 cross_align: "center",
                 direction: "horizontal",
+                corner_radius: "0 4 0 4",
                 label {
                     width: "calc(100% - 16)",
                     max_lines: "1",

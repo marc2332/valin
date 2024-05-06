@@ -8,6 +8,7 @@ use crate::{
     keyboard_navigation::use_keyboard_navigation,
     Args,
 };
+use crate::components::Tab;
 use crate::{hooks::*, settings::watch_settings};
 use dioxus_radio::prelude::*;
 use dioxus_sdk::clipboard::use_clipboard;
@@ -235,6 +236,8 @@ pub fn App() -> Element {
                     }
                     Divider {}
                 }
+                TabsPanel {}
+                Divider {}
                 rect {
                     width: "fill",
                     height: "fill",
@@ -257,4 +260,80 @@ pub fn App() -> Element {
             }
         }
     )
+}
+
+#[allow(non_snake_case)]
+#[component]
+fn TabsPanel() -> Element {
+    let radio_app_state = use_radio(Channel::Global);
+
+    let app_state = radio_app_state.read();
+
+    rsx!(
+        ScrollView {
+            theme: theme_with!(ScrollViewTheme {
+                width: "150".into(),
+                padding: "2".into(),
+            }),
+            show_scrollbar: true,
+            for (panel_index, panel) in app_state.panels.iter().enumerate() {
+                for (tab_index, _tab) in panel.tabs.iter().enumerate() {
+                    PanelTab {
+                        panel_index,
+                        tab_index,
+                        is_selected: panel.active_tab == Some(tab_index),
+                    }
+                }
+            }
+        }
+    )
+}
+
+#[derive(Props, Clone, PartialEq)]
+pub struct PanelTabProps {
+    panel_index: usize,
+    tab_index: usize,
+    is_selected: bool,
+}
+
+#[allow(non_snake_case)]
+fn PanelTab(props: PanelTabProps) -> Element {
+    let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Tab {
+        panel_index: props.panel_index,
+        tab_index: props.tab_index,
+    });
+
+    let app_state = radio_app_state.read();
+    let tab = app_state.panel(props.panel_index).tab(props.tab_index);
+    let tab_data = tab.get_data();
+    let is_selected = props.is_selected;
+
+    let onclick = {
+        move |_| {
+            let mut app_state = radio_app_state.write_channel(Channel::Global);
+            app_state.set_focused_panel(props.panel_index);
+            app_state
+                .panel_mut(props.panel_index)
+                .set_active_tab(props.tab_index);
+        }
+    };
+
+    let onclickaction = move |_| {
+        if tab_data.edited {
+            println!("save...")
+        } else {
+            radio_app_state
+                .write_channel(Channel::Global)
+                .close_tab(props.panel_index, props.tab_index);
+        }
+    };
+
+    rsx!(Tab {
+        key: "{tab_data.id}",
+        onclick,
+        onclickaction,
+        value: "{tab_data.title}",
+        is_edited: tab_data.edited,
+        is_selected
+    })
 }

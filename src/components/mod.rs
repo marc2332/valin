@@ -17,3 +17,4 @@ pub use sidebar::*;
 pub use sidepanel::*;
 pub use status_bar::*;
 pub use text_area::*;
+pub use tab::*;

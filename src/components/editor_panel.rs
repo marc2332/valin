@@ -1,5 +1,4 @@
 use super::icons::*;
-use super::tab::*;
 use crate::state::{AppState, Channel, Panel, PanelTab};
 use crate::tabs::editor::*;
 use crate::tabs::welcome::*;
@@ -47,6 +46,8 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
         }
     };
 
+    let active_tab = active_tab_index.map(|active_tab_index| panel.tab(active_tab_index));
+    let title = active_tab.map(|tab| tab.get_data().title).unwrap_or_default();
     let show_close_panel = panels_len > 1;
     let tabsbar_tools_width = if show_close_panel { 115 } else { 60 };
     let extra_container_width = if is_last_panel { 0 } else { 1 };
@@ -61,26 +62,18 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                 height: "100%",
                 overflow: "clip",
                 rect {
-                    direction: "horizontal",
                     height: "40",
                     width: "100%",
-                    cross_align: "center",
-                    ScrollView {
+                    direction: "horizontal",
+                    rect {
+                        width: "calc(100% - {tabsbar_tools_width})",
+                        height: "100%",
+                        cross_align: "center",
+                        main_align: "center",
                         direction: "horizontal",
-                        theme: theme_with!(ScrollViewTheme {
-                            width: format!("calc(100% - {tabsbar_tools_width})").into(),
-                        }),
-                        show_scrollbar: false,
-                        {panel.tabs().iter().enumerate().map(|(editor_index, _)| {
-                            let is_selected = active_tab_index == Some(editor_index);
-                            rsx!(
-                                PanelTab {
-                                    panel_index,
-                                    editor_index,
-                                    is_selected,
-                                }
-                            )
-                        })}
+                        label {
+                            "{title}"
+                        } 
                     }
                     rect {
                         width: "{tabsbar_tools_width}",
@@ -112,6 +105,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                         }
                     }
                 }
+                
                 rect {
                     height: "calc(100% - 40)",
                     width: "100%",
@@ -126,7 +120,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                                         EditorTab {
                                             key: "{tab_data.id}",
                                             panel_index,
-                                            editor_index: active_tab_index,
+                                            tab_index: active_tab_index,
                                             editor_type: editor.editor_type.clone()
                                         }
                                     )
@@ -163,53 +157,4 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
             }
         }
     )
-}
-
-#[derive(Props, Clone, PartialEq)]
-pub struct PanelTabProps {
-    panel_index: usize,
-    editor_index: usize,
-    is_selected: bool,
-}
-
-#[allow(non_snake_case)]
-fn PanelTab(props: PanelTabProps) -> Element {
-    let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Tab {
-        panel_index: props.panel_index,
-        editor_index: props.editor_index,
-    });
-
-    let app_state = radio_app_state.read();
-    let tab = app_state.panel(props.panel_index).tab(props.editor_index);
-    let tab_data = tab.get_data();
-    let is_selected = props.is_selected;
-
-    let onclick = {
-        move |_| {
-            let mut app_state = radio_app_state.write_channel(Channel::Global);
-            app_state.set_focused_panel(props.panel_index);
-            app_state
-                .panel_mut(props.panel_index)
-                .set_active_tab(props.editor_index);
-        }
-    };
-
-    let onclickaction = move |_| {
-        if tab_data.edited {
-            println!("save...")
-        } else {
-            radio_app_state
-                .write_channel(Channel::Global)
-                .close_tab(props.panel_index, props.editor_index);
-        }
-    };
-
-    rsx!(Tab {
-        key: "{tab_data.id}",
-        onclick,
-        onclickaction,
-        value: "{tab_data.title}",
-        is_edited: tab_data.edited,
-        is_selected
-    })
 }

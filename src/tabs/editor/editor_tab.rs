@@ -34,21 +34,21 @@ pub enum EditorStatus {
 #[derive(Props, Clone, PartialEq)]
 pub struct EditorTabProps {
     pub panel_index: usize,
-    pub editor_index: usize,
+    pub tab_index: usize,
     pub editor_type: EditorType,
 }
 
 #[allow(non_snake_case)]
 pub fn EditorTab(props: EditorTabProps) -> Element {
-    let mut radio_app_state = use_radio(Channel::follow_tab(props.panel_index, props.editor_index));
+    let mut radio_app_state = use_radio(Channel::follow_tab(props.panel_index, props.tab_index));
     let hover_location = use_signal(|| None);
-    let mut editable = use_edit(&radio_app_state, props.panel_index, props.editor_index);
+    let mut editable = use_edit(&radio_app_state, props.panel_index, props.tab_index);
     let cursor_coords = use_signal(CursorPoint::default);
     let mut scroll_offsets = use_signal(|| (0, 0));
     let lsp = use_lsp(
         props.editor_type,
         props.panel_index,
-        props.editor_index,
+        props.tab_index,
         radio_app_state,
         hover_location,
     );
@@ -74,7 +74,7 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
             app_state.set_focused_panel(props.panel_index);
             app_state
                 .panel_mut(props.panel_index)
-                .set_active_tab(props.editor_index);
+                .set_active_tab(props.tab_index);
         }
         {
             let mut app_state = radio_app_state.write_channel(Channel::Global);
@@ -125,7 +125,7 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
             let panel = app_state.panel(props.panel_index);
             let is_code_editor_view_focused = *app_state.focused_view() == EditorView::CodeEditor;
             let is_editor_focused = app_state.focused_panel() == props.panel_index
-                && panel.active_tab() == Some(props.editor_index);
+                && panel.active_tab() == Some(props.tab_index);
             (is_code_editor_view_focused, is_editor_focused)
         };
 
@@ -139,7 +139,7 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
             app_state.set_focused_panel(props.panel_index);
             app_state
                 .panel_mut(props.panel_index)
-                .set_active_tab(props.editor_index);
+                .set_active_tab(props.tab_index);
         }
     };
 
@@ -147,7 +147,7 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
     let cursor_reference = editable.cursor_attr();
     let line_height = app_state.line_height();
     let font_size = app_state.font_size();
-    let editor = app_state.editor(props.panel_index, props.editor_index);
+    let editor = app_state.editor(props.panel_index, props.tab_index);
     let manual_line_height = (font_size * line_height).floor();
     let syntax_blocks_len = editor.metrics.syntax_blocks.len();
 
@@ -157,7 +157,7 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
             let panel = app_state.panel(props.panel_index);
             let is_panel_focused = app_state.focused_panel() == props.panel_index;
             let is_editor_focused = *app_state.focused_view() == EditorView::CodeEditor
-                && panel.active_tab() == Some(props.editor_index);
+                && panel.active_tab() == Some(props.tab_index);
             (is_panel_focused, is_editor_focused)
         };
 
@@ -218,7 +218,7 @@ pub fn EditorTab(props: EditorTabProps) -> Element {
                 item_size: manual_line_height,
                 builder_args: BuilderArgs {
                     panel_index: props.panel_index,
-                    editor_index:  props.editor_index,
+                    tab_index:  props.tab_index,
                     font_size,
                     line_height: manual_line_height,
                     rope: editor.rope().clone(),
