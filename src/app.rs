@@ -207,7 +207,7 @@ pub fn App() -> Element {
         rect {
             font_size: "14",
             color: "white",
-            background: "rgb(20, 20, 20)",
+            background: "rgb(3, 4, 9)",
             width: "100%",
             height: "100%",
             onkeydown: onkeydown,
@@ -221,8 +221,6 @@ pub fn App() -> Element {
             rect {
                 height: "calc(100% - 35)",
                 direction: "horizontal",
-                EditorSidebar {}
-                Divider {}
                 if let Some(side_panel) = radio_app_state.read().side_panel {
                     Sidepanel {
                         match side_panel {

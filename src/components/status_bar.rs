@@ -1,8 +1,9 @@
 use dioxus_radio::prelude::use_radio;
+use dioxus_sdk::clipboard::use_clipboard;
 use freya::prelude::*;
 
 use crate::{
-    state::{Channel, EditorView},
+    state::{AppState, Channel, EditorSidePanel, EditorView},
     LspStatuses,
 };
 
@@ -14,7 +15,18 @@ pub struct StatusBarProps {
 
 #[allow(non_snake_case)]
 pub fn StatusBar(props: StatusBarProps) -> Element {
-    let radio_app_state = use_radio(Channel::ActiveTab);
+    let mut radio_app_state = use_radio(Channel::ActiveTab);
+    let clipboard = use_clipboard();
+
+    let open_settings = move |_| {
+        let mut app_state = radio_app_state.write_channel(Channel::Global);
+        app_state.open_settings(clipboard);
+    };
+
+    let toggle_file_explorer = move |_| {
+        let mut app_state = radio_app_state.write_channel(Channel::Global);
+        app_state.toggle_side_panel(EditorSidePanel::FileExplorer);
+    };
 
     let cursor = {
         let app_state = radio_app_state.read();
@@ -32,11 +44,23 @@ pub fn StatusBar(props: StatusBarProps) -> Element {
         rect {
             width: "100%",
             height: "fill",
-            background: "rgb(20, 20, 20)",
+            background: "rgb(3, 4, 9)",
             direction: "horizontal",
             cross_align: "center",
             padding: "0 2",
             color: "rgb(220, 220, 220)",
+            StatusBarItem {
+                onclick: toggle_file_explorer,
+                label {
+                    "📁"
+                }
+            }
+            StatusBarItem {
+                onclick: open_settings,
+                label {
+                    "⚙️"
+                }
+            }
             StatusBarItem {
                 label {
                     "{props.focused_view}"
@@ -62,9 +86,14 @@ pub fn StatusBar(props: StatusBarProps) -> Element {
 
 #[allow(non_snake_case)]
 #[component]
-fn StatusBarItem(children: Element) -> Element {
+fn StatusBarItem(children: Element, onclick: Option<EventHandler<()>>) -> Element {
     rsx!(
         Button {
+            onclick: move |_| {
+                if let Some(onclick) = onclick {
+                    onclick.call(());
+                }
+            },
             theme: theme_with!(ButtonTheme {
                 margin: "2".into(),
                 padding: "4 6".into(),

@@ -62,7 +62,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                 overflow: "clip",
                 rect {
                     direction: "horizontal",
-                    height: "40",
+                    height: "34",
                     width: "100%",
                     cross_align: "center",
                     ScrollView {
@@ -113,7 +113,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                     }
                 }
                 rect {
-                    height: "calc(100% - 40)",
+                    height: "fill",
                     width: "100%",
                     onclick: onclickpanel,
                     if let Some(active_tab_index) = active_tab_index {
@@ -146,7 +146,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                             cross_align: "center",
                             width: "100%",
                             height: "100%",
-                            background: "rgb(20, 20, 20)",
+                            background: "rgb(3, 4, 9)",
                             ExpandedIcon {
                                 Logo {
                                     enabled: is_focused,

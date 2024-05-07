@@ -45,7 +45,7 @@ pub fn Tab(
 
     rsx!(
         rect {
-            width: "130",
+            width: "135",
             height: "100%",
             rect {
                 height: "2",
@@ -60,18 +60,20 @@ pub fn Tab(
                 onmouseleave: onmouseleave,
                 padding: "0 12",
                 height: "fill",
-                width: "130",
+                width: "fill",
                 main_align: "center",
                 cross_align: "center",
                 direction: "horizontal",
                 label {
-                    width: "calc(100% - 16)",
                     max_lines: "1",
                     text_overflow: "ellipsis",
                     "{value}"
                 }
                 rect {
                     width: "16",
+                    position: "absolute",
+                    position_right: "0",
+                    position_top: "4",
                     onclick: move |e| {
                         e.stop_propagation();
                         onclickaction.call(());
