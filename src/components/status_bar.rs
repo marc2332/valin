@@ -44,7 +44,7 @@ pub fn StatusBar(props: StatusBarProps) -> Element {
         rect {
             width: "100%",
             height: "fill",
-            background: "rgb(3, 4, 9)",
+            background: "rgb(20, 20, 20)",
             direction: "horizontal",
             cross_align: "center",
             padding: "0 2",

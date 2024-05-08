@@ -82,7 +82,7 @@ fn main() {
             .with_title("Valin")
             .with_state(Arc::new(args))
             .without_default_fonts()
-            .with_default_font("Inter")
+            .with_default_font("Jetbrains Mono")
             .build(),
     );
 }

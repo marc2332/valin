@@ -406,14 +406,14 @@ fn FileExplorerItem(
     let onmouseleave = move |_| status.set(ButtonStatus::Idle);
 
     let background = match *status.read() {
-        ButtonStatus::Idle | ButtonStatus::Hovering if is_focused  => "rgb(46, 49, 56, 0.7)",
-        ButtonStatus::Hovering => "rgb(46, 49, 56, 0.6)",
+        ButtonStatus::Idle | ButtonStatus::Hovering if is_focused => "rgb(35, 35, 35)",
+        ButtonStatus::Hovering => "rgb(35, 35, 35, 0.7)",
         ButtonStatus::Idle => "transparent",
     };
 
     let color = if is_focused {
         "rgb(245, 245, 245)"
-    } else{
+    } else {
         "rgb(185, 185, 185)"
     };
 
