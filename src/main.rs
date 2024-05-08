@@ -81,8 +81,6 @@ fn main() {
             .with_height(720.0)
             .with_title("Valin")
             .with_state(Arc::new(args))
-            .without_default_fonts()
-            .with_default_font("Jetbrains Mono")
             .build(),
     );
 }

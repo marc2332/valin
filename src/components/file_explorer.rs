@@ -414,7 +414,7 @@ fn FileExplorerItem(
     let color = if is_focused {
         "rgb(245, 245, 245)"
     } else {
-        "rgb(185, 185, 185)"
+        "rgb(210, 210, 210)"
     };
 
     rsx!(rect {
