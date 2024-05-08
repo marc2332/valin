@@ -3,7 +3,7 @@ use dioxus_sdk::clipboard::use_clipboard;
 use freya::prelude::*;
 
 use crate::{
-    state::{AppState, Channel, EditorSidePanel, EditorView},
+    state::{Channel, EditorSidePanel, EditorView},
     LspStatuses,
 };
 
