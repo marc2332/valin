@@ -1,7 +1,6 @@
 use std::path::{Path, PathBuf};
 
 use dioxus_radio::hooks::use_radio;
-use dioxus_sdk::clipboard::use_clipboard;
 use freya::elements as dioxus_elements;
 use freya::prelude::keyboard::Code;
 use freya::prelude::*;
@@ -137,7 +136,6 @@ enum TreeTask {
 
 #[allow(non_snake_case)]
 pub fn FileExplorer() -> Element {
-    let clipboard = use_clipboard();
     let mut radio_app_state = use_radio::<AppState, Channel>(Channel::FileExplorer);
     let app_state = radio_app_state.read();
     let is_focused_files_explorer = *app_state.focused_view() == EditorView::FilesExplorer;
@@ -202,7 +200,6 @@ pub fn FileExplorer() -> Element {
                             app_state.open_file(
                                 file_path,
                                 root_path,
-                                clipboard,
                                 content,
                                 transport,
                                 font_size,

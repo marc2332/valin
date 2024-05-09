@@ -151,10 +151,15 @@ pub struct AppState {
     pub file_explorer_folders: Vec<TreeItem>,
     pub default_transport: FSTransport,
     pub font_collection: FontCollection,
+    pub clipboard: UseClipboard,
 }
 
 impl AppState {
-    pub fn new(lsp_sender: LspStatusSender, default_transport: FSTransport) -> Self {
+    pub fn new(
+        lsp_sender: LspStatusSender,
+        default_transport: FSTransport,
+        clipboard: UseClipboard,
+    ) -> Self {
         let mut font_collection = FontCollection::new();
         font_collection.set_default_font_manager(FontMgr::default(), "Jetbrains Mono");
 
@@ -170,6 +175,7 @@ impl AppState {
             file_explorer_folders: Vec::new(),
             default_transport,
             font_collection,
+            clipboard,
         }
     }
 
@@ -385,7 +391,6 @@ impl AppState {
         &mut self,
         path: PathBuf,
         root_path: PathBuf,
-        clipboard: UseClipboard,
         content: String,
         transport: FSTransport,
         font_size: f32,
@@ -396,7 +401,7 @@ impl AppState {
                 EditorType::FS { path, root_path },
                 Rope::from(content),
                 (0, 0),
-                clipboard,
+                self.clipboard,
                 transport,
                 font_size,
                 font_collection,
@@ -410,11 +415,10 @@ impl AppState {
         self.file_explorer_folders.push(item)
     }
 
-    pub fn open_settings(&mut self, clipboard: UseClipboard) {
+    pub fn open_settings(&mut self) {
         self.open_file(
             settings_path().unwrap(),
             settings_path().unwrap(),
-            clipboard,
             toml::to_string(&self.settings).unwrap(),
             self.default_transport.clone(),
             self.settings.editor.font_size,

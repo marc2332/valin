@@ -36,7 +36,7 @@ pub fn App() -> Element {
         let args = consume_context::<Arc<Args>>();
         let default_transport: FSTransport = Arc::new(Box::new(FSLocal));
 
-        let mut state = AppState::new(lsp_sender, default_transport);
+        let mut state = AppState::new(lsp_sender, default_transport, clipboard);
 
         if args.paths.is_empty() {
             // Default tab
@@ -67,7 +67,6 @@ pub fn App() -> Element {
                         app_state.open_file(
                             path.clone(),
                             root_path,
-                            clipboard,
                             content,
                             transport,
                             font_size,

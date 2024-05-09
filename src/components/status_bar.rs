@@ -1,5 +1,4 @@
 use dioxus_radio::prelude::use_radio;
-use dioxus_sdk::clipboard::use_clipboard;
 use freya::prelude::*;
 
 use crate::{
@@ -16,11 +15,10 @@ pub struct StatusBarProps {
 #[allow(non_snake_case)]
 pub fn StatusBar(props: StatusBarProps) -> Element {
     let mut radio_app_state = use_radio(Channel::ActiveTab);
-    let clipboard = use_clipboard();
 
     let open_settings = move |_| {
         let mut app_state = radio_app_state.write_channel(Channel::Global);
-        app_state.open_settings(clipboard);
+        app_state.open_settings();
     };
 
     let toggle_file_explorer = move |_| {
