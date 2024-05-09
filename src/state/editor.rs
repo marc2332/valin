@@ -134,6 +134,10 @@ impl EditorData {
         self.metrics
             .measure_longest_line(font_size, &self.rope, font_collection);
     }
+
+    pub fn editor_type(&self) -> &EditorType {
+        &self.editor_type
+    }
 }
 
 impl Display for EditorData {

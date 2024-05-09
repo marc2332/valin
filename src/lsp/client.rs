@@ -203,6 +203,7 @@ pub enum LanguageId {
     Python,
     JavaScript,
     TypeScript,
+    Markdown,
     #[default]
     Unknown,
 }
@@ -210,11 +211,12 @@ pub enum LanguageId {
 impl Display for LanguageId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Rust => f.write_str("rust"),
-            Self::Python => f.write_str("python"),
-            Self::JavaScript => f.write_str("javascript"),
-            Self::TypeScript => f.write_str("typescript"),
-            Self::Unknown => f.write_str("unknown"),
+            Self::Rust => f.write_str("Rust"),
+            Self::Python => f.write_str("Python"),
+            Self::JavaScript => f.write_str("JavaScript"),
+            Self::TypeScript => f.write_str("TypeScript"),
+            Self::Markdown => f.write_str("Markdown"),
+            Self::Unknown => f.write_str("Unknown"),
         }
     }
 }
@@ -226,6 +228,7 @@ impl LanguageId {
             "py" => LanguageId::Python,
             "js" => LanguageId::JavaScript,
             "ts" => LanguageId::TypeScript,
+            "md" => LanguageId::Markdown,
             _ => LanguageId::Unknown,
         }
     }

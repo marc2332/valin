@@ -26,18 +26,19 @@ pub fn StatusBar(props: StatusBarProps) -> Element {
         app_state.toggle_side_panel(EditorSidePanel::FileExplorer);
     };
 
-    let cursor = {
-        let app_state = radio_app_state.read();
-        let panel = app_state.panel(app_state.focused_panel);
+    let app_state = radio_app_state.read();
+    let panel = app_state.panel(app_state.focused_panel);
+    let tab_data = {
         if let Some(active_tab) = panel.active_tab() {
             panel
                 .tab(active_tab)
                 .as_text_editor()
-                .map(|editor| editor.cursor())
+                .map(|editor| (editor.cursor(), editor.editor_type()))
         } else {
             None
         }
     };
+
     rsx!(
         rect {
             width: "100%",
@@ -47,34 +48,48 @@ pub fn StatusBar(props: StatusBarProps) -> Element {
             cross_align: "center",
             padding: "0 2",
             color: "rgb(220, 220, 220)",
-            StatusBarItem {
-                onclick: toggle_file_explorer,
-                label {
-                    "📁"
+            rect {
+                width: "50%",
+                direction: "horizontal",
+                StatusBarItem {
+                    onclick: toggle_file_explorer,
+                    label {
+                        "📁"
+                    }
                 }
-            }
-            StatusBarItem {
-                onclick: open_settings,
-                label {
-                    "⚙️"
+                StatusBarItem {
+                    onclick: open_settings,
+                    label {
+                        "⚙️"
+                    }
                 }
-            }
-            StatusBarItem {
-                label {
-                    "{props.focused_view}"
-                }
-            }
-            if let Some(cursor) = cursor {
                 StatusBarItem {
                     label {
-                        "Ln {cursor.row() + 1}, Col {cursor.col() + 1}"
+                        "{props.focused_view}"
+                    }
+                }
+                for (name, msg) in props.lsp_statuses.read().iter() {
+                    StatusBarItem {
+                        label {
+                            "{name} {msg}"
+                        }
                     }
                 }
             }
-            for (name, msg) in props.lsp_statuses.read().iter() {
-                StatusBarItem {
-                    label {
-                        "{name} {msg}"
+            rect {
+                width: "50%",
+                direction: "horizontal",
+                main_align: "end",
+                if let Some((cursor, editor_type)) = tab_data {
+                    StatusBarItem {
+                        label {
+                            "Ln {cursor.row() + 1}, Col {cursor.col() + 1}"
+                        }
+                    }
+                    StatusBarItem {
+                        label {
+                            "{editor_type.language_id()}"
+                        }
                     }
                 }
             }
