@@ -285,7 +285,6 @@ pub fn FileExplorer() -> Element {
         rsx!(rect {
             width: "100%",
             height: "100%",
-            padding: "10",
             onkeydown,
             VirtualScrollView {
                 theme: theme_with!(ScrollViewTheme {
@@ -293,7 +292,7 @@ pub fn FileExplorer() -> Element {
                     height: "100%".into(),
                 }),
                 length: items.len(),
-                item_size: 25.0,
+                item_size: 27.0,
                 builder_args: (items, channel, focused_item, is_focused_files_explorer),
                 direction: "vertical",
                 scroll_with_arrows: false,
@@ -341,9 +340,9 @@ fn file_explorer_item_builder(index: usize, values: &Option<TreeBuilderOptions>)
             FileExplorerItem {
                 key: "{path}",
                 depth: item.depth,
-                onclick: onclick,
-                is_focused: is_focused,
-                is_focused_files_explorer: is_focused_files_explorer,
+                onclick,
+                is_focused,
+                is_focused_files_explorer,
                 label {
                     max_lines: "1",
                     text_overflow: "ellipsis",
@@ -379,9 +378,9 @@ fn file_explorer_item_builder(index: usize, values: &Option<TreeBuilderOptions>)
             FileExplorerItem {
                 key: "{path}",
                 depth: item.depth,
-                onclick: onclick,
-                is_focused: is_focused,
-                is_focused_files_explorer: is_focused_files_explorer,
+                onclick,
+                is_focused,
+                is_focused_files_explorer,
                 label {
                     max_lines: "1",
                     text_overflow: "ellipsis",
@@ -407,15 +406,15 @@ fn FileExplorerItem(
     let onmouseleave = move |_| status.set(ButtonStatus::Idle);
 
     let background = match *status.read() {
-        ButtonStatus::Idle if is_focused && !is_focused_files_explorer => "rgb(35, 35, 35, 150)",
+        ButtonStatus::Idle | ButtonStatus::Hovering if is_focused => "rgb(35, 35, 35)",
+        ButtonStatus::Hovering => "rgb(35, 35, 35, 0.7)",
         ButtonStatus::Idle => "transparent",
-        ButtonStatus::Hovering => "rgb(35, 35, 35)",
     };
 
-    let border = if is_focused && is_focused_files_explorer {
-        "2 solid rgb(255, 255, 255, 100)"
+    let color = if is_focused {
+        "rgb(245, 245, 245)"
     } else {
-        "none"
+        "rgb(210, 210, 210)"
     };
 
     rsx!(rect {
@@ -426,12 +425,12 @@ fn FileExplorerItem(
             onclick.call(());
         },
         background: "{background}",
-        corner_radius: "5",
-        margin: "0 0 0 {depth * 10}",
-        direction: "horizontal",
-        padding: "3 8",
-        height: "25",
-        border: border,
+        width: "100%",
+        padding: "0 0 0 {(depth * 10) + 10}",
+        main_align: "center",
+        height: "27",
+        color,
+        font_size: "14",
         {children}
     })
 }

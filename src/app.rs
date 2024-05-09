@@ -221,8 +221,6 @@ pub fn App() -> Element {
             rect {
                 height: "calc(100% - 35)",
                 direction: "horizontal",
-                EditorSidebar {}
-                Divider {}
                 if let Some(side_panel) = radio_app_state.read().side_panel {
                     Sidepanel {
                         match side_panel {

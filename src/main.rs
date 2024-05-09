@@ -77,8 +77,8 @@ fn main() {
             )
         },
         LaunchConfig::<Arc<Args>>::builder()
-            .with_width(900.0)
-            .with_height(600.0)
+            .with_width(1280.0)
+            .with_height(720.0)
             .with_title("Valin")
             .with_state(Arc::new(args))
             .build(),

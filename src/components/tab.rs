@@ -45,7 +45,7 @@ pub fn Tab(
 
     rsx!(
         rect {
-            width: "130",
+            width: "140",
             height: "100%",
             rect {
                 height: "2",
@@ -58,42 +58,39 @@ pub fn Tab(
                 onclick: move |_| onclick.call(()),
                 onmouseenter: onmouseenter,
                 onmouseleave: onmouseleave,
-                padding: "0 12",
                 height: "fill",
-                width: "130",
-                main_align: "center",
+                width: "fill",
                 cross_align: "center",
                 direction: "horizontal",
                 label {
-                    width: "calc(100% - 16)",
+                    width: "calc(100% - 24)",
                     max_lines: "1",
                     text_overflow: "ellipsis",
+                    text_align: "center",
                     "{value}"
                 }
                 rect {
-                    width: "16",
+                    width: "24",
                     onclick: move |e| {
                         e.stop_propagation();
                         onclickaction.call(());
                     },
                     if is_edited {
                         rect {
-                            padding: "6",
-                            rect {
-                                background: "rgb(180, 180, 180)",
-                                width: "10",
-                                height: "10",
-                                corner_radius: "100",
-                            }
+                            background: "rgb(180, 180, 180)",
+                            width: "10",
+                            height: "10",
+                            corner_radius: "100",
                         }
                     } else if is_hovering || is_selected {
                         Button {
                             theme: theme_with!(ButtonTheme {
-                                padding: "6".into(),
                                 margin: "0".into(),
                                 corner_radius: "999".into(),
                                 shadow: "none".into(),
                                 border_fill: "none".into(),
+                                width: "16".into(),
+                                height: "16".into(),
                             }),
                             CrossIcon {
                                 fill: "rgb(150, 150, 150)",

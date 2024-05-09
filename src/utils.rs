@@ -9,7 +9,7 @@ use crate::state::RadioAppState;
 #[allow(non_snake_case)]
 pub fn Divider() -> Element {
     rsx!(rect {
-        background: "rgb(60, 60, 60)",
+        background: "rgb(56, 59, 66)",
         height: "100%",
         width: "1",
     })
@@ -18,7 +18,7 @@ pub fn Divider() -> Element {
 #[allow(non_snake_case)]
 pub fn VerticalDivider() -> Element {
     rsx!(rect {
-        background: "rgb(60, 60, 60)",
+        background: "rgb(56, 59, 66)",
         height: "1",
         width: "100%",
     })

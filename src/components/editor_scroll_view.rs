@@ -280,6 +280,9 @@ pub fn EditorScrollView<
         .map(|f| f.0 == Axis::Y)
         .unwrap_or_default();
 
+    let offset_y_min = (-corrected_scrolled_y / items_size).floor() * items_size;
+    let offset_y = -corrected_scrolled_y - offset_y_min;
+
     rsx!(
         rect {
             overflow: "clip",
@@ -303,6 +306,7 @@ pub fn EditorScrollView<
                     offset_x: "{corrected_scrolled_x}",
                     reference: node_ref,
                     onwheel: onwheel,
+                    offset_y: "{-offset_y}",
                     {children}
                 }
                 ScrollBar {

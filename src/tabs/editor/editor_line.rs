@@ -172,7 +172,7 @@ pub fn EditorLine(
                 highlight_color: "rgb(65, 65, 65)",
                 direction: "horizontal",
                 font_size: "{font_size}",
-                font_family: "Jetbrains Mono",
+                font_family: "Cascadia Mono NF",
                 {line.iter().enumerate().map(|(i, (syntax_type, text))| {
                     let text = match text {
                         TextNode::Range(word_pos) => {
