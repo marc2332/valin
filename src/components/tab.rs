@@ -62,6 +62,7 @@ pub fn Tab(
                 width: "fill",
                 cross_align: "center",
                 direction: "horizontal",
+                padding: "0 0 0 10",
                 label {
                     width: "calc(100% - 24)",
                     max_lines: "1",
@@ -89,8 +90,8 @@ pub fn Tab(
                                 corner_radius: "999".into(),
                                 shadow: "none".into(),
                                 border_fill: "none".into(),
-                                width: "16".into(),
-                                height: "16".into(),
+                                width: "20".into(),
+                                height: "20".into(),
                             }),
                             CrossIcon {
                                 fill: "rgb(150, 150, 150)",
