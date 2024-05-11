@@ -3,7 +3,7 @@ use freya::prelude::*;
 
 use crate::{
     state::{Channel, EditorSidePanel, EditorView},
-    tabs::editor::TabEditorUtils,
+    tabs::{editor::TabEditorUtils, settings::Settings},
     LspStatuses,
 };
 
@@ -19,7 +19,7 @@ pub fn StatusBar(props: StatusBarProps) -> Element {
 
     let open_settings = move |_| {
         let mut app_state = radio_app_state.write_channel(Channel::Global);
-        app_state.open_settings();
+        Settings::open_with(&mut app_state);
     };
 
     let toggle_file_explorer = move |_| {
