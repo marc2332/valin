@@ -8,7 +8,6 @@ use tracing::info;
 use crate::{
     fs::FSTransport,
     lsp::{create_lsp_client, LSPClient, LspConfig},
-    tabs::editor::TabEditorUtils,
     LspStatusSender, TreeItem,
 };
 
@@ -185,12 +184,7 @@ impl AppState {
     pub fn apply_settings(&mut self) {
         for panel in &mut self.panels {
             for tab in &mut panel.tabs {
-                if let Some(editor_tab) = tab.as_text_editor_mut() {
-                    editor_tab.editor.measure_longest_line(
-                        self.settings.editor.font_size,
-                        &self.font_collection,
-                    );
-                }
+                tab.on_settings_changed(&self.settings, &self.font_collection)
             }
         }
     }
@@ -274,25 +268,7 @@ impl AppState {
         );
 
         let mut panel_tab = self.panels[panel].tabs.remove(tab);
-
-        // Notify the language server that a document was closed
-        if let Some(editor_tab) = panel_tab.as_text_editor_mut() {
-            let language_id = editor_tab.editor.editor_type.language_id();
-            let language_server_id = language_id.language_server();
-
-            // Only if it ever hard LSP support
-            if let Some(language_server_id) = language_server_id {
-                let language_server = self.language_servers.get_mut(language_server_id);
-
-                // And there was an actual language server running
-                if let Some(language_server) = language_server {
-                    let file_uri = editor_tab.editor.uri();
-                    if let Some(file_uri) = file_uri {
-                        language_server.close_file(file_uri);
-                    }
-                }
-            }
-        }
+        panel_tab.on_close(self);
     }
 
     pub fn push_panel(&mut self, panel: Panel) {

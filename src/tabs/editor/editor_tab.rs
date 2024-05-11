@@ -1,11 +1,11 @@
 use std::{path::PathBuf, time::Duration};
 
-use crate::hooks::*;
 use crate::state::{EditorView, PanelTab, TabProps};
 use crate::tabs::editor::AppStateEditorUtils;
 use crate::tabs::editor::BuilderArgs;
 use crate::tabs::editor::EditorLine;
 use crate::{components::*, state::Channel};
+use crate::{hooks::*, state::AppSettings};
 use crate::{
     lsp::{use_lsp, LspAction},
     state::{AppState, PanelTabData},
@@ -19,7 +19,7 @@ use freya::prelude::keyboard::Modifiers;
 use freya::prelude::*;
 use lsp_types::Position;
 
-use skia_safe::textlayout::Paragraph;
+use skia_safe::textlayout::{FontCollection, Paragraph};
 use winit::window::CursorIcon;
 
 use super::editor_data::{EditorData, EditorType};
@@ -51,6 +51,34 @@ impl PanelTab for EditorTab {
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
+    }
+
+    fn on_close(&mut self, app_state: &mut AppState) {
+        // Notify the language server that a document was closed
+        let language_id = self.editor.editor_type.language_id();
+        let language_server_id = language_id.language_server();
+
+        // Only if it ever hard LSP support
+        if let Some(language_server_id) = language_server_id {
+            let language_server = app_state.language_servers.get_mut(language_server_id);
+
+            // And there was an actual language server running
+            if let Some(language_server) = language_server {
+                let file_uri = self.editor.uri();
+                if let Some(file_uri) = file_uri {
+                    language_server.close_file(file_uri);
+                }
+            }
+        }
+    }
+
+    fn on_settings_changed(
+        &mut self,
+        app_settings: &AppSettings,
+        font_collection: &FontCollection,
+    ) {
+        self.editor
+            .measure_longest_line(app_settings.editor.font_size, font_collection);
     }
 }
 
