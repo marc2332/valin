@@ -76,23 +76,25 @@ pub fn Tab(
                         e.stop_propagation();
                         onclickaction.call(());
                     },
-                    if is_edited {
-                        rect {
-                            background: "rgb(180, 180, 180)",
-                            width: "10",
-                            height: "10",
-                            corner_radius: "100",
-                        }
-                    } else if is_hovering || is_selected {
-                        Button {
-                            theme: theme_with!(ButtonTheme {
-                                margin: "0".into(),
-                                corner_radius: "999".into(),
-                                shadow: "none".into(),
-                                border_fill: "none".into(),
-                                width: "20".into(),
-                                height: "20".into(),
-                            }),
+                    Button {
+                        theme: theme_with!(ButtonTheme {
+                            margin: "0".into(),
+                            corner_radius: "999".into(),
+                            shadow: "none".into(),
+                            border_fill: "none".into(),
+                            width: "20".into(),
+                            height: "20".into(),
+                            padding: "0".into(),
+                        }),
+                        if is_edited {
+                            rect {
+                                background: "rgb(180, 180, 180)",
+                                width: "10",
+                                height: "10",
+                                corner_radius: "100",
+                            }
+
+                        } else if is_hovering || is_selected {
                             CrossIcon {
                                 fill: "rgb(150, 150, 150)",
                             }
