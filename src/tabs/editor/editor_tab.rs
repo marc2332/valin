@@ -23,7 +23,7 @@ use freya::prelude::*;
 use lsp_types::Position;
 
 use skia_safe::textlayout::{FontCollection, Paragraph};
-use tokio::{fs::OpenOptions, io::AsyncWriteExt};
+use tokio::fs::OpenOptions;
 use winit::window::CursorIcon;
 
 use super::editor_data::{EditorData, EditorType};
@@ -140,16 +140,15 @@ impl EditorTab {
 
                             if let Some((Some(file_path), rope, transport)) = editor_data {
                                 spawn(async move {
-                                    let mut writer = transport
-                                        .open(&file_path, OpenOptions::default().write(true))
+                                    let writer = transport
+                                        .open(
+                                            &file_path,
+                                            OpenOptions::new().write(true).truncate(true),
+                                        )
                                         .await
                                         .unwrap();
-                                    for chunk in rope.chunks() {
-                                        writer.write_all(chunk.as_bytes()).await.unwrap();
-                                    }
-                                    writer.flush().await.unwrap();
-                                    drop(writer);
-
+                                    let std_writer = writer.into_std().await;
+                                    rope.write_to(std_writer).unwrap();
                                     let mut app_state = radio_app_state
                                         .write_channel(Channel::follow_tab(panel, active_tab));
                                     let editor_tab =
