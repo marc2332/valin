@@ -329,12 +329,4 @@ impl AppState {
     pub fn open_folder(&mut self, item: TreeItem) {
         self.file_explorer_folders.push(item)
     }
-
-    pub fn open_settings(&mut self) {
-        // self.open_file(
-        //     settings_path().unwrap(),
-        //     settings_path().unwrap(),
-        //     toml::to_string(&self.settings).unwrap(),
-        // )
-    }
 }
