@@ -232,8 +232,6 @@ pub fn FileExplorer() -> Element {
     };
 
     let onkeydown = move |ev: KeyboardEvent| {
-        let is_focused_files_explorer =
-            *radio_app_state.read().focused_view() == EditorView::FilesExplorer;
         if is_focused_files_explorer {
             match ev.code {
                 Code::ArrowDown => {
