@@ -120,31 +120,25 @@ pub fn EditorLine(
             height: "{line_height}",
             direction: "horizontal",
             background: "{line_background}",
-            {
-                if let Some((line, hover)) = hover_location.read().as_ref() {
-                    if *line == line_index as u32 {
-                        if let Some(content) = hover.hover_to_text() {
+            if let Some((line, hover)) = hover_location.read().as_ref() {
+                if *line == line_index as u32 {
+                    if let Some(content) = hover.hover_to_text() {
+                        {
                             let cursor_coords = cursor_coords.peek();
                             let offset_x = cursor_coords.x  as f32 + gutter_width;
-                            Some(rsx!(
+                            rsx!(
                                 rect {
                                     width: "0",
                                     height: "0",
                                     offset_y: "{line_height}",
                                     offset_x: "{offset_x}",
                                     HoverBox {
-                                        content: content
+                                        content
                                     }
                                 }
-                            ))
-                        } else {
-                            None
+                            )
                         }
-                    } else {
-                        None
                     }
-                } else {
-                    None
                 }
             }
             rect {
