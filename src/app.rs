@@ -144,7 +144,7 @@ pub fn App() -> Element {
                     "e" => {
                         let mut app_state = radio_app_state.write_channel(Channel::Global);
                         if *app_state.focused_view() == EditorView::FilesExplorer {
-                            app_state.set_focused_view(EditorView::CodeEditor)
+                            app_state.set_focused_view(EditorView::Panels)
                         } else {
                             app_state.set_focused_view(EditorView::FilesExplorer)
                         }
@@ -154,7 +154,7 @@ pub fn App() -> Element {
             } else if e.modifiers == Modifiers::CONTROL && ch.as_str() == "s" {
                 let (focused_view, panel, active_tab) = radio_app_state.get_focused_data();
 
-                if focused_view == EditorView::CodeEditor {
+                if focused_view == EditorView::Panels {
                     if let Some(active_tab) = active_tab {
                         let editor_data = {
                             let app_state = radio_app_state.read();

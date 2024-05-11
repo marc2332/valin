@@ -128,7 +128,7 @@ fn render(
         }
         {
             let mut app_state = radio_app_state.write_channel(Channel::Global);
-            app_state.set_focused_view(EditorView::CodeEditor);
+            app_state.set_focused_view(EditorView::Panels);
         }
     });
 
@@ -214,7 +214,7 @@ fn render(
         let (is_code_editor_view_focused, is_editor_focused) = {
             let app_state = radio_app_state.read();
             let panel = app_state.panel(panel_index);
-            let is_code_editor_view_focused = *app_state.focused_view() == EditorView::CodeEditor;
+            let is_code_editor_view_focused = *app_state.focused_view() == EditorView::Panels;
             let is_editor_focused =
                 app_state.focused_panel() == panel_index && panel.active_tab() == Some(tab_index);
             (is_code_editor_view_focused, is_editor_focused)
@@ -222,7 +222,7 @@ fn render(
 
         if !is_code_editor_view_focused {
             let mut app_state = radio_app_state.write_channel(Channel::Global);
-            app_state.set_focused_view(EditorView::CodeEditor);
+            app_state.set_focused_view(EditorView::Panels);
         }
 
         if !is_editor_focused {
@@ -244,7 +244,7 @@ fn render(
             let app_state = radio_app_state.read();
             let panel = app_state.panel(panel_index);
             let is_panel_focused = app_state.focused_panel() == panel_index;
-            let is_editor_focused = *app_state.focused_view() == EditorView::CodeEditor
+            let is_editor_focused = *app_state.focused_view() == EditorView::Panels
                 && panel.active_tab() == Some(tab_index);
             (is_panel_focused, is_editor_focused)
         };
