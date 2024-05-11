@@ -22,7 +22,7 @@ use lsp_types::Position;
 use skia_safe::textlayout::Paragraph;
 use winit::window::CursorIcon;
 
-use super::editor::{EditorData, EditorType};
+use super::editor_data::{EditorData, EditorType};
 
 static LINES_JUMP_ALT: usize = 5;
 static LINES_JUMP_CONTROL: usize = 3;

@@ -40,6 +40,7 @@ impl Panel {
         self.active_tab
     }
 
+    #[allow(clippy::borrowed_box)]
     pub fn tab(&self, editor: usize) -> &Box<dyn PanelTab> {
         &self.tabs[editor]
     }
