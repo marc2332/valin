@@ -110,9 +110,9 @@ pub fn EditorLine(
 
     // Only highlight the active line
     let (line_background, gutter_color) = if is_line_selected {
-        ("rgb(37, 37, 37)", "rgb(200, 200, 200)")
+        ("rgb(70, 70, 70)", "rgb(235, 235, 235)")
     } else {
-        ("", "rgb(150, 150, 150)")
+        ("", "rgb(135, 135, 135)")
     };
 
     rsx!(
