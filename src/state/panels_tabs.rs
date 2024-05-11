@@ -6,14 +6,6 @@ use skia_safe::textlayout::FontCollection;
 use super::{AppSettings, AppState};
 
 pub trait PanelTab {
-    fn get_data(&self) -> PanelTabData;
-
-    fn render(&self) -> fn(TabProps) -> Element;
-
-    fn as_any(&self) -> &dyn Any;
-
-    fn as_any_mut(&mut self) -> &mut dyn Any;
-
     fn on_close(&mut self, _app_state: &mut AppState) {}
 
     fn on_settings_changed(
@@ -22,6 +14,14 @@ pub trait PanelTab {
         _font_collection: &FontCollection,
     ) {
     }
+
+    fn get_data(&self) -> PanelTabData;
+
+    fn render(&self) -> fn(TabProps) -> Element;
+
+    fn as_any(&self) -> &dyn Any;
+
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 #[derive(Props, Clone, PartialEq)]

@@ -8,6 +8,7 @@ mod commands;
 mod components;
 mod constants;
 mod fs;
+mod global_shortcuts;
 mod hooks;
 mod keyboard_navigation;
 mod lsp;

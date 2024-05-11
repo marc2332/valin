@@ -1,10 +1,13 @@
 use std::{path::PathBuf, time::Duration};
 
-use crate::state::{EditorView, PanelTab, TabProps};
 use crate::tabs::editor::AppStateEditorUtils;
 use crate::tabs::editor::BuilderArgs;
 use crate::tabs::editor::EditorLine;
 use crate::{components::*, state::Channel};
+use crate::{
+    constants::{BASE_FONT_SIZE, MAX_FONT_SIZE},
+    state::{AppStateUtils, EditorView, KeyboardShortcuts, PanelTab, RadioAppState, TabProps},
+};
 use crate::{hooks::*, state::AppSettings};
 use crate::{
     lsp::{use_lsp, LspAction},
@@ -20,6 +23,7 @@ use freya::prelude::*;
 use lsp_types::Position;
 
 use skia_safe::textlayout::{FontCollection, Paragraph};
+use tokio::{fs::OpenOptions, io::AsyncWriteExt};
 use winit::window::CursorIcon;
 
 use super::editor_data::{EditorData, EditorType};
@@ -33,26 +37,6 @@ pub struct EditorTab {
 }
 
 impl PanelTab for EditorTab {
-    fn get_data(&self) -> PanelTabData {
-        let (title, id) = self.editor.editor_type.title_and_id();
-        PanelTabData {
-            id,
-            title,
-            edited: self.editor.is_edited(),
-        }
-    }
-    fn render(&self) -> fn(TabProps) -> Element {
-        render
-    }
-
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
-        self
-    }
-
     fn on_close(&mut self, app_state: &mut AppState) {
         // Notify the language server that a document was closed
         let language_id = self.editor.editor_type.language_id();
@@ -80,6 +64,26 @@ impl PanelTab for EditorTab {
         self.editor
             .measure_longest_line(app_settings.editor.font_size, font_collection);
     }
+
+    fn get_data(&self) -> PanelTabData {
+        let (title, id) = self.editor.editor_type.title_and_id();
+        PanelTabData {
+            id,
+            title,
+            edited: self.editor.is_edited(),
+        }
+    }
+    fn render(&self) -> fn(TabProps) -> Element {
+        render
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
 }
 
 impl EditorTab {
@@ -96,6 +100,64 @@ impl EditorTab {
         );
 
         app_state.push_tab(Self { editor: data }, app_state.focused_panel, true);
+    }
+
+    pub fn register_handlers(keyboard_shorcuts: &mut KeyboardShortcuts) {
+        keyboard_shorcuts.register(|data: &KeyboardData, mut radio_app_state: RadioAppState| {
+            if let Key::Character(ch) = &data.key {
+                match ch.as_str() {
+                    "+" => {
+                        let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
+                        let font_size = app_state.font_size();
+                        app_state
+                            .set_fontsize((font_size + 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE))
+                    }
+                    "-" => {
+                        let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
+                        let font_size = app_state.font_size();
+                        app_state
+                            .set_fontsize((font_size - 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE))
+                    }
+                    "s" if data.modifiers == Modifiers::CONTROL => {
+                        let (focused_view, panel, active_tab) = radio_app_state.get_focused_data();
+
+                        if focused_view == EditorView::Panels {
+                            if let Some(active_tab) = active_tab {
+                                let editor_data = {
+                                    let app_state = radio_app_state.read();
+                                    app_state.editor_tab_data(panel, active_tab)
+                                };
+
+                                if let Some((Some(file_path), rope, transport)) = editor_data {
+                                    spawn(async move {
+                                        let mut writer = transport
+                                            .open(&file_path, OpenOptions::default().write(true))
+                                            .await
+                                            .unwrap();
+                                        for chunk in rope.chunks() {
+                                            writer.write_all(chunk.as_bytes()).await.unwrap();
+                                        }
+                                        writer.flush().await.unwrap();
+                                        drop(writer);
+
+                                        let mut app_state = radio_app_state
+                                            .write_channel(Channel::follow_tab(panel, active_tab));
+                                        let editor_tab =
+                                            app_state.try_editor_tab_mut(panel, active_tab);
+                                        if let Some(editor_tab) = editor_tab {
+                                            editor_tab.editor.mark_as_saved()
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    _ => return true,
+                }
+            }
+
+            false
+        })
     }
 }
 

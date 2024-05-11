@@ -11,7 +11,7 @@ use crate::{
     LspStatusSender, TreeItem,
 };
 
-use super::{AppSettings, EditorView, Panel, PanelTab};
+use super::{AppSettings, EditorView, KeyboardShortcuts, Panel, PanelTab};
 
 pub type RadioAppState = Radio<AppState, Channel>;
 
@@ -132,6 +132,7 @@ pub struct AppState {
     pub default_transport: FSTransport,
     pub font_collection: FontCollection,
     pub clipboard: UseClipboard,
+    pub keyboard_shortcts: KeyboardShortcuts,
 }
 
 impl AppState {
@@ -156,6 +157,7 @@ impl AppState {
             default_transport,
             font_collection,
             clipboard,
+            keyboard_shortcts: KeyboardShortcuts::default(),
         }
     }
 

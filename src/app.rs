@@ -1,25 +1,19 @@
-use crate::tabs::editor::AppStateEditorUtils;
 use crate::{
     components::*,
     fs::{FSLocal, FSTransport},
     tabs::welcome::WelcomeTab,
 };
-use crate::{
-    constants::{BASE_FONT_SIZE, MAX_FONT_SIZE},
-    keyboard_navigation::use_keyboard_navigation,
-    Args,
-};
+use crate::{global_shortcuts::GlobalShortcuts, state::KeyboardShortcuts};
 use crate::{hooks::*, settings::watch_settings};
+use crate::{keyboard_navigation::use_keyboard_navigation, Args};
 use crate::{tabs::editor::EditorTab, utils::*};
 use dioxus_radio::prelude::*;
 use dioxus_sdk::clipboard::use_clipboard;
-use freya::prelude::keyboard::{Key, Modifiers};
 use freya::prelude::*;
 use std::{rc::Rc, sync::Arc};
-use tokio::{fs::OpenOptions, io::AsyncWriteExt};
 use tracing::info;
 
-use crate::state::{AppStateUtils, EditorSidePanel, EditorView};
+use crate::state::{EditorSidePanel, EditorView};
 use crate::{
     commands::{EditorCommand, FontSizeCommand, SplitCommand},
     state::{AppState, Channel},
@@ -108,6 +102,16 @@ pub fn App() -> Element {
         ])
     });
 
+    // Initialize the Shorcuts
+    let keyboard_shorcuts = use_hook(|| {
+        let mut keyboard_shorcuts = KeyboardShortcuts::default();
+
+        GlobalShortcuts::register_handlers(&mut keyboard_shorcuts);
+        EditorTab::register_handlers(&mut keyboard_shorcuts);
+
+        Rc::new(keyboard_shorcuts)
+    });
+
     let mut keyboard_navigation = use_keyboard_navigation();
 
     let onsubmitcommander = move |_| {
@@ -117,75 +121,8 @@ pub fn App() -> Element {
         })
     };
 
-    let onkeydown = move |e: KeyboardEvent| match &e.key {
-        Key::Escape => {
-            let mut app_state = radio_app_state.write_channel(Channel::Global);
-            if app_state.focused_view == EditorView::Commander {
-                app_state.set_focused_view_to_previous();
-            } else {
-                app_state.set_focused_view(EditorView::Commander);
-            }
-        }
-        Key::Character(ch) => {
-            if e.modifiers.contains(Modifiers::ALT) {
-                match ch.as_str() {
-                    "+" => {
-                        let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
-                        let font_size = app_state.font_size();
-                        app_state
-                            .set_fontsize((font_size + 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE))
-                    }
-                    "-" => {
-                        let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
-                        let font_size = app_state.font_size();
-                        app_state
-                            .set_fontsize((font_size - 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE))
-                    }
-                    "e" => {
-                        let mut app_state = radio_app_state.write_channel(Channel::Global);
-                        if *app_state.focused_view() == EditorView::FilesExplorer {
-                            app_state.set_focused_view(EditorView::Panels)
-                        } else {
-                            app_state.set_focused_view(EditorView::FilesExplorer)
-                        }
-                    }
-                    _ => {}
-                }
-            } else if e.modifiers == Modifiers::CONTROL && ch.as_str() == "s" {
-                let (focused_view, panel, active_tab) = radio_app_state.get_focused_data();
-
-                if focused_view == EditorView::Panels {
-                    if let Some(active_tab) = active_tab {
-                        let editor_data = {
-                            let app_state = radio_app_state.read();
-                            app_state.editor_tab_data(panel, active_tab)
-                        };
-
-                        if let Some((Some(file_path), rope, transport)) = editor_data {
-                            spawn(async move {
-                                let mut writer = transport
-                                    .open(&file_path, OpenOptions::default().write(true))
-                                    .await
-                                    .unwrap();
-                                for chunk in rope.chunks() {
-                                    writer.write_all(chunk.as_bytes()).await.unwrap();
-                                }
-                                writer.flush().await.unwrap();
-                                drop(writer);
-
-                                let mut app_state = radio_app_state
-                                    .write_channel(Channel::follow_tab(panel, active_tab));
-                                let editor_tab = app_state.try_editor_tab_mut(panel, active_tab);
-                                if let Some(editor_tab) = editor_tab {
-                                    editor_tab.editor.mark_as_saved()
-                                }
-                            });
-                        }
-                    }
-                }
-            }
-        }
-        _ => {}
+    let onkeydown = move |e: KeyboardEvent| {
+        keyboard_shorcuts.run(&e.data, radio_app_state);
     };
 
     let onglobalmousedown = move |_| {
