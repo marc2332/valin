@@ -96,7 +96,7 @@ impl RadioChannel<AppState> for Channel {
             }
             Self::Global => {
                 let mut channels = vec![self];
-                channels.extend([Self::ActiveTab, Self::FileExplorer]);
+                channels.push(Self::ActiveTab);
                 channels
             }
             _ => vec![self],

@@ -9,7 +9,7 @@ use tokio::io;
 
 use crate::{
     fs::FSTransport,
-    state::{AppState, Channel, EditorView},
+    state::{AppState, Channel, EditorView, RadioAppState},
     tabs::editor::EditorTab,
 };
 
@@ -139,7 +139,6 @@ enum TreeTask {
 pub fn FileExplorer() -> Element {
     let mut radio_app_state = use_radio::<AppState, Channel>(Channel::FileExplorer);
     let app_state = radio_app_state.read();
-    let is_focused_files_explorer = *app_state.focused_view() == EditorView::FilesExplorer;
     let mut focused_item = use_signal(|| 0);
 
     let items = app_state
@@ -232,6 +231,8 @@ pub fn FileExplorer() -> Element {
     };
 
     let onkeydown = move |ev: KeyboardEvent| {
+        let is_focused_files_explorer =
+            *radio_app_state.read().focused_view() == EditorView::FilesExplorer;
         if is_focused_files_explorer {
             match ev.code {
                 Code::ArrowDown => {
@@ -280,7 +281,7 @@ pub fn FileExplorer() -> Element {
                 }),
                 length: items.len(),
                 item_size: 27.0,
-                builder_args: (items, channel, focused_item, is_focused_files_explorer),
+                builder_args: (items, channel, focused_item, radio_app_state),
                 direction: "vertical",
                 scroll_with_arrows: false,
                 builder: file_explorer_item_builder
@@ -293,11 +294,11 @@ type TreeBuilderOptions = (
     Vec<FlatItem>,
     Coroutine<(TreeTask, usize)>,
     Signal<usize>,
-    bool,
+    RadioAppState,
 );
 
 fn file_explorer_item_builder(index: usize, values: &Option<TreeBuilderOptions>) -> Element {
-    let (items, channel, focused_item, is_focused_files_explorer) = values.as_ref().unwrap();
+    let (items, channel, focused_item, radio_app_state) = values.as_ref().unwrap();
     let item: &FlatItem = &items[index];
 
     let path = item.path.to_str().unwrap().to_owned();
@@ -310,7 +311,6 @@ fn file_explorer_item_builder(index: usize, values: &Option<TreeBuilderOptions>)
         .unwrap()
         .to_string();
     let is_focused = *focused_item.read() == index;
-    let is_focused_files_explorer = *is_focused_files_explorer;
 
     if item.is_file {
         to_owned![channel, item];
@@ -327,9 +327,9 @@ fn file_explorer_item_builder(index: usize, values: &Option<TreeBuilderOptions>)
             FileExplorerItem {
                 key: "{path}",
                 depth: item.depth,
+                radio_app_state: *radio_app_state,
                 onclick,
                 is_focused,
-                is_focused_files_explorer,
                 label {
                     max_lines: "1",
                     text_overflow: "ellipsis",
@@ -365,9 +365,9 @@ fn file_explorer_item_builder(index: usize, values: &Option<TreeBuilderOptions>)
             FileExplorerItem {
                 key: "{path}",
                 depth: item.depth,
+                radio_app_state: *radio_app_state,
                 onclick,
                 is_focused,
-                is_focused_files_explorer,
                 label {
                     max_lines: "1",
                     text_overflow: "ellipsis",
@@ -385,12 +385,19 @@ fn FileExplorerItem(
     onclick: EventHandler<()>,
     depth: usize,
     is_focused: bool,
-    is_focused_files_explorer: bool,
+    radio_app_state: RadioAppState,
 ) -> Element {
     let mut status = use_signal(|| ButtonStatus::Idle);
 
     let onmouseenter = move |_| status.set(ButtonStatus::Hovering);
     let onmouseleave = move |_| status.set(ButtonStatus::Idle);
+    let onkeydown = move |e: KeyboardEvent| {
+        let is_focused_files_explorer =
+            *radio_app_state.read().focused_view() == EditorView::FilesExplorer;
+        if e.code == Code::Enter && is_focused && is_focused_files_explorer {
+            onclick.call(());
+        }
+    };
 
     let background = match *status.read() {
         ButtonStatus::Idle | ButtonStatus::Hovering if is_focused => "rgb(35, 35, 35)",
@@ -408,9 +415,7 @@ fn FileExplorerItem(
         onmouseenter: onmouseenter,
         onmouseleave: onmouseleave,
         onclick: move |_| onclick.call(()),
-        onkeydown: move |e| if e.code == Code::Enter && is_focused && is_focused_files_explorer {
-            onclick.call(());
-        },
+        onkeydown,
         background: "{background}",
         width: "100%",
         padding: "0 0 0 {(depth * 10) + 10}",
