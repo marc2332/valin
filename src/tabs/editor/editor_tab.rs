@@ -104,59 +104,68 @@ impl EditorTab {
 
     pub fn register_handlers(keyboard_shorcuts: &mut KeyboardShortcuts) {
         keyboard_shorcuts.register(|data: &KeyboardData, mut radio_app_state: RadioAppState| {
-            if let Key::Character(ch) = &data.key {
-                match ch.as_str() {
-                    "+" => {
-                        let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
-                        let font_size = app_state.font_size();
-                        app_state
-                            .set_fontsize((font_size + 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE))
+            match data.code {
+                _ if data.modifiers == Modifiers::ALT
+                    && data.key == Key::Character("+".to_string()) =>
+                {
+                    let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
+                    let font_size = app_state.font_size();
+                    app_state.set_fontsize((font_size + 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE));
+                    println!("increased?");
+                }
+                _ if data.modifiers == Modifiers::ALT
+                    && data.key == Key::Character("-".to_string()) =>
+                {
+                    let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
+                    let font_size = app_state.font_size();
+                    app_state.set_fontsize((font_size - 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE))
+                }
+                Code::KeyE if data.modifiers == Modifiers::ALT => {
+                    let mut app_state = radio_app_state.write_channel(Channel::Global);
+                    if *app_state.focused_view() == EditorView::FilesExplorer {
+                        app_state.set_focused_view(EditorView::Panels)
+                    } else {
+                        app_state.set_focused_view(EditorView::FilesExplorer)
                     }
-                    "-" => {
-                        let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
-                        let font_size = app_state.font_size();
-                        app_state
-                            .set_fontsize((font_size - 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE))
-                    }
-                    "s" if data.modifiers == Modifiers::CONTROL => {
-                        let (focused_view, panel, active_tab) = radio_app_state.get_focused_data();
+                }
+                Code::KeyS if data.modifiers == Modifiers::CONTROL => {
+                    let (focused_view, panel, active_tab) = radio_app_state.get_focused_data();
 
-                        if focused_view == EditorView::Panels {
-                            if let Some(active_tab) = active_tab {
-                                let editor_data = {
-                                    let app_state = radio_app_state.read();
-                                    app_state.editor_tab_data(panel, active_tab)
-                                };
+                    if focused_view == EditorView::Panels {
+                        if let Some(active_tab) = active_tab {
+                            let editor_data = {
+                                let app_state = radio_app_state.read();
+                                app_state.editor_tab_data(panel, active_tab)
+                            };
 
-                                if let Some((Some(file_path), rope, transport)) = editor_data {
-                                    spawn(async move {
-                                        let mut writer = transport
-                                            .open(&file_path, OpenOptions::default().write(true))
-                                            .await
-                                            .unwrap();
-                                        for chunk in rope.chunks() {
-                                            writer.write_all(chunk.as_bytes()).await.unwrap();
-                                        }
-                                        writer.flush().await.unwrap();
-                                        drop(writer);
+                            if let Some((Some(file_path), rope, transport)) = editor_data {
+                                spawn(async move {
+                                    let mut writer = transport
+                                        .open(&file_path, OpenOptions::default().write(true))
+                                        .await
+                                        .unwrap();
+                                    for chunk in rope.chunks() {
+                                        writer.write_all(chunk.as_bytes()).await.unwrap();
+                                    }
+                                    writer.flush().await.unwrap();
+                                    drop(writer);
 
-                                        let mut app_state = radio_app_state
-                                            .write_channel(Channel::follow_tab(panel, active_tab));
-                                        let editor_tab =
-                                            app_state.try_editor_tab_mut(panel, active_tab);
-                                        if let Some(editor_tab) = editor_tab {
-                                            editor_tab.editor.mark_as_saved()
-                                        }
-                                    });
-                                }
+                                    let mut app_state = radio_app_state
+                                        .write_channel(Channel::follow_tab(panel, active_tab));
+                                    let editor_tab =
+                                        app_state.try_editor_tab_mut(panel, active_tab);
+                                    if let Some(editor_tab) = editor_tab {
+                                        editor_tab.editor.mark_as_saved()
+                                    }
+                                });
                             }
                         }
                     }
-                    _ => return true,
                 }
+                _ => return false,
             }
 
-            false
+            true
         })
     }
 }

@@ -2,10 +2,7 @@ use dioxus::{dioxus_core::AttributeValue, prelude::use_memo};
 
 use crate::tabs::editor::AppStateEditorUtils;
 use freya::common::{CursorLayoutResponse, EventMessage};
-use freya::prelude::{
-    keyboard::{Key, Modifiers},
-    *,
-};
+use freya::prelude::{keyboard::Modifiers, *};
 use freya_node_state::CursorReference;
 
 use std::sync::{Arc, Mutex};
@@ -80,10 +77,10 @@ impl UseEdit {
             EditableEvent::KeyDown(e) => {
                 let is_plus = e.key == Key::Character("+".to_string());
                 let is_minus = e.key == Key::Character("-".to_string());
-                let is_e = e.key == Key::Character("e".to_string());
-                let is_s = e.key == Key::Character("s".to_string());
+                let is_e = e.code == Code::KeyE;
+                let is_s = e.code == Code::KeyS;
 
-                if e.key == Key::Escape
+                if e.code == Code::Escape
                     || (e.modifiers.contains(Modifiers::ALT) && (is_plus || is_minus || is_e))
                     || (e.modifiers.contains(Modifiers::CONTROL) && is_s)
                 {

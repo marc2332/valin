@@ -14,9 +14,9 @@ pub mod GlobalShortcuts {
                     app_state.set_focused_view(EditorView::Commander);
                 }
 
-                false
-            } else {
                 true
+            } else {
+                false
             }
         });
     }
