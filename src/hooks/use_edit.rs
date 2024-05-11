@@ -3,7 +3,7 @@ use dioxus::{dioxus_core::AttributeValue, prelude::use_memo};
 use crate::tabs::editor::AppStateEditorUtils;
 use freya::common::{CursorLayoutResponse, EventMessage};
 use freya::prelude::{
-    keyboard::{Code, Key, Modifiers},
+    keyboard::{Key, Modifiers},
     *,
 };
 use freya_node_state::CursorReference;
@@ -92,19 +92,7 @@ impl UseEdit {
 
                 let mut app_state = self.radio.write();
                 let editor_tab = app_state.editor_tab_mut(self.panel_index, self.tab_index);
-                let event = 'key_matcher: {
-                    if e.modifiers.contains(Modifiers::CONTROL) {
-                        if e.code == Code::KeyZ {
-                            editor_tab.editor.undo();
-                            break 'key_matcher TextEvent::TEXT_CHANGED;
-                        } else if e.code == Code::KeyY {
-                            editor_tab.editor.redo();
-                            break 'key_matcher TextEvent::TEXT_CHANGED;
-                        }
-                    }
-
-                    editor_tab.editor.process_key(&e.key, &e.code, &e.modifiers)
-                };
+                let event = editor_tab.editor.process_key(&e.key, &e.code, &e.modifiers);
                 if event.contains(TextEvent::TEXT_CHANGED) {
                     editor_tab.editor.run_parser();
                     *self.selecting_text_with_mouse.write() = None;

@@ -99,13 +99,6 @@ impl EditorData {
         self.rope.to_string()
     }
 
-    pub fn move_cursor_to_idx(&mut self, idx: usize) {
-        let row = self.rope.byte_to_line(idx);
-        let line_idx = self.rope.line_to_byte(row);
-        let col = idx - line_idx;
-        self.cursor_mut().move_to(row, col);
-    }
-
     pub fn is_edited(&self) -> bool {
         self.history.current_change() != self.last_saved_history_change
     }
@@ -323,12 +316,7 @@ impl TextEditor for EditorData {
 
     fn redo(&mut self) -> Option<usize> {
         if self.history.can_redo() {
-            let cursor_idx = self.history.redo(&mut self.rope);
-            if let Some(cursor_idx) = cursor_idx {
-                self.move_cursor_to_idx(cursor_idx);
-            }
-
-            cursor_idx
+            self.history.redo(&mut self.rope)
         } else {
             None
         }
@@ -336,11 +324,7 @@ impl TextEditor for EditorData {
 
     fn undo(&mut self) -> Option<usize> {
         if self.history.can_undo() {
-            let cursor_idx = self.history.undo(&mut self.rope);
-            if let Some(cursor_idx) = cursor_idx {
-                self.move_cursor_to_idx(cursor_idx);
-            }
-            cursor_idx
+            self.history.undo(&mut self.rope)
         } else {
             None
         }
