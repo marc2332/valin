@@ -1,44 +1,21 @@
-use super::EditorData;
+use std::any::Any;
 
-pub enum PanelTab {
-    TextEditor(EditorData),
-    Welcome,
+use freya::prelude::*;
+
+pub trait PanelTab {
+    fn get_data(&self) -> PanelTabData;
+
+    fn render(&self) -> fn(TabProps) -> Element;
+
+    fn as_any(&self) -> &dyn Any;
+
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
-impl PanelTab {
-    pub fn get_data(&self) -> PanelTabData {
-        match self {
-            PanelTab::TextEditor(editor) => {
-                let (title, id) = editor.editor_type.title_and_id();
-                PanelTabData {
-                    id,
-                    title,
-                    edited: editor.is_edited(),
-                }
-            }
-            PanelTab::Welcome => PanelTabData {
-                id: "welcome".to_string(),
-                title: "Welcome".to_string(),
-                edited: false,
-            },
-        }
-    }
-
-    pub fn as_text_editor(&self) -> Option<&EditorData> {
-        if let PanelTab::TextEditor(editor_data) = self {
-            Some(editor_data)
-        } else {
-            None
-        }
-    }
-
-    pub fn as_text_editor_mut(&mut self) -> Option<&mut EditorData> {
-        if let PanelTab::TextEditor(editor_data) = self {
-            Some(editor_data)
-        } else {
-            None
-        }
-    }
+#[derive(Props, Clone, PartialEq)]
+pub struct TabProps {
+    pub panel_index: usize,
+    pub tab_index: usize,
 }
 
 #[derive(PartialEq, Eq)]
@@ -51,7 +28,7 @@ pub struct PanelTabData {
 #[derive(Default)]
 pub struct Panel {
     pub active_tab: Option<usize>,
-    pub tabs: Vec<PanelTab>,
+    pub tabs: Vec<Box<dyn PanelTab>>,
 }
 
 impl Panel {
@@ -63,15 +40,15 @@ impl Panel {
         self.active_tab
     }
 
-    pub fn tab(&self, editor: usize) -> &PanelTab {
+    pub fn tab(&self, editor: usize) -> &Box<dyn PanelTab> {
         &self.tabs[editor]
     }
 
-    pub fn tab_mut(&mut self, editor: usize) -> &mut PanelTab {
+    pub fn tab_mut(&mut self, editor: usize) -> &mut Box<dyn PanelTab> {
         &mut self.tabs[editor]
     }
 
-    pub fn tabs(&self) -> &[PanelTab] {
+    pub fn tabs(&self) -> &[Box<dyn PanelTab>] {
         &self.tabs
     }
 

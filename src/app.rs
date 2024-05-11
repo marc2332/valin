@@ -1,7 +1,8 @@
-use crate::utils::*;
+use crate::tabs::editor::AppStateEditorUtils;
 use crate::{
     components::*,
     fs::{FSLocal, FSTransport},
+    tabs::welcome::WelcomeTab,
 };
 use crate::{
     constants::{BASE_FONT_SIZE, MAX_FONT_SIZE},
@@ -9,6 +10,7 @@ use crate::{
     Args,
 };
 use crate::{hooks::*, settings::watch_settings};
+use crate::{tabs::editor::EditorTab, utils::*};
 use dioxus_radio::prelude::*;
 use dioxus_sdk::clipboard::use_clipboard;
 use freya::prelude::keyboard::{Key, Modifiers};
@@ -17,7 +19,7 @@ use std::{rc::Rc, sync::Arc};
 use tokio::{fs::OpenOptions, io::AsyncWriteExt};
 use tracing::info;
 
-use crate::state::{AppStateUtils, EditorSidePanel, EditorView, PanelTab};
+use crate::state::{AppStateUtils, EditorSidePanel, EditorView};
 use crate::{
     commands::{EditorCommand, FontSizeCommand, SplitCommand},
     state::{AppState, Channel},
@@ -36,14 +38,14 @@ pub fn App() -> Element {
         let args = consume_context::<Arc<Args>>();
         let default_transport: FSTransport = Arc::new(Box::new(FSLocal));
 
-        let mut state = AppState::new(lsp_sender, default_transport, clipboard);
+        let mut app_state = AppState::new(lsp_sender, default_transport, clipboard);
 
         if args.paths.is_empty() {
             // Default tab
-            state.push_tab(PanelTab::Welcome, 0, true);
+            WelcomeTab::open_with(&mut app_state);
         }
 
-        state
+        app_state
     });
 
     // Subscribe to the State Manager
@@ -62,16 +64,8 @@ pub fn App() -> Element {
                     let content = transport.read_to_string(path).await;
                     if let Ok(content) = content {
                         let mut app_state = radio_app_state.write();
-                        let font_size = app_state.font_size();
-                        let font_collection = app_state.font_collection.clone();
-                        app_state.open_file(
-                            path.clone(),
-                            root_path,
-                            content,
-                            transport,
-                            font_size,
-                            &font_collection,
-                        );
+
+                        EditorTab::open_with(&mut app_state, path.clone(), root_path, content);
                     }
                 }
                 // Folders
@@ -162,7 +156,10 @@ pub fn App() -> Element {
 
                 if focused_view == EditorView::CodeEditor {
                     if let Some(active_tab) = active_tab {
-                        let editor_data = radio_app_state.editor_mut_data(panel, active_tab);
+                        let editor_data = {
+                            let app_state = radio_app_state.read();
+                            app_state.editor_tab_data(panel, active_tab)
+                        };
 
                         if let Some((Some(file_path), rope, transport)) = editor_data {
                             spawn(async move {
@@ -178,9 +175,9 @@ pub fn App() -> Element {
 
                                 let mut app_state = radio_app_state
                                     .write_channel(Channel::follow_tab(panel, active_tab));
-                                let editor = app_state.try_editor_mut(panel, active_tab);
-                                if let Some(editor) = editor {
-                                    editor.mark_as_saved()
+                                let editor_tab = app_state.try_editor_tab_mut(panel, active_tab);
+                                if let Some(editor_tab) = editor_tab {
+                                    editor_tab.editor.mark_as_saved()
                                 }
                             });
                         }

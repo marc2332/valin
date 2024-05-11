@@ -1,30 +1,23 @@
-use std::{collections::HashMap, path::PathBuf, vec};
+use std::{collections::HashMap, vec};
 
 use dioxus_radio::prelude::{Radio, RadioChannel};
 use dioxus_sdk::clipboard::UseClipboard;
-use freya::prelude::Rope;
 use skia_safe::{textlayout::FontCollection, FontMgr};
 use tracing::info;
 
 use crate::{
     fs::FSTransport,
     lsp::{create_lsp_client, LSPClient, LspConfig},
-    settings::settings_path,
+    tabs::editor::TabEditorUtils,
     LspStatusSender, TreeItem,
 };
 
-use super::{AppSettings, EditorData, EditorType, EditorView, Panel, PanelTab};
+use super::{AppSettings, EditorView, Panel, PanelTab};
 
 pub type RadioAppState = Radio<AppState, Channel>;
 
 pub trait AppStateUtils {
     fn get_focused_data(&self) -> (EditorView, usize, Option<usize>);
-
-    fn editor_mut_data(
-        &self,
-        panel: usize,
-        editor_id: usize,
-    ) -> Option<(Option<PathBuf>, Rope, FSTransport)>;
 }
 
 impl AppStateUtils for RadioAppState {
@@ -35,23 +28,6 @@ impl AppStateUtils for RadioAppState {
             app_state.focused_panel,
             app_state.panel(app_state.focused_panel).active_tab,
         )
-    }
-
-    fn editor_mut_data(
-        &self,
-        panel: usize,
-        editor_id: usize,
-    ) -> Option<(Option<PathBuf>, Rope, FSTransport)> {
-        let app_state = self.read();
-        let panel: &Panel = app_state.panel(panel);
-        let editor = panel.tab(editor_id).as_text_editor();
-        editor.map(|editor| {
-            (
-                editor.path().cloned(),
-                editor.rope.clone(),
-                editor.transport.clone(),
-            )
-        })
     }
 }
 
@@ -64,7 +40,7 @@ pub enum Channel {
     /// Affects individual tab
     Tab {
         panel_index: usize,
-        editor_index: usize,
+        tab_index: usize,
     },
     /// Only affects the active tab
     ActiveTab,
@@ -89,9 +65,9 @@ impl RadioChannel<AppState> for Channel {
                                 .tabs()
                                 .iter()
                                 .enumerate()
-                                .map(move |(editor_index, _)| Self::Tab {
+                                .map(move |(tab_index, _)| Self::Tab {
                                     panel_index,
-                                    editor_index,
+                                    tab_index,
                                 })
                         })
                         .collect::<Vec<Self>>(),
@@ -101,13 +77,13 @@ impl RadioChannel<AppState> for Channel {
             }
             Self::Tab {
                 panel_index,
-                editor_index,
+                tab_index,
             } => {
                 let mut channels = vec![self];
                 if app_state.focused_panel == panel_index {
                     let panel = app_state.panel(panel_index);
                     if let Some(active_tab) = panel.active_tab {
-                        if active_tab == editor_index {
+                        if active_tab == tab_index {
                             channels.push(Self::ActiveTab);
                         }
                     }
@@ -119,6 +95,11 @@ impl RadioChannel<AppState> for Channel {
                 channels.extend(Channel::AllTabs.derive_channel(app_state));
                 channels
             }
+            Self::Global => {
+                let mut channels = vec![self];
+                channels.push(Self::ActiveTab);
+                channels
+            }
             _ => vec![self],
         }
     }
@@ -128,7 +109,7 @@ impl Channel {
     pub fn follow_tab(panel: usize, editor: usize) -> Self {
         Self::Tab {
             panel_index: panel,
-            editor_index: editor,
+            tab_index: editor,
         }
     }
 }
@@ -204,8 +185,8 @@ impl AppState {
     pub fn apply_settings(&mut self) {
         for panel in &mut self.panels {
             for tab in &mut panel.tabs {
-                if let Some(editor) = tab.as_text_editor_mut() {
-                    editor.measure_longest_line(
+                if let Some(editor_tab) = tab.as_text_editor_mut() {
+                    editor_tab.editor.measure_longest_line(
                         self.settings.editor.font_size,
                         &self.font_collection,
                     );
@@ -243,7 +224,7 @@ impl AppState {
         self.focused_panel
     }
 
-    pub fn push_tab(&mut self, tab: PanelTab, panel: usize, focus: bool) {
+    pub fn push_tab(&mut self, tab: impl PanelTab + 'static, panel: usize, focus: bool) {
         let opened_tab = self.panels[panel]
             .tabs
             .iter()
@@ -256,7 +237,7 @@ impl AppState {
                 self.panels[panel].active_tab = Some(tab_index);
             }
         } else {
-            self.panels[panel].tabs.push(tab);
+            self.panels[panel].tabs.push(Box::new(tab));
 
             if focus {
                 self.focused_panel = panel;
@@ -295,8 +276,8 @@ impl AppState {
         let mut panel_tab = self.panels[panel].tabs.remove(tab);
 
         // Notify the language server that a document was closed
-        if let Some(text_editor) = panel_tab.as_text_editor_mut() {
-            let language_id = text_editor.editor_type.language_id();
+        if let Some(editor_tab) = panel_tab.as_text_editor_mut() {
+            let language_id = editor_tab.editor.editor_type.language_id();
             let language_server_id = language_id.language_server();
 
             // Only if it ever hard LSP support
@@ -305,7 +286,7 @@ impl AppState {
 
                 // And there was an actual language server running
                 if let Some(language_server) = language_server {
-                    let file_uri = text_editor.uri();
+                    let file_uri = editor_tab.editor.uri();
                     if let Some(file_uri) = file_uri {
                         language_server.close_file(file_uri);
                     }
@@ -369,60 +350,15 @@ impl AppState {
         }
     }
 
-    pub fn editor(&self, panel: usize, editor_id: usize) -> &EditorData {
-        self.panel(panel).tab(editor_id).as_text_editor().unwrap()
-    }
-
-    pub fn editor_mut(&mut self, panel: usize, editor_id: usize) -> &mut EditorData {
-        self.panel_mut(panel)
-            .tab_mut(editor_id)
-            .as_text_editor_mut()
-            .unwrap()
-    }
-
-    pub fn try_editor_mut(&mut self, panel: usize, editor_id: usize) -> Option<&mut EditorData> {
-        self.panel_mut(panel)
-            .tab_mut(editor_id)
-            .as_text_editor_mut()
-    }
-
-    #[allow(clippy::too_many_arguments)]
-    pub fn open_file(
-        &mut self,
-        path: PathBuf,
-        root_path: PathBuf,
-        content: String,
-        transport: FSTransport,
-        font_size: f32,
-        font_collection: &FontCollection,
-    ) {
-        self.push_tab(
-            PanelTab::TextEditor(EditorData::new(
-                EditorType::FS { path, root_path },
-                Rope::from(content),
-                (0, 0),
-                self.clipboard,
-                transport,
-                font_size,
-                font_collection,
-            )),
-            self.focused_panel,
-            true,
-        );
-    }
-
     pub fn open_folder(&mut self, item: TreeItem) {
         self.file_explorer_folders.push(item)
     }
 
     pub fn open_settings(&mut self) {
-        self.open_file(
-            settings_path().unwrap(),
-            settings_path().unwrap(),
-            toml::to_string(&self.settings).unwrap(),
-            self.default_transport.clone(),
-            self.settings.editor.font_size,
-            &self.font_collection.clone(),
-        )
+        // self.open_file(
+        //     settings_path().unwrap(),
+        //     settings_path().unwrap(),
+        //     toml::to_string(&self.settings).unwrap(),
+        // )
     }
 }

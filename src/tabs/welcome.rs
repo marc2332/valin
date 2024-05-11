@@ -1,7 +1,37 @@
 use freya::prelude::*;
 
-#[allow(non_snake_case)]
-pub fn WelcomeTab() -> Element {
+use crate::state::{AppState, PanelTab, PanelTabData, TabProps};
+
+pub struct WelcomeTab;
+
+impl PanelTab for WelcomeTab {
+    fn get_data(&self) -> PanelTabData {
+        PanelTabData {
+            id: "welcome".to_string(),
+            title: "welcome".to_string(),
+            edited: false,
+        }
+    }
+    fn render(&self) -> fn(TabProps) -> Element {
+        render
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+}
+
+impl WelcomeTab {
+    pub fn open_with(app_state: &mut AppState) {
+        app_state.push_tab(Self, app_state.focused_panel, true);
+    }
+}
+
+pub fn render(_: TabProps) -> Element {
     rsx!(
         rect {
             height: "100%",

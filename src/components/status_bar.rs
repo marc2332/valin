@@ -3,6 +3,7 @@ use freya::prelude::*;
 
 use crate::{
     state::{Channel, EditorSidePanel, EditorView},
+    tabs::editor::TabEditorUtils,
     LspStatuses,
 };
 
@@ -33,7 +34,7 @@ pub fn StatusBar(props: StatusBarProps) -> Element {
             panel
                 .tab(active_tab)
                 .as_text_editor()
-                .map(|editor| (editor.cursor(), editor.editor_type()))
+                .map(|editor_tab| (editor_tab.editor.cursor(), editor_tab.editor.editor_type()))
         } else {
             None
         }

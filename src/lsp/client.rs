@@ -20,7 +20,7 @@ use tokio::process::Command;
 use tower::ServiceBuilder;
 use tracing::info;
 
-use crate::{state::EditorType, LspStatusSender};
+use crate::{tabs::editor::EditorType, LspStatusSender};
 
 struct RouterState {
     pub(crate) indexed: Arc<Mutex<bool>>,

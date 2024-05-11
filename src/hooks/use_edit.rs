@@ -1,5 +1,6 @@
 use dioxus::{dioxus_core::AttributeValue, prelude::use_memo};
 
+use crate::tabs::editor::AppStateEditorUtils;
 use freya::common::{CursorLayoutResponse, EventMessage};
 use freya::prelude::{
     keyboard::{Code, Key, Modifiers},
@@ -21,7 +22,7 @@ pub struct UseEdit {
     pub(crate) selecting_text_with_mouse: Signal<Option<CursorPoint>>,
     pub(crate) platform: UsePlatform,
     pub(crate) panel_index: usize,
-    pub(crate) editor_index: usize,
+    pub(crate) tab_index: usize,
 }
 
 impl UseEdit {
@@ -35,9 +36,10 @@ impl UseEdit {
     /// Create a highlights attribute.
     pub fn highlights_attr(&self, editor_id: usize) -> AttributeValue {
         let app_state = self.radio.read();
-        let editor = app_state.editor(self.panel_index, self.editor_index);
+        let editor_tab = app_state.editor_tab(self.panel_index, self.tab_index);
         AttributeValue::any_value(CustomAttributeValues::TextHighlights(
-            editor
+            editor_tab
+                .editor
                 .highlights(editor_id)
                 .map(|v| vec![v])
                 .unwrap_or_default(),
@@ -57,8 +59,8 @@ impl UseEdit {
                     .set_cursor_position(Some(coords));
                 let mut app_state = self.radio.write();
 
-                let editor = app_state.editor_mut(self.panel_index, self.editor_index);
-                editor.unhighlight();
+                let editor_tab = app_state.editor_tab_mut(self.panel_index, self.tab_index);
+                editor_tab.editor.unhighlight();
             }
             EditableEvent::MouseOver(e, id) => {
                 self.selecting_text_with_mouse.with(|selecting_text| {
@@ -89,22 +91,22 @@ impl UseEdit {
                 }
 
                 let mut app_state = self.radio.write();
-                let editor = app_state.editor_mut(self.panel_index, self.editor_index);
+                let editor_tab = app_state.editor_tab_mut(self.panel_index, self.tab_index);
                 let event = 'key_matcher: {
                     if e.modifiers.contains(Modifiers::CONTROL) {
                         if e.code == Code::KeyZ {
-                            editor.undo();
+                            editor_tab.editor.undo();
                             break 'key_matcher TextEvent::TEXT_CHANGED;
                         } else if e.code == Code::KeyY {
-                            editor.redo();
+                            editor_tab.editor.redo();
                             break 'key_matcher TextEvent::TEXT_CHANGED;
                         }
                     }
 
-                    editor.process_key(&e.key, &e.code, &e.modifiers)
+                    editor_tab.editor.process_key(&e.key, &e.code, &e.modifiers)
                 };
                 if event.contains(TextEvent::TEXT_CHANGED) {
-                    editor.run_parser();
+                    editor_tab.editor.run_parser();
                     *self.selecting_text_with_mouse.write() = None;
                 } else if event.contains(TextEvent::SELECTION_CHANGED) {
                     self.selecting_text_with_mouse.write();
@@ -122,14 +124,14 @@ impl UseEdit {
     }
 }
 
-pub fn use_edit(radio: &RadioAppState, panel_index: usize, editor_index: usize) -> UseEdit {
+pub fn use_edit(radio: &RadioAppState, panel_index: usize, tab_index: usize) -> UseEdit {
     let selecting_text_with_mouse = use_signal(|| None);
     let platform = use_platform();
     let mut cursor_receiver_task = use_signal::<Option<Task>>(|| None);
 
-    let cursor_reference = use_memo(use_reactive(&(panel_index, editor_index), {
+    let cursor_reference = use_memo(use_reactive(&(panel_index, tab_index), {
         to_owned![radio];
-        move |(panel_index, editor_index)| {
+        move |(panel_index, tab_index)| {
             if let Some(cursor_receiver_task) = cursor_receiver_task.write_unchecked().take() {
                 cursor_receiver_task.cancel();
             }
@@ -153,9 +155,9 @@ pub fn use_edit(radio: &RadioAppState, panel_index: usize, editor_index: usize) 
                             // Update the cursor position calculated by the layout
                             CursorLayoutResponse::CursorPosition { position, id } => {
                                 let mut app_state = radio.write();
-                                let editor = app_state.editor(panel_index, editor_index);
+                                let editor_tab = app_state.editor_tab(panel_index, tab_index);
 
-                                let new_current_line = editor.rope.line(id);
+                                let new_current_line = editor_tab.editor.rope.line(id);
 
                                 // Use the line lenght as new column if the clicked column surpases the length
                                 let new_cursor = if position >= new_current_line.chars().len() {
@@ -165,11 +167,12 @@ pub fn use_edit(radio: &RadioAppState, panel_index: usize, editor_index: usize) 
                                 };
 
                                 // Only update if it's actually different
-                                if editor.cursor.as_tuple() != new_cursor {
-                                    let editor = app_state.editor_mut(panel_index, editor_index);
-                                    editor.cursor.set_col(new_cursor.0);
-                                    editor.cursor.set_row(new_cursor.1);
-                                    editor.unhighlight();
+                                if editor_tab.editor.cursor.as_tuple() != new_cursor {
+                                    let editor_tab =
+                                        app_state.editor_tab_mut(panel_index, tab_index);
+                                    editor_tab.editor.cursor.set_col(new_cursor.0);
+                                    editor_tab.editor.cursor.set_row(new_cursor.1);
+                                    editor_tab.editor.unhighlight();
                                 }
 
                                 // Remove the current calcutions so the layout engine doesn't try to calculate again
@@ -178,8 +181,8 @@ pub fn use_edit(radio: &RadioAppState, panel_index: usize, editor_index: usize) 
                             // Update the text selections calculated by the layout
                             CursorLayoutResponse::TextSelection { from, to, id } => {
                                 let mut app_state = radio.write();
-                                let editor = app_state.editor_mut(panel_index, editor_index);
-                                editor.highlight_text(from, to, id);
+                                let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
+                                editor_tab.editor.highlight_text(from, to, id);
                                 cursor_reference.set_cursor_selections(None);
                             }
                         }
@@ -199,6 +202,6 @@ pub fn use_edit(radio: &RadioAppState, panel_index: usize, editor_index: usize) 
         selecting_text_with_mouse,
         platform,
         panel_index,
-        editor_index,
+        tab_index,
     }
 }

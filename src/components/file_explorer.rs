@@ -10,6 +10,7 @@ use tokio::io;
 use crate::{
     fs::FSTransport,
     state::{AppState, Channel, EditorView},
+    tabs::editor::EditorTab,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -195,16 +196,7 @@ pub fn FileExplorer() -> Element {
                         let content = transport.read_to_string(&file_path).await;
                         if let Ok(content) = content {
                             let mut app_state = radio_app_state.write_channel(Channel::Global);
-                            let font_size = app_state.font_size();
-                            let font_collection = app_state.font_collection.clone();
-                            app_state.open_file(
-                                file_path,
-                                root_path,
-                                content,
-                                transport,
-                                font_size,
-                                &font_collection,
-                            );
+                            EditorTab::open_with(&mut app_state, file_path, root_path, content);
                         } else if let Err(err) = content {
                             println!("Error reading file: {err:?}");
                         }

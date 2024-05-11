@@ -1,3 +1,4 @@
+use crate::tabs::editor::{AppStateEditorUtils, EditorType};
 use freya::prelude::*;
 use lsp_types::{
     Hover, HoverParams, Position, TextDocumentIdentifier, TextDocumentPositionParams, Url,
@@ -9,7 +10,7 @@ use tracing::info;
 
 use crate::{
     lsp::LspConfig,
-    state::{AppState, EditorType, RadioAppState},
+    state::{AppState, RadioAppState},
     Args,
 };
 
@@ -37,14 +38,17 @@ impl UseLsp {
 }
 
 pub fn use_lsp(
-    editor_type: EditorType,
+    editor_type: &EditorType,
     panel_index: usize,
-    editor_index: usize,
+    tab_index: usize,
     radio: RadioAppState,
     mut hover_location: Signal<Option<(u32, Hover)>>,
 ) -> UseLsp {
     let args = use_context::<Arc<Args>>();
-    let lsp_config = args.lsp.then(|| LspConfig::new(editor_type)).flatten();
+    let lsp_config = args
+        .lsp
+        .then(|| LspConfig::new(editor_type.clone()))
+        .flatten();
 
     let lsp_coroutine = if let Some(lsp_config) = lsp_config {
         use_hook(|| {
@@ -52,8 +56,8 @@ pub fn use_lsp(
 
             let (file_uri, file_text) = {
                 let app_state = radio.read();
-                let editor = app_state.editor(panel_index, editor_index);
-                (editor.uri(), editor.text())
+                let editor_tab = app_state.editor_tab(panel_index, tab_index);
+                (editor_tab.editor.uri(), editor_tab.editor.text())
             };
 
             if let Some(file_uri) = file_uri {

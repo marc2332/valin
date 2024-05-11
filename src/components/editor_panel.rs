@@ -1,8 +1,6 @@
 use super::icons::*;
 use super::tab::*;
-use crate::state::{AppState, Channel, Panel, PanelTab};
-use crate::tabs::editor::*;
-use crate::tabs::welcome::*;
+use crate::state::{AppState, Channel, Panel};
 use crate::utils::*;
 use dioxus_radio::prelude::use_radio;
 use freya::prelude::*;
@@ -71,12 +69,12 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                             width: format!("calc(100% - {tabsbar_tools_width})").into(),
                         }),
                         show_scrollbar: false,
-                        {panel.tabs().iter().enumerate().map(|(editor_index, _)| {
-                            let is_selected = active_tab_index == Some(editor_index);
+                        {panel.tabs().iter().enumerate().map(|(tab_index, _)| {
+                            let is_selected = active_tab_index == Some(tab_index);
                             rsx!(
                                 PanelTab {
                                     panel_index,
-                                    editor_index,
+                                    tab_index,
                                     is_selected,
                                 }
                             )
@@ -120,25 +118,14 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                         {
                             let active_tab = panel.tab(active_tab_index);
                             let tab_data = active_tab.get_data();
-                            match active_tab {
-                                PanelTab::TextEditor(editor) => {
-                                    rsx!(
-                                        EditorTab {
-                                            key: "{tab_data.id}",
-                                            panel_index,
-                                            editor_index: active_tab_index,
-                                            editor_type: editor.editor_type.clone()
-                                        }
-                                    )
+                            let Render = active_tab.as_ref().render();
+                            rsx!(
+                                Render {
+                                    key: "{tab_data.id}",
+                                    panel_index,
+                                    tab_index: active_tab_index,
                                 }
-                                PanelTab::Welcome => {
-                                    rsx!(
-                                        WelcomeTab {
-                                            key: "{tab_data.id}",
-                                        }
-                                    )
-                                }
-                            }
+                            )
                         }
                     } else {
                         rect {
@@ -168,29 +155,32 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
 #[derive(Props, Clone, PartialEq)]
 pub struct PanelTabProps {
     panel_index: usize,
-    editor_index: usize,
+    tab_index: usize,
     is_selected: bool,
 }
 
 #[allow(non_snake_case)]
-fn PanelTab(props: PanelTabProps) -> Element {
+fn PanelTab(
+    PanelTabProps {
+        panel_index,
+        tab_index,
+        is_selected,
+    }: PanelTabProps,
+) -> Element {
     let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Tab {
-        panel_index: props.panel_index,
-        editor_index: props.editor_index,
+        panel_index,
+        tab_index,
     });
 
     let app_state = radio_app_state.read();
-    let tab = app_state.panel(props.panel_index).tab(props.editor_index);
+    let tab = app_state.panel(panel_index).tab(tab_index);
     let tab_data = tab.get_data();
-    let is_selected = props.is_selected;
 
     let onclick = {
         move |_| {
             let mut app_state = radio_app_state.write_channel(Channel::Global);
-            app_state.set_focused_panel(props.panel_index);
-            app_state
-                .panel_mut(props.panel_index)
-                .set_active_tab(props.editor_index);
+            app_state.set_focused_panel(panel_index);
+            app_state.panel_mut(panel_index).set_active_tab(tab_index);
         }
     };
 
@@ -200,7 +190,7 @@ fn PanelTab(props: PanelTabProps) -> Element {
         } else {
             radio_app_state
                 .write_channel(Channel::Global)
-                .close_tab(props.panel_index, props.editor_index);
+                .close_tab(panel_index, tab_index);
         }
     };
 
