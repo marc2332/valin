@@ -7,9 +7,9 @@ edition = "2021"
 dioxus-sdk = { git = "https://github.com/DioxusLabs/sdk", rev = "57ab3fa972c6d4a7acc25e82a0aafc3ff9e63403" }
 
 [dependencies]
-freya-node-state = { git = "https://github.com/marc2332/freya", rev = "885959c607cc1eb8fdb3108b760b2f00b1b82075" }
-freya = { git = "https://github.com/marc2332/freya", rev = "885959c607cc1eb8fdb3108b760b2f00b1b82075" }
-freya-hooks = { git = "https://github.com/marc2332/freya", rev = "885959c607cc1eb8fdb3108b760b2f00b1b82075" }
+freya-node-state = { git = "https://github.com/marc2332/freya", rev = "68241ffa9c1c8664915102d670a57859032b3138" }
+freya = { git = "https://github.com/marc2332/freya", rev = "68241ffa9c1c8664915102d670a57859032b3138" }
+freya-hooks = { git = "https://github.com/marc2332/freya", rev = "68241ffa9c1c8664915102d670a57859032b3138" }
 
 dioxus-radio = "0.2.4"
 dioxus = "0.5"

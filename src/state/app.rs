@@ -240,6 +240,10 @@ impl AppState {
             }
         }
 
+        if focus {
+            self.focused_view = EditorView::Panels;
+        }
+
         info!(
             "Opened tab [panel={panel}] [tab={}]",
             self.panels[panel].tabs.len()

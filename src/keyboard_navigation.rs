@@ -6,8 +6,11 @@ pub struct KeyboardNavigationCallback(Signal<Option<Box<dyn FnMut()>>>);
 impl KeyboardNavigationCallback {
     /// This will be called after all the other keyboard events have been emitted,
     /// and thus preventing any conflict between them
-    pub fn callback(&mut self, cb: impl FnMut() + 'static) {
-        *self.0.write() = Some(Box::new(cb));
+    pub fn callback(&mut self, ovewrite: bool, cb: impl FnMut() + FnOnce() + 'static) {
+        let is_empty = self.0.peek().is_none();
+        if ovewrite || is_empty {
+            *self.0.write() = Some(Box::new(cb));
+        }
     }
 }
 

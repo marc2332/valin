@@ -1,4 +1,4 @@
-use crate::state::{Channel, EditorCommand, EditorView, Panel, RadioAppState};
+use crate::{state::{Channel, EditorCommand, EditorView, Panel, RadioAppState}, tabs::settings::Settings};
 
 #[allow(non_snake_case)]
 pub mod GlobalDefaults {
@@ -6,7 +6,7 @@ pub mod GlobalDefaults {
 
     use crate::state::{Channel, EditorCommands, EditorView, KeyboardShortcuts, RadioAppState};
 
-    use super::{SplitPanelCommand, ToggleCommander, ToggleFocus};
+    use super::{OpenSettingsCommand, SplitPanelCommand, ToggleCommander, ToggleFocus};
 
     pub fn init(
         keyboard_shorcuts: &mut KeyboardShortcuts,
@@ -17,6 +17,7 @@ pub mod GlobalDefaults {
         commands.register(SplitPanelCommand(radio_app_state));
         commands.register(ToggleCommander(radio_app_state));
         commands.register(ToggleFocus(radio_app_state));
+        commands.register(OpenSettingsCommand(radio_app_state));
 
         // Register Shortcuts
         keyboard_shorcuts.register(
@@ -140,4 +141,34 @@ impl EditorCommand for ToggleFocus {
     }
 
     fn run(&self) {}
+}
+
+
+#[derive(Clone)]
+pub struct OpenSettingsCommand(pub RadioAppState);
+
+impl OpenSettingsCommand {
+    pub fn id() -> &'static str {
+        "open-settings"
+    }
+}
+
+impl EditorCommand for OpenSettingsCommand {
+    fn matches(&self, input: &str) -> bool {
+        self.text().to_lowercase().contains(&input.to_lowercase())
+    }
+
+    fn id(&self) -> &str {
+        Self::id()
+    }
+
+    fn text(&self) -> &str {
+        "Open Settings"
+    }
+
+    fn run(&self) {
+        let mut radio_app_state = self.0;
+        let mut app_state = radio_app_state.write_channel(Channel::Global);
+        Settings::open_with(&mut app_state);
+    }
 }

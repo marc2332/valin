@@ -1,21 +1,20 @@
 use crate::{
     keyboard_navigation::use_keyboard_navigation,
-    state::{Channel, EditorCommands, EditorView},
+    state::{Channel, EditorCommands, EditorView, RadioAppState},
     TextArea,
 };
-use dioxus_radio::prelude::use_radio;
 use freya::prelude::*;
 
 #[derive(Props, Clone, PartialEq)]
 pub struct CommanderProps {
     editor_commands: Signal<EditorCommands>,
+    radio_app_state: RadioAppState
 }
 
 #[allow(non_snake_case)]
-pub fn Commander(CommanderProps { editor_commands }: CommanderProps) -> Element {
+pub fn Commander(CommanderProps { editor_commands, mut radio_app_state }: CommanderProps) -> Element {
     let mut value = use_signal(String::new);
     let mut selected = use_signal(|| 0);
-    let mut radio_app_state = use_radio(Channel::Global);
     let mut keyboard_navigation = use_keyboard_navigation();
     let mut focus = use_focus();
 
@@ -54,7 +53,7 @@ pub fn Commander(CommanderProps { editor_commands }: CommanderProps) -> Element 
             command.run();
 
             // Focus the previous view
-            keyboard_navigation.callback(move || {
+            keyboard_navigation.callback(true, move || {
                 let mut app_state = radio_app_state.write();
                 app_state.set_focused_view_to_previous();
             })
