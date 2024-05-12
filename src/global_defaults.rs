@@ -1,4 +1,7 @@
-use crate::{state::{Channel, EditorCommand, EditorView, Panel, RadioAppState}, tabs::settings::Settings};
+use crate::{
+    state::{Channel, EditorCommand, EditorView, Panel, RadioAppState},
+    tabs::settings::Settings,
+};
 
 #[allow(non_snake_case)]
 pub mod GlobalDefaults {
@@ -142,7 +145,6 @@ impl EditorCommand for ToggleFocus {
 
     fn run(&self) {}
 }
-
 
 #[derive(Clone)]
 pub struct OpenSettingsCommand(pub RadioAppState);

@@ -108,11 +108,18 @@ pub fn EditorLine(
         "none".to_string()
     };
 
-    // Only highlight the active line
-    let (line_background, gutter_color) = if is_line_selected {
-        ("rgb(70, 70, 70)", "rgb(235, 235, 235)")
+    // Only highlight the gutter on the active line
+    let gutter_color = if is_line_selected {
+        "rgb(235, 235, 235)"
     } else {
-        ("", "rgb(135, 135, 135)")
+        "rgb(135, 135, 135)"
+    };
+
+    // Only highlight the active line when there is no text selected
+    let line_background = if is_line_selected && !editable.has_any_highlight() {
+        "rgb(70, 70, 70)"
+    } else {
+        ""
     };
 
     rsx!(

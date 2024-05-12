@@ -8,11 +8,16 @@ use freya::prelude::*;
 #[derive(Props, Clone, PartialEq)]
 pub struct CommanderProps {
     editor_commands: Signal<EditorCommands>,
-    radio_app_state: RadioAppState
+    radio_app_state: RadioAppState,
 }
 
 #[allow(non_snake_case)]
-pub fn Commander(CommanderProps { editor_commands, mut radio_app_state }: CommanderProps) -> Element {
+pub fn Commander(
+    CommanderProps {
+        editor_commands,
+        mut radio_app_state,
+    }: CommanderProps,
+) -> Element {
     let mut value = use_signal(String::new);
     let mut selected = use_signal(|| 0);
     let mut keyboard_navigation = use_keyboard_navigation();

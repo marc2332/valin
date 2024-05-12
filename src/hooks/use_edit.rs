@@ -30,6 +30,17 @@ impl UseEdit {
         ))
     }
 
+    /// Check if there is any highlight at all.
+    pub fn has_any_highlight(&self) -> bool {
+        let app_state = self.radio.read();
+        let editor_tab = app_state.editor_tab(self.panel_index, self.tab_index);
+        editor_tab
+            .editor
+            .selected
+            .map(|highlight| highlight.0 != highlight.1)
+            .unwrap_or_default()
+    }
+
     /// Create a highlights attribute.
     pub fn highlights_attr(&self, editor_id: usize) -> AttributeValue {
         let app_state = self.radio.read();
