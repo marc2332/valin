@@ -3,7 +3,7 @@ use std::{
     path::PathBuf,
 };
 
-use notify::{Config, RecommendedWatcher, RecursiveMode, Watcher};
+use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use tokio::sync::mpsc::channel;
 use tracing::info;
 
@@ -40,8 +40,12 @@ pub async fn watch_settings(mut radio_app_state: RadioAppState) -> Option<()> {
     let settings_path = settings_path()?;
 
     let mut watcher = RecommendedWatcher::new(
-        move |_| {
-            tx.blocking_send(()).unwrap();
+        move |ev: notify::Result<Event>| {
+            if let Ok(ev) = ev {
+                if ev.kind.is_modify() {
+                    tx.blocking_send(()).unwrap();
+                }
+            }
         },
         Config::default(),
     )
