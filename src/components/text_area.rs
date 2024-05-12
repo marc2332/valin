@@ -13,8 +13,7 @@ pub struct TextAreaProps {
 
 #[allow(non_snake_case)]
 pub fn TextArea(props: TextAreaProps) -> Element {
-    let theme = use_get_theme();
-    let button_theme = &theme.button;
+    let theme = use_applied_theme!(&None, input);
     let platform = use_platform();
     let mut status = use_signal(InputStatus::default);
     let mut editable = use_editable(
@@ -56,25 +55,35 @@ pub fn TextArea(props: TextAreaProps) -> Element {
         *status.write() = InputStatus::default();
     };
 
-    let color = &button_theme.font_theme.color;
     let focus_id = focus.attribute();
     let cursor_reference = editable.cursor_attr();
     let highlights = editable.highlights_attr(0);
     let cursor_char = editable.editor().read().cursor_pos().to_string();
+
+    let InputTheme {
+        border_fill,
+        corner_radius,
+        background,
+        font_theme: FontTheme { color },
+        ..
+    } = theme;
 
     rsx!(
         rect {
             overflow: "clip",
             width: "100%",
             color: "{color}",
-            corner_radius: "5",
-            padding: "12 10",
+            background: "{background}",
+            corner_radius: "{corner_radius}",
+            border: "1 solid {border_fill}",
+            padding: "8 6",
+            margin: "0 0 2 0",
             cursor_reference,
             focus_id,
             focusable: "true",
             role: "textInput",
             paragraph {
-                margin: "8 12",
+                margin: "6 10",
                 onkeydown,
                 onmouseenter,
                 onmouseleave,

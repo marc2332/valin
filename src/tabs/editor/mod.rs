@@ -1,6 +1,8 @@
+mod commands;
 mod editor_data;
 mod editor_line;
 mod editor_tab;
+mod editor_ui;
 mod hover_box;
 mod utils;
 

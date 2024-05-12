@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[derive(Clone, Default, PartialEq, Copy)]
+#[derive(Clone, Default, PartialEq, Copy, Debug)]
 pub enum EditorView {
     #[default]
     Panels,

@@ -1,23 +1,21 @@
+use crate::Args;
 use crate::{
     components::*,
     fs::{FSLocal, FSTransport},
+    state::EditorCommands,
     tabs::welcome::WelcomeTab,
 };
-use crate::{global_shortcuts::GlobalShortcuts, state::KeyboardShortcuts};
+use crate::{global_defaults::GlobalDefaults, state::KeyboardShortcuts};
 use crate::{hooks::*, settings::watch_settings};
-use crate::{keyboard_navigation::use_keyboard_navigation, Args};
 use crate::{tabs::editor::EditorTab, utils::*};
 use dioxus_radio::prelude::*;
 use dioxus_sdk::clipboard::use_clipboard;
 use freya::prelude::*;
-use std::{rc::Rc, sync::Arc};
+use std::sync::Arc;
 use tracing::info;
 
+use crate::state::{AppState, Channel};
 use crate::state::{EditorSidePanel, EditorView};
-use crate::{
-    commands::{EditorCommand, FontSizeCommand, SplitCommand},
-    state::{AppState, Channel},
-};
 
 #[allow(non_snake_case)]
 pub fn App() -> Element {
@@ -90,46 +88,36 @@ pub fn App() -> Element {
             if res.is_none() {
                 info!("Failed to watch the settings in background.");
             }
-            println!("{res:?}");
         })
     });
 
     // Initialize the Commands
-    let commands = use_hook::<Rc<Vec<Box<dyn EditorCommand>>>>(|| {
-        Rc::new(vec![
-            Box::new(FontSizeCommand(radio_app_state)),
-            Box::new(SplitCommand(radio_app_state)),
-        ])
-    });
+    let mut editor_commands = use_hook(|| Signal::new(EditorCommands::default()));
 
     // Initialize the Shorcuts
-    let keyboard_shorcuts = use_hook(|| {
-        let mut keyboard_shorcuts = KeyboardShortcuts::default();
+    let mut keyboard_shorcuts = use_hook(|| Signal::new(KeyboardShortcuts::default()));
 
-        GlobalShortcuts::register_handlers(&mut keyboard_shorcuts);
-        EditorTab::register_handlers(&mut keyboard_shorcuts);
-
-        Rc::new(keyboard_shorcuts)
+    // Register Commands and Shortcuts
+    #[allow(clippy::explicit_auto_deref)]
+    use_hook(|| {
+        GlobalDefaults::init(
+            &mut *keyboard_shorcuts.write(),
+            &mut *editor_commands.write(),
+            radio_app_state,
+        );
+        EditorTab::init(
+            &mut *keyboard_shorcuts.write(),
+            &mut *editor_commands.write(),
+            radio_app_state,
+        );
     });
 
-    let mut keyboard_navigation = use_keyboard_navigation();
-
-    let onsubmitcommander = move |_| {
-        keyboard_navigation.callback(move || {
-            let mut app_state = radio_app_state.write_channel(Channel::Global);
-            app_state.set_focused_view_to_previous();
-        })
-    };
-
+    // Trigger Shortcuts
+    #[allow(clippy::explicit_auto_deref)]
     let onkeydown = move |e: KeyboardEvent| {
-        keyboard_shorcuts.run(&e.data, radio_app_state);
-    };
-
-    let onglobalmousedown = move |_| {
-        if *radio_app_state.read().focused_view() == EditorView::Commander {
-            let mut app_state = radio_app_state.write_channel(Channel::Global);
-            app_state.set_focused_view_to_previous();
-        }
+        keyboard_shorcuts
+            .write()
+            .run(&e.data, &mut *editor_commands.write(), radio_app_state);
     };
 
     let focused_view = radio_app_state.read().focused_view;
@@ -144,11 +132,9 @@ pub fn App() -> Element {
             width: "100%",
             height: "100%",
             onkeydown: onkeydown,
-            onglobalmousedown: onglobalmousedown,
             if focused_view == EditorView::Commander {
                 Commander {
-                    onsubmit: onsubmitcommander,
-                    commands: commands
+                    editor_commands
                 }
             }
             rect {

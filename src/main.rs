@@ -4,11 +4,10 @@
 )]
 
 mod app;
-mod commands;
 mod components;
 mod constants;
 mod fs;
-mod global_shortcuts;
+mod global_defaults;
 mod hooks;
 mod keyboard_navigation;
 mod lsp;

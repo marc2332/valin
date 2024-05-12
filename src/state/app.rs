@@ -16,14 +16,13 @@ use super::{AppSettings, EditorView, KeyboardShortcuts, Panel, PanelTab};
 pub type RadioAppState = Radio<AppState, Channel>;
 
 pub trait AppStateUtils {
-    fn get_focused_data(&self) -> (EditorView, usize, Option<usize>);
+    fn get_focused_data(&self) -> (usize, Option<usize>);
 }
 
 impl AppStateUtils for RadioAppState {
-    fn get_focused_data(&self) -> (EditorView, usize, Option<usize>) {
+    fn get_focused_data(&self) -> (usize, Option<usize>) {
         let app_state = self.read();
         (
-            *app_state.focused_view(),
             app_state.focused_panel,
             app_state.panel(app_state.focused_panel).active_tab,
         )
