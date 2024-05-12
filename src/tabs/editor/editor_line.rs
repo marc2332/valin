@@ -154,7 +154,7 @@ pub fn EditorLine(
                 }
             }
             paragraph {
-                min_width: "calc(100% - {gutter_width})",
+                min_width: "fill",
                 width: "{longest_width}",
                 cursor_index: "{character_index}",
                 cursor_color: "white",
