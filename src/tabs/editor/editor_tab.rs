@@ -12,7 +12,7 @@ use freya::prelude::*;
 use skia_safe::textlayout::FontCollection;
 
 use super::{
-    commands::{DecreaseFontSize, IncreaseFontSize, SaveFileCommand},
+    commands::{DecreaseFontSizeCommand, IncreaseFontSizeCommand, SaveFileCommand},
     editor_data::{EditorData, EditorType},
     editor_ui::EditorUi,
 };
@@ -95,8 +95,8 @@ impl EditorTab {
         radio_app_state: RadioAppState,
     ) {
         // Register Commands
-        commands.register(IncreaseFontSize(radio_app_state));
-        commands.register(DecreaseFontSize(radio_app_state));
+        commands.register(IncreaseFontSizeCommand(radio_app_state));
+        commands.register(DecreaseFontSizeCommand(radio_app_state));
         commands.register(SaveFileCommand(radio_app_state));
 
         // Register Shortcuts
@@ -109,11 +109,11 @@ impl EditorTab {
                 match data.code {
                     // Pressing `Alt +`
                     _ if is_pressing_alt && data.key == Key::Character("+".to_string()) => {
-                        commands.trigger(IncreaseFontSize::id());
+                        commands.trigger(IncreaseFontSizeCommand::id());
                     }
                     // Pressing `Alt -`
                     _ if is_pressing_alt && data.key == Key::Character("-".to_string()) => {
-                        commands.trigger(DecreaseFontSize::id());
+                        commands.trigger(DecreaseFontSizeCommand::id());
                     }
                     // Pressing `Ctrl S`
                     Code::KeyS if is_pressing_ctrl => {

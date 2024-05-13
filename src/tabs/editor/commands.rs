@@ -9,15 +9,15 @@ use crate::{
 use crate::tabs::editor::utils::AppStateEditorUtils;
 
 #[derive(Clone)]
-pub struct IncreaseFontSize(pub RadioAppState);
+pub struct IncreaseFontSizeCommand(pub RadioAppState);
 
-impl IncreaseFontSize {
+impl IncreaseFontSizeCommand {
     pub fn id() -> &'static str {
         "increase-editor-font-size"
     }
 }
 
-impl EditorCommand for IncreaseFontSize {
+impl EditorCommand for IncreaseFontSizeCommand {
     fn matches(&self, input: &str) -> bool {
         self.text().to_lowercase().contains(&input.to_lowercase())
     }
@@ -39,15 +39,15 @@ impl EditorCommand for IncreaseFontSize {
 }
 
 #[derive(Clone)]
-pub struct DecreaseFontSize(pub RadioAppState);
+pub struct DecreaseFontSizeCommand(pub RadioAppState);
 
-impl DecreaseFontSize {
+impl DecreaseFontSizeCommand {
     pub fn id() -> &'static str {
         "decrease-editor-font-size"
     }
 }
 
-impl EditorCommand for DecreaseFontSize {
+impl EditorCommand for DecreaseFontSizeCommand {
     fn matches(&self, input: &str) -> bool {
         self.text().to_lowercase().contains(&input.to_lowercase())
     }

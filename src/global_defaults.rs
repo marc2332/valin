@@ -9,7 +9,9 @@ pub mod GlobalDefaults {
 
     use crate::state::{Channel, EditorCommands, EditorView, KeyboardShortcuts, RadioAppState};
 
-    use super::{OpenSettingsCommand, SplitPanelCommand, ToggleCommander, ToggleFocus};
+    use super::{
+        OpenSettingsCommand, SplitPanelCommand, ToggleCommanderCommand, ToggleFocusCommand,
+    };
 
     pub fn init(
         keyboard_shorcuts: &mut KeyboardShortcuts,
@@ -18,8 +20,8 @@ pub mod GlobalDefaults {
     ) {
         // Register Commands
         commands.register(SplitPanelCommand(radio_app_state));
-        commands.register(ToggleCommander(radio_app_state));
-        commands.register(ToggleFocus(radio_app_state));
+        commands.register(ToggleCommanderCommand(radio_app_state));
+        commands.register(ToggleFocusCommand(radio_app_state));
         commands.register(OpenSettingsCommand(radio_app_state));
 
         // Register Shortcuts
@@ -32,7 +34,7 @@ pub mod GlobalDefaults {
                 match data.code {
                     // Pressing `Esc`
                     Code::Escape => {
-                        commands.trigger(ToggleCommander::id());
+                        commands.trigger(ToggleCommanderCommand::id());
                     }
                     // Pressing `Alt E`
                     Code::KeyE if is_pressing_alt => {
@@ -84,15 +86,15 @@ impl EditorCommand for SplitPanelCommand {
 }
 
 #[derive(Clone)]
-pub struct ToggleCommander(pub RadioAppState);
+pub struct ToggleCommanderCommand(pub RadioAppState);
 
-impl ToggleCommander {
+impl ToggleCommanderCommand {
     pub fn id() -> &'static str {
         "toggle-commander"
     }
 }
 
-impl EditorCommand for ToggleCommander {
+impl EditorCommand for ToggleCommanderCommand {
     fn is_visible(&self) -> bool {
         // It doesn't make sense to show this command in the Commander.
         false
@@ -122,15 +124,15 @@ impl EditorCommand for ToggleCommander {
 }
 
 #[derive(Clone)]
-pub struct ToggleFocus(pub RadioAppState);
+pub struct ToggleFocusCommand(pub RadioAppState);
 
-impl ToggleFocus {
+impl ToggleFocusCommand {
     pub fn id() -> &'static str {
         "toggle-focus"
     }
 }
 
-impl EditorCommand for ToggleFocus {
+impl EditorCommand for ToggleFocusCommand {
     fn matches(&self, input: &str) -> bool {
         self.text().to_lowercase().contains(&input.to_lowercase())
     }
