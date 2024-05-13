@@ -115,6 +115,7 @@ pub fn Commander(
                     width: "300",
                     padding: "5",
                     TextArea {
+                        placeholder: "Run a command...",
                         value: "{value}",
                         onchange,
                         onsubmit,

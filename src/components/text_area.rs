@@ -3,6 +3,8 @@ use freya::prelude::{keyboard::Key, *};
 /// [`TextArea`] component properties.
 #[derive(Props, Clone, PartialEq)]
 pub struct TextAreaProps {
+    /// Placerholder text for when there is no text.
+    pub placeholder: &'static str,
     /// Current value of the TextArea
     pub value: String,
     /// Handler for the `onchange` event.
@@ -68,6 +70,12 @@ pub fn TextArea(props: TextAreaProps) -> Element {
         ..
     } = theme;
 
+    let (color, text) = if props.value.is_empty() {
+        ("rgb(210, 210, 210)", props.placeholder)
+    } else {
+        (color.as_ref(), props.value.as_str())
+    };
+
     rsx!(
         rect {
             overflow: "clip",
@@ -96,7 +104,7 @@ pub fn TextArea(props: TextAreaProps) -> Element {
                 max_lines: "1",
                 highlights,
                 text {
-                    "{props.value}"
+                    "{text}"
                 }
             }
         }
