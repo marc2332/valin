@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{ffi::OsStr, path::PathBuf, time::Duration};
 
 use crate::lsp::{use_lsp, LspAction};
 use crate::state::{EditorView, TabProps};
@@ -45,6 +45,7 @@ pub fn EditorUi(
     let app_state = radio_app_state.read();
     let editor_tab = app_state.editor_tab(panel_index, tab_index);
     let editor = &editor_tab.editor;
+    let paths = editor.editor_type().paths();
 
     // What position in the text the user is hovering
     let hover_location = use_signal(|| None);
@@ -204,41 +205,94 @@ pub fn EditorUi(
         rect {
             width: "100%",
             height: "100%",
-            onmouseenter,
-            onmouseleave,
-            onkeydown,
-            onglobalclick,
-            onclick,
-            cursor_reference,
-            direction: "horizontal",
             background: "rgb(40, 40, 40)",
-            padding: "5 0 0 5",
-            EditorScrollView {
-                offset_x: scroll_offsets.read().0,
-                offset_y: scroll_offsets.read().1,
-                onscroll,
-                length: syntax_blocks_len,
-                item_size: manual_line_height,
-                builder_args: BuilderArgs {
-                    panel_index,
-                    tab_index,
-                    font_size,
-                    line_height: manual_line_height,
-                    rope: editor.rope().clone(),
-                },
-                builder: move |i: usize, builder_args: &BuilderArgs| rsx!(
-                    EditorLine {
-                        key: "{i}",
-                        line_index: i,
-                        builder_args: builder_args.clone(),
-                        editable,
-                        hover_location,
-                        debouncer,
-                        lsp,
-                        cursor_coords,
-                    }
-                )
+            if let Some((path, root_path)) = paths {
+                FilePath {
+                    path: path.clone(),
+                    root_path: root_path.clone(),
+                }
             }
+            rect {
+                onkeydown,
+                onglobalclick,
+                onclick,
+                cursor_reference,
+                onmouseenter,
+                onmouseleave,
+                EditorScrollView {
+                    offset_x: scroll_offsets.read().0,
+                    offset_y: scroll_offsets.read().1,
+                    onscroll,
+                    length: syntax_blocks_len,
+                    item_size: manual_line_height,
+                    builder_args: BuilderArgs {
+                        panel_index,
+                        tab_index,
+                        font_size,
+                        line_height: manual_line_height,
+                        rope: editor.rope().clone(),
+                    },
+                    builder: move |i: usize, builder_args: &BuilderArgs| rsx!(
+                        EditorLine {
+                            key: "{i}",
+                            line_index: i,
+                            builder_args: builder_args.clone(),
+                            editable,
+                            hover_location,
+                            debouncer,
+                            lsp,
+                            cursor_coords,
+                        }
+                    )
+                }
+            }
+        }
+    )
+}
+
+#[allow(non_snake_case)]
+#[component]
+fn FilePath(path: PathBuf, root_path: PathBuf) -> Element {
+    let relative_path = if path == root_path {
+        path
+    } else {
+        path.strip_prefix(&root_path).unwrap().to_path_buf()
+    };
+ 
+    let mut components = relative_path.components().enumerate().peekable();
+
+    let mut children = Vec::new();
+
+    while let Some((i, component)) = components.next()  {
+        let is_last = components.peek().is_none();
+        let text: &OsStr = component.as_ref();
+            
+        children.push(rsx!(
+            rect {
+                key: "{i}",
+                direction: "horizontal",
+                label {
+                    "{text.to_str().unwrap()}"
+                }
+                if !is_last {
+                    label {
+                        margin: "0 6",
+                        ">"
+                    }
+                }
+            }
+        )) 
+    }
+
+    rsx!(
+        rect {
+            width: "100%",
+            direction: "horizontal",
+            color: "rgb(215, 215, 215)",
+            padding: "0 10",
+            height: "28",
+            cross_align: "center",
+            {children.into_iter()}
         }
     )
 }
