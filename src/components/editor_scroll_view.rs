@@ -39,9 +39,9 @@ pub struct EditorScrollViewProps<
 > {
     length: usize,
     item_size: f32,
-    #[props(default = "100%".to_string(), into)]
+    #[props(default = "fill".to_string(), into)]
     pub height: String,
-    #[props(default = "100%".to_string(), into)]
+    #[props(default = "fill".to_string(), into)]
     pub width: String,
     #[props(default = "0".to_string(), into)]
     pub padding: String,
