@@ -39,9 +39,9 @@ pub struct EditorScrollViewProps<
 > {
     length: usize,
     item_size: f32,
-    #[props(default = "fill".to_string(), into)]
+    #[props(default = "100%".to_string(), into)]
     pub height: String,
-    #[props(default = "fill".to_string(), into)]
+    #[props(default = "100%".to_string(), into)]
     pub width: String,
     #[props(default = "0".to_string(), into)]
     pub padding: String,
@@ -75,7 +75,7 @@ fn get_render_range(
     item_length: f32,
 ) -> Range<usize> {
     let render_index_start = (-scroll_position) / item_size;
-    let potentially_visible_length = viewport_size / item_size;
+    let potentially_visible_length = (viewport_size / item_size) + 1.0;
     let remaining_length = item_length - render_index_start;
 
     let render_index_end = if remaining_length <= potentially_visible_length {
