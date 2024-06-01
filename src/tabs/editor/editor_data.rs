@@ -182,6 +182,14 @@ impl TextEditor for EditorData {
         self.rope.line_to_char(line_idx)
     }
 
+    fn utf16_cu_to_char(&self, utf16_cu_idx: usize) -> usize {
+        self.rope.utf16_cu_to_char(utf16_cu_idx)
+    }
+
+    fn char_to_utf16_cu(&self, idx: usize) -> usize {
+        self.rope.char_to_utf16_cu(idx)
+    }
+
     fn line(&self, line_idx: usize) -> Option<Line<'_>> {
         let line = self.rope.get_line(line_idx);
 
@@ -190,6 +198,10 @@ impl TextEditor for EditorData {
 
     fn len_lines<'a>(&self) -> usize {
         self.rope.len_lines()
+    }
+
+    fn len_chars(&self) -> usize {
+        self.rope.len_chars()
     }
 
     fn cursor(&self) -> &TextCursor {
