@@ -93,17 +93,16 @@ pub fn EditorLine(
     let app_state = radio_app_state.read();
     let editor_tab = app_state.editor_tab(panel_index, tab_index);
     let editor = &editor_tab.editor;
-    let cursor = editor.cursor();
     let longest_width = editor.metrics.longest_width;
     let line = editor.metrics.syntax_blocks.get_line(line_index);
     let highlights = editable.highlights_attr(line_index);
     let gutter_width = font_size * 3.0;
 
-    let is_line_selected = cursor.row() == line_index;
+    let is_line_selected = editor.cursor_row() == line_index;
 
     // Only show the cursor in the active line
     let character_index = if is_line_selected {
-        cursor.col().to_string()
+        editor.cursor_col().to_string()
     } else {
         "none".to_string()
     };

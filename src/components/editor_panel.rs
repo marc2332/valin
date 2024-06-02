@@ -23,7 +23,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
     let panel = app_state.panel(panel_index);
     let active_tab_index = panel.active_tab();
 
-    let close_panel = move |_: Option<MouseEvent>| {
+    let close_panel = move |_| {
         radio_app_state
             .write_channel(Channel::Global)
             .close_panel(panel_index);
@@ -92,7 +92,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                                     height: "100%".into(),
                                     padding: "10 8".into(),
                                 }),
-                                onclick: close_panel,
+                                onpress: close_panel,
                                 label {
                                     "Close"
                                 }
@@ -103,7 +103,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                                 height: "100%".into(),
                                 padding: "10 8".into(),
                             }),
-                            onclick: split_panel,
+                            onpress: split_panel,
                             label {
                                 "Split"
                             }

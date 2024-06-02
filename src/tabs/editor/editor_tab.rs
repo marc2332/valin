@@ -78,7 +78,7 @@ impl EditorTab {
         let data = EditorData::new(
             EditorType::FS { path, root_path },
             Rope::from(content),
-            (0, 0),
+            0,
             app_state.clipboard,
             app_state.default_transport.clone(),
             app_state.settings.editor.font_size,

@@ -193,25 +193,15 @@ pub fn use_edit(radio: &RadioAppState, panel_index: usize, tab_index: usize) -> 
                             let mut app_state = radio.write();
                             let editor_tab = app_state.editor_tab(panel_index, tab_index);
 
-                            let new_current_line = editor_tab.editor.rope.line(id);
-
-                            // Use the line lenght as new column if the clicked column surpases the length
-                            let new_cursor = if position >= new_current_line.chars().len() {
-                                (
-                                    editor_tab.editor.utf16_cu_to_char(
-                                        new_current_line.as_str().unwrap().encode_utf16().count(),
-                                    ),
-                                    id,
-                                )
-                            } else {
-                                (editor_tab.editor.utf16_cu_to_char(position), id)
-                            };
+                            let new_cursor = editor_tab.editor.measure_new_cursor(
+                                editor_tab.editor.utf16_cu_to_char(position),
+                                id,
+                            );
 
                             // Only update if it's actually different
-                            if editor_tab.editor.cursor.as_tuple() != new_cursor {
+                            if editor_tab.editor.cursor != new_cursor {
                                 let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
-                                editor_tab.editor.cursor.set_col(new_cursor.0);
-                                editor_tab.editor.cursor.set_row(new_cursor.1);
+                                *editor_tab.editor.cursor_mut() = new_cursor;
 
                                 if let TextDragging::FromCursorToPoint { cursor: from, .. } =
                                     dragging()

@@ -66,7 +66,7 @@ impl EditorData {
     pub fn new(
         editor_type: EditorType,
         rope: Rope,
-        (row, col): (usize, usize),
+        pos: usize,
         clipboard: UseClipboard,
         transport: FSTransport,
         font_size: f32,
@@ -79,7 +79,7 @@ impl EditorData {
         Self {
             editor_type,
             rope,
-            cursor: TextCursor::new(row, col),
+            cursor: TextCursor::new(pos),
             selected: None,
             history: EditorHistory::new(),
             last_saved_history_change: 0,
@@ -312,7 +312,9 @@ impl TextEditor for EditorData {
     }
 
     fn measure_new_cursor(&self, to: usize, editor_id: usize) -> TextCursor {
-        TextCursor::new(editor_id, to)
+        let row_char = self.line_to_char(editor_id);
+        let pos = row_char + to;
+        TextCursor::new(pos)
     }
 
     fn get_clipboard(&mut self) -> &mut UseClipboard {
