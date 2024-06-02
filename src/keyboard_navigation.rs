@@ -1,12 +1,12 @@
 use freya::prelude::*;
 
 #[derive(Clone, Copy)]
-pub struct KeyboardNavigationCallback(Signal<Option<Box<dyn FnMut()>>>);
+pub struct KeyboardNavigationCallback(Signal<Option<Box<dyn FnOnce()>>>);
 
 impl KeyboardNavigationCallback {
     /// This will be called after all the other keyboard events have been emitted,
     /// and thus preventing any conflict between them
-    pub fn callback(&mut self, ovewrite: bool, cb: impl FnMut() + 'static) {
+    pub fn callback(&mut self, ovewrite: bool, cb: impl FnOnce() + 'static) {
         let is_empty = self.0.peek().is_none();
         if ovewrite || is_empty {
             *self.0.write() = Some(Box::new(cb));
@@ -25,7 +25,7 @@ pub fn KeyboardNavigationProvider(children: Element) -> Element {
         use_context_provider(|| KeyboardNavigationCallback(Signal::new(None)));
 
     let onkeydown = move |_| {
-        if let Some(mut keyboard_navigation_cb) = keyboard_navigation.0.write().take() {
+        if let Some(keyboard_navigation_cb) = keyboard_navigation.0.write().take() {
             (keyboard_navigation_cb)();
         }
     };

@@ -1,23 +1,19 @@
 use crate::{
     keyboard_navigation::use_keyboard_navigation,
-    state::{Channel, EditorCommands, EditorView, RadioAppState},
+    state::{Channel, EditorCommands, EditorView},
     TextArea,
 };
+use dioxus_radio::prelude::use_radio;
 use freya::prelude::*;
 
 #[derive(Props, Clone, PartialEq)]
 pub struct CommanderProps {
     editor_commands: Signal<EditorCommands>,
-    radio_app_state: RadioAppState,
 }
 
 #[allow(non_snake_case)]
-pub fn Commander(
-    CommanderProps {
-        editor_commands,
-        mut radio_app_state,
-    }: CommanderProps,
-) -> Element {
+pub fn Commander(CommanderProps { editor_commands }: CommanderProps) -> Element {
+    let mut radio_app_state = use_radio(Channel::Global);
     let mut value = use_signal(String::new);
     let mut selected = use_signal(|| 0);
     let mut keyboard_navigation = use_keyboard_navigation();
@@ -49,20 +45,22 @@ pub fn Commander(
     let command_id = filtered_commands.get(selected()).cloned();
 
     let onsubmit = move |_: String| {
-        let editor_commands = editor_commands.read();
-        let command = command_id
-            .as_ref()
-            .and_then(|command_i| editor_commands.commands.get(command_i));
-        if let Some(command) = command {
-            // Run the command
-            command.run();
+        to_owned![command_id];
 
-            // Focus the previous view
-            keyboard_navigation.callback(true, move || {
+        // Focus the previous view
+        keyboard_navigation.callback(true, move || {
+            let editor_commands = editor_commands.read();
+            let command = command_id
+                .as_ref()
+                .and_then(|command_i| editor_commands.commands.get(command_i));
+            if let Some(command) = command {
+                // Run the command
+                command.run();
+
                 let mut app_state = radio_app_state.write();
                 app_state.set_focused_view_to_previous();
-            })
-        }
+            }
+        });
     };
 
     let onkeydown = move |e: KeyboardEvent| {

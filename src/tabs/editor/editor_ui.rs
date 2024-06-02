@@ -1,12 +1,12 @@
 use std::{ffi::OsStr, path::PathBuf, time::Duration};
 
+use crate::hooks::*;
 use crate::lsp::{use_lsp, LspAction};
 use crate::state::{EditorView, TabProps};
 use crate::tabs::editor::AppStateEditorUtils;
 use crate::tabs::editor::BuilderArgs;
 use crate::tabs::editor::EditorLine;
 use crate::{components::*, state::Channel};
-use crate::{hooks::*, keyboard_navigation::use_keyboard_navigation};
 
 use dioxus_radio::prelude::use_radio;
 use dioxus_sdk::utils::timing::use_debounce;
@@ -150,55 +150,65 @@ pub fn EditorUi(
     let manual_line_height = (font_size * line_height).floor();
     let syntax_blocks_len = editor.metrics.syntax_blocks.len();
 
-    let mut keyboard_navigation = use_keyboard_navigation();
+    let onkeyup = move |e: KeyboardEvent| {
+        let (is_panel_focused, is_editor_focused) = {
+            let app_state = radio_app_state.read();
+            let panel = app_state.panel(panel_index);
+            let is_panel_focused = app_state.focused_panel() == panel_index;
+            let is_editor_focused = *app_state.focused_view() == EditorView::Panels
+                && panel.active_tab() == Some(tab_index);
+            (is_panel_focused, is_editor_focused)
+        };
+
+        if is_panel_focused && is_editor_focused {
+            editable.process_event(&EditableEvent::KeyUp(e.data));
+        }
+    };
 
     let onkeydown = move |e: KeyboardEvent| {
-        let onkeydown = move || {
-            let (is_panel_focused, is_editor_focused) = {
-                let app_state = radio_app_state.read();
-                let panel = app_state.panel(panel_index);
-                let is_panel_focused = app_state.focused_panel() == panel_index;
-                let is_editor_focused = *app_state.focused_view() == EditorView::Panels
-                    && panel.active_tab() == Some(tab_index);
-                (is_panel_focused, is_editor_focused)
+        let (is_panel_focused, is_editor_focused) = {
+            let app_state = radio_app_state.read();
+            let panel = app_state.panel(panel_index);
+            let is_panel_focused = app_state.focused_panel() == panel_index;
+            let is_editor_focused = *app_state.focused_view() == EditorView::Panels
+                && panel.active_tab() == Some(tab_index);
+            (is_panel_focused, is_editor_focused)
+        };
+
+        if is_panel_focused && is_editor_focused {
+            let current_scroll = scroll_offsets.read().1;
+            let lines_jump = (manual_line_height * LINES_JUMP_ALT as f32).ceil() as i32;
+            let min_height = -(syntax_blocks_len as f32 * manual_line_height) as i32;
+            let max_height = 0; // TODO, this should be the height of the viewport
+
+            let events = match &e.key {
+                Key::ArrowUp if e.modifiers.contains(Modifiers::ALT) => {
+                    let jump = (current_scroll + lines_jump).clamp(min_height, max_height);
+                    scroll_offsets.write().1 = jump;
+                    (0..LINES_JUMP_ALT)
+                        .map(|_| EditableEvent::KeyDown(e.data.clone()))
+                        .collect::<Vec<EditableEvent>>()
+                }
+                Key::ArrowDown if e.modifiers.contains(Modifiers::ALT) => {
+                    let jump = (current_scroll - lines_jump).clamp(min_height, max_height);
+                    scroll_offsets.write().1 = jump;
+                    (0..LINES_JUMP_ALT)
+                        .map(|_| EditableEvent::KeyDown(e.data.clone()))
+                        .collect::<Vec<EditableEvent>>()
+                }
+                Key::ArrowDown | Key::ArrowUp if e.modifiers.contains(Modifiers::CONTROL) => (0
+                    ..LINES_JUMP_CONTROL)
+                    .map(|_| EditableEvent::KeyDown(e.data.clone()))
+                    .collect::<Vec<EditableEvent>>(),
+                _ => {
+                    vec![EditableEvent::KeyDown(e.data.clone())]
+                }
             };
 
-            if is_panel_focused && is_editor_focused {
-                let current_scroll = scroll_offsets.read().1;
-                let lines_jump = (manual_line_height * LINES_JUMP_ALT as f32).ceil() as i32;
-                let min_height = -(syntax_blocks_len as f32 * manual_line_height) as i32;
-                let max_height = 0; // TODO, this should be the height of the viewport
-
-                let events = match &e.key {
-                    Key::ArrowUp if e.modifiers.contains(Modifiers::ALT) => {
-                        let jump = (current_scroll + lines_jump).clamp(min_height, max_height);
-                        scroll_offsets.write().1 = jump;
-                        (0..LINES_JUMP_ALT)
-                            .map(|_| EditableEvent::KeyDown(e.data.clone()))
-                            .collect::<Vec<EditableEvent>>()
-                    }
-                    Key::ArrowDown if e.modifiers.contains(Modifiers::ALT) => {
-                        let jump = (current_scroll - lines_jump).clamp(min_height, max_height);
-                        scroll_offsets.write().1 = jump;
-                        (0..LINES_JUMP_ALT)
-                            .map(|_| EditableEvent::KeyDown(e.data.clone()))
-                            .collect::<Vec<EditableEvent>>()
-                    }
-                    Key::ArrowDown | Key::ArrowUp if e.modifiers.contains(Modifiers::CONTROL) => (0
-                        ..LINES_JUMP_CONTROL)
-                        .map(|_| EditableEvent::KeyDown(e.data.clone()))
-                        .collect::<Vec<EditableEvent>>(),
-                    _ => {
-                        vec![EditableEvent::KeyDown(e.data.clone())]
-                    }
-                };
-
-                for event in events {
-                    editable.process_event(&event);
-                }
+            for event in events {
+                editable.process_event(&event);
             }
-        };
-        keyboard_navigation.callback(false, onkeydown);
+        }
     };
 
     rsx!(
@@ -214,6 +224,7 @@ pub fn EditorUi(
             }
             rect {
                 onkeydown,
+                onkeyup,
                 onglobalclick,
                 onclick,
                 cursor_reference,
@@ -258,15 +269,15 @@ fn FilePath(path: PathBuf, root_path: PathBuf) -> Element {
     } else {
         path.strip_prefix(&root_path).unwrap().to_path_buf()
     };
- 
+
     let mut components = relative_path.components().enumerate().peekable();
 
     let mut children = Vec::new();
 
-    while let Some((i, component)) = components.next()  {
+    while let Some((i, component)) = components.next() {
         let is_last = components.peek().is_none();
         let text: &OsStr = component.as_ref();
-            
+
         children.push(rsx!(
             rect {
                 key: "{i}",
@@ -281,7 +292,7 @@ fn FilePath(path: PathBuf, root_path: PathBuf) -> Element {
                     }
                 }
             }
-        )) 
+        ))
     }
 
     rsx!(

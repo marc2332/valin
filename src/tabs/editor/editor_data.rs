@@ -212,7 +212,7 @@ impl TextEditor for EditorData {
         &mut self.cursor
     }
 
-    fn move_highlight_to_cursor(&mut self) {
+    fn expand_selection_to_cursor(&mut self) {
         let pos = self.cursor_pos();
         if let Some(selected) = self.selected.as_mut() {
             selected.1 = pos;
@@ -221,11 +221,15 @@ impl TextEditor for EditorData {
         }
     }
 
-    fn has_any_highlight(&self) -> bool {
+    fn has_any_selection(&self) -> bool {
         self.selected.is_some()
     }
 
-    fn highlights(&self, editor_id: usize) -> Option<(usize, usize)> {
+    fn get_selection(&self) -> Option<(usize, usize)> {
+        self.selected
+    }
+
+    fn get_visible_selection(&self, editor_id: usize) -> Option<(usize, usize)> {
         let (selected_from, selected_to) = self.selected?;
 
         let selected_to_row = self.char_to_line(selected_to);
@@ -249,16 +253,18 @@ impl TextEditor for EditorData {
             return Some((0, len));
         }
 
-        match selected_from_row.cmp(&selected_to_row) {
+        let highlights = match selected_from_row.cmp(&selected_to_row) {
             // Selection direction is from bottom -> top
             Ordering::Greater => {
                 if selected_from_row == editor_id {
                     // Starting line
-                    return Some((0, selected_from_col_idx));
+                    Some((0, selected_from_col_idx))
                 } else if selected_to_row == editor_id {
                     // Ending line
                     let len = self.line(selected_to_row).unwrap().len_chars();
-                    return Some((selected_to_col_idx, len));
+                    Some((selected_to_col_idx, len))
+                } else {
+                    None
                 }
             }
             // Selection direction is from top -> bottom
@@ -266,21 +272,25 @@ impl TextEditor for EditorData {
                 if selected_from_row == editor_id {
                     // Starting line
                     let len = self.line(selected_from_row).unwrap().len_chars();
-                    return Some((selected_from_col_idx, len));
+                    Some((selected_from_col_idx, len))
                 } else if selected_to_row == editor_id {
                     // Ending line
-                    return Some((0, selected_to_col_idx));
+                    Some((0, selected_to_col_idx))
+                } else {
+                    None
                 }
             }
             Ordering::Equal => {
                 // Starting and endline line are the same
                 if selected_from_row == editor_id {
-                    return Some((selected_from - editor_row_idx, selected_to - editor_row_idx));
+                    Some((selected_from - editor_row_idx, selected_to - editor_row_idx))
+                } else {
+                    None
                 }
             }
-        }
+        };
 
-        None
+        highlights.map(|(from, to)| (self.char_to_utf16_cu(from), self.char_to_utf16_cu(to)))
     }
 
     fn set(&mut self, text: &str) {
@@ -288,32 +298,38 @@ impl TextEditor for EditorData {
         self.rope.insert(0, text);
     }
 
-    fn unhighlight(&mut self) {
+    fn clear_selection(&mut self) {
         self.selected = None;
     }
 
-    fn highlight_text(&mut self, from: usize, to: usize, editor_id: usize) {
+    fn measure_new_selection(&self, from: usize, to: usize, editor_id: usize) -> (usize, usize) {
         let row_idx = self.line_to_char(editor_id);
-        if self.selected.is_none() {
-            self.selected = Some((row_idx + from, row_idx + to));
+        if let Some((start, _)) = self.selected {
+            (start, row_idx + to)
         } else {
-            self.selected.as_mut().unwrap().1 = row_idx + to;
+            (row_idx + from, row_idx + to)
         }
+    }
 
-        self.cursor_mut().move_to(editor_id, to);
+    fn measure_new_cursor(&self, to: usize, editor_id: usize) -> TextCursor {
+        TextCursor::new(editor_id, to)
     }
 
     fn get_clipboard(&mut self) -> &mut UseClipboard {
         &mut self.clipboard
     }
 
+    fn set_selection(&mut self, selected: (usize, usize)) {
+        self.selected = Some(selected);
+    }
+
     fn get_selected_text(&self) -> Option<String> {
-        let (start, end) = self.get_selection()?;
+        let (start, end) = self.get_selection_range()?;
 
         Some(self.rope().get_slice(start..end)?.to_string())
     }
 
-    fn get_selection(&self) -> Option<(usize, usize)> {
+    fn get_selection_range(&self) -> Option<(usize, usize)> {
         let (start, end) = self.selected?;
 
         // Use left-to-right selection
