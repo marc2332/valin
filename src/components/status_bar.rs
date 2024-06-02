@@ -31,10 +31,12 @@ pub fn StatusBar(props: StatusBarProps) -> Element {
     let panel = app_state.panel(app_state.focused_panel);
     let tab_data = {
         if let Some(active_tab) = panel.active_tab() {
-            panel
-                .tab(active_tab)
-                .as_text_editor()
-                .map(|editor_tab| (editor_tab.editor.cursor(), editor_tab.editor.editor_type()))
+            panel.tab(active_tab).as_text_editor().map(|editor_tab| {
+                (
+                    editor_tab.editor.cursor_row_and_col(),
+                    editor_tab.editor.editor_type(),
+                )
+            })
         } else {
             None
         }
@@ -81,10 +83,10 @@ pub fn StatusBar(props: StatusBarProps) -> Element {
                 width: "50%",
                 direction: "horizontal",
                 main_align: "end",
-                if let Some((cursor, editor_type)) = tab_data {
+                if let Some(((row, col), editor_type)) = tab_data {
                     StatusBarItem {
                         label {
-                            "Ln {cursor.row() + 1}, Col {cursor.col() + 1}"
+                            "Ln {row + 1}, Col {col + 1}"
                         }
                     }
                     StatusBarItem {

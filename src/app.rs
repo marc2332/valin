@@ -134,8 +134,7 @@ pub fn App() -> Element {
             onkeydown: onkeydown,
             if focused_view == EditorView::Commander {
                 Commander {
-                    editor_commands,
-                    radio_app_state
+                    editor_commands
                 }
             }
             rect {

@@ -24,8 +24,8 @@ pub fn TextArea(props: TextAreaProps) -> Element {
     );
     let mut focus = use_focus();
 
-    use_hook(|| {
-        focus.focus();
+    use_hook(move || {
+        focus.queue_focus();
     });
 
     if &props.value != editable.editor().read().rope() {
