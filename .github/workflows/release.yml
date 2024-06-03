@@ -27,6 +27,13 @@ jobs:
     container: ghcr.io/pragmatrix/rust-skia-linux:latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Fix git dubious ownership errors when synchronizing Skia dependencies
+        run: git config --global --add safe.directory '*'
+
+
       - name: Install linux dependencies
         if: runner.os == 'Linux'
         run: |
