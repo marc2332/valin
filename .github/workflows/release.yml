@@ -8,6 +8,9 @@ on:
     tags:
       - v[0-9]+.*
 
+env: 
+  SKIA_DEBUG: 1
+
 jobs:
   create-release:
     runs-on: ubuntu-latest
