@@ -8,9 +8,6 @@ on:
     tags:
       - v[0-9]+.*
 
-env: 
-  SKIA_DEBUG: 1
-
 jobs:
   create-release:
     runs-on: ubuntu-latest
@@ -23,17 +20,18 @@ jobs:
 
   upload-assets:
     needs: create-release
-    runs-on: ubuntu-22.04
-    container: ghcr.io/pragmatrix/rust-skia-linux:latest
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          submodules: true
-
-      - name: Fix git dubious ownership errors when synchronizing Skia dependencies
-        run: git config --global --add safe.directory '*'
-
-
       - name: Install linux dependencies
         if: runner.os == 'Linux'
         run: |
