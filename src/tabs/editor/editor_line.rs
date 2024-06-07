@@ -149,8 +149,8 @@ pub fn EditorLine(
             }
             rect {
                 width: "{gutter_width}",
-                height: "100%",
-                direction: "horizontal",
+                height: "fill",
+                main_align: "center",
                 label {
                     width: "100%",
                     text_align: "center",
@@ -159,40 +159,44 @@ pub fn EditorLine(
                     "{line_index + 1} "
                 }
             }
-            paragraph {
-                min_width: "fill",
-                width: "{longest_width}",
-                cursor_index: "{character_index}",
-                cursor_color: "white",
-                max_lines: "1",
-                cursor_mode: "editable",
-                cursor_id: "{line_index}",
+            rect {
                 onmousedown,
                 onmouseover,
                 onmouseleave,
-                highlights,
-                highlight_color: "rgb(65, 65, 65)",
-                direction: "horizontal",
-                font_size: "{font_size}",
-                font_family: "Cascadia Mono NF",
-                {line.iter().enumerate().map(|(i, (syntax_type, text))| {
-                    let text = match text {
-                        TextNode::Range(word_pos) => {
-                            rope.slice(word_pos.clone()).to_string()
-                        },
-                        TextNode::LineOfChars { len, char } => {
-                            format!("{char}").repeat(*len)
-                        }
-                    };
+                height: "fill",
+                main_align: "center",
+                paragraph {
+                    min_width: "fill",
+                    width: "{longest_width}",
+                    cursor_index: "{character_index}",
+                    cursor_color: "white",
+                    max_lines: "1",
+                    cursor_mode: "editable",
+                    cursor_id: "{line_index}",
+                    highlights,
+                    highlight_color: "rgb(65, 65, 65)",
+                    direction: "horizontal",
+                    font_size: "{font_size}",
+                    font_family: "Cascadia Mono NF",
+                    {line.iter().enumerate().map(|(i, (syntax_type, text))| {
+                        let text = match text {
+                            TextNode::Range(word_pos) => {
+                                rope.slice(word_pos.clone()).to_string()
+                            },
+                            TextNode::LineOfChars { len, char } => {
+                                format!("{char}").repeat(*len)
+                            }
+                        };
 
-                    rsx!(
-                        text {
-                            key: "{i}",
-                            color: "{syntax_type.color()}",
-                            "{text}"
-                        }
-                    )
-                })}
+                        rsx!(
+                            text {
+                                key: "{i}",
+                                color: "{syntax_type.color()}",
+                                "{text}"
+                            }
+                        )
+                    })}
+                }
             }
         }
     )
