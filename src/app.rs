@@ -72,7 +72,7 @@ pub fn App() -> Element {
                     let items =
                         read_folder_as_items(&folder_path, &app_state.default_transport).await;
                     if let Ok(items) = items {
-                        app_state.open_folder(TreeItem::Folder {
+                        app_state.open_folder(ExplorerItem::Folder {
                             path: folder_path,
                             state: FolderState::Opened(items),
                         });

@@ -3,7 +3,7 @@ use winit::window::CursorIcon;
 
 #[allow(non_snake_case)]
 #[component]
-pub fn Tab(
+pub fn EditorTab(
     value: String,
     onclick: EventHandler<()>,
     onclickaction: EventHandler<()>,

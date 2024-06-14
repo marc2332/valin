@@ -8,7 +8,7 @@ use tracing::info;
 use crate::{
     fs::FSTransport,
     lsp::{create_lsp_client, LSPClient, LspConfig},
-    LspStatusSender, TreeItem,
+    ExplorerItem, LspStatusSender,
 };
 
 use super::{AppSettings, EditorView, Panel, PanelTab};
@@ -127,7 +127,7 @@ pub struct AppState {
     pub language_servers: HashMap<String, LSPClient>,
     pub lsp_sender: LspStatusSender,
     pub side_panel: Option<EditorSidePanel>,
-    pub file_explorer_folders: Vec<TreeItem>,
+    pub file_explorer_folders: Vec<ExplorerItem>,
     pub default_transport: FSTransport,
     pub font_collection: FontCollection,
     pub clipboard: UseClipboard,
@@ -329,7 +329,7 @@ impl AppState {
         }
     }
 
-    pub fn open_folder(&mut self, item: TreeItem) {
+    pub fn open_folder(&mut self, item: ExplorerItem) {
         self.file_explorer_folders.push(item)
     }
 }

@@ -126,6 +126,7 @@ pub fn EditorLine(
             height: "{line_height}",
             direction: "horizontal",
             background: "{line_background}",
+            cross_align: "center",
             if let Some((line, hover)) = hover_location.read().as_ref() {
                 if *line == line_index as u32 {
                     if let Some(content) = hover.hover_to_text() {
@@ -149,7 +150,6 @@ pub fn EditorLine(
             }
             rect {
                 width: "{gutter_width}",
-                height: "fill",
                 main_align: "center",
                 label {
                     width: "100%",
@@ -159,44 +159,41 @@ pub fn EditorLine(
                     "{line_index + 1} "
                 }
             }
-            rect {
+            paragraph {
                 onmousedown,
                 onmouseover,
                 onmouseleave,
+                min_width: "fill",
+                width: "{longest_width}",
                 height: "fill",
-                main_align: "center",
-                paragraph {
-                    min_width: "fill",
-                    width: "{longest_width}",
-                    cursor_index: "{character_index}",
-                    cursor_color: "white",
-                    max_lines: "1",
-                    cursor_mode: "editable",
-                    cursor_id: "{line_index}",
-                    highlights,
-                    highlight_color: "rgb(65, 65, 65)",
-                    direction: "horizontal",
-                    font_size: "{font_size}",
-                    font_family: "Cascadia Mono NF",
-                    {line.iter().enumerate().map(|(i, (syntax_type, text))| {
-                        let text = match text {
-                            TextNode::Range(word_pos) => {
-                                rope.slice(word_pos.clone()).to_string()
-                            },
-                            TextNode::LineOfChars { len, char } => {
-                                format!("{char}").repeat(*len)
-                            }
-                        };
+                cursor_index: "{character_index}",
+                cursor_color: "white",
+                max_lines: "1",
+                cursor_mode: "editable",
+                cursor_id: "{line_index}",
+                highlights,
+                highlight_color: "rgb(65, 65, 65)",
+                direction: "horizontal",
+                font_size: "{font_size}",
+                font_family: "Cascadia Mono NF",
+                {line.iter().enumerate().map(|(i, (syntax_type, text))| {
+                    let text = match text {
+                        TextNode::Range(word_pos) => {
+                            rope.slice(word_pos.clone()).to_string()
+                        },
+                        TextNode::LineOfChars { len, char } => {
+                            format!("{char}").repeat(*len)
+                        }
+                    };
 
-                        rsx!(
-                            text {
-                                key: "{i}",
-                                color: "{syntax_type.color()}",
-                                "{text}"
-                            }
-                        )
-                    })}
-                }
+                    rsx!(
+                        text {
+                            key: "{i}",
+                            color: "{syntax_type.color()}",
+                            "{text}"
+                        }
+                    )
+                })}
             }
         }
     )
