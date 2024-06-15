@@ -9,9 +9,7 @@ pub mod GlobalDefaults {
 
     use crate::state::{Channel, EditorCommands, EditorView, KeyboardShortcuts, RadioAppState};
 
-    use super::{
-        OpenSettingsCommand, SplitPanelCommand, ToggleCommanderCommand, ToggleFocusCommand,
-    };
+    use super::{OpenSettingsCommand, SplitPanelCommand, ToggleCommanderCommand};
 
     pub fn init(
         keyboard_shorcuts: &mut KeyboardShortcuts,
@@ -21,7 +19,6 @@ pub mod GlobalDefaults {
         // Register Commands
         commands.register(SplitPanelCommand(radio_app_state));
         commands.register(ToggleCommanderCommand(radio_app_state));
-        commands.register(ToggleFocusCommand(radio_app_state));
         commands.register(OpenSettingsCommand(radio_app_state));
 
         // Register Shortcuts
@@ -121,31 +118,6 @@ impl EditorCommand for ToggleCommanderCommand {
             app_state.set_focused_view(EditorView::Commander);
         }
     }
-}
-
-#[derive(Clone)]
-pub struct ToggleFocusCommand(pub RadioAppState);
-
-impl ToggleFocusCommand {
-    pub fn id() -> &'static str {
-        "toggle-focus"
-    }
-}
-
-impl EditorCommand for ToggleFocusCommand {
-    fn matches(&self, input: &str) -> bool {
-        self.text().to_lowercase().contains(&input.to_lowercase())
-    }
-
-    fn id(&self) -> &str {
-        Self::id()
-    }
-
-    fn text(&self) -> &str {
-        "Toggle Focus"
-    }
-
-    fn run(&self) {}
 }
 
 #[derive(Clone)]
