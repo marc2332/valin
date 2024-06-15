@@ -151,18 +151,16 @@ fn flush_spaces_stack(
         let trimmed = word.trim();
         if trimmed.is_empty() {
             let range = generic_stack.take().unwrap();
-            if !line_is_ending {
-                if begining_of_line {
-                    syntax_blocks.push((
-                        SyntaxType::SpaceMark,
-                        TextNode::LineOfChars {
-                            len: range.end - range.start,
-                            char: '·',
-                        },
-                    ));
-                } else {
-                    syntax_blocks.push((SyntaxType::Unknown, TextNode::Range(range)));
-                };
+            if !line_is_ending && begining_of_line {
+                syntax_blocks.push((
+                    SyntaxType::SpaceMark,
+                    TextNode::LineOfChars {
+                        len: range.end - range.start,
+                        char: '·',
+                    },
+                ));
+            } else {
+                syntax_blocks.push((SyntaxType::Unknown, TextNode::Range(range)));
             }
         }
     }

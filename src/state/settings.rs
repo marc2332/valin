@@ -21,7 +21,7 @@ impl Default for EditorSettings {
     fn default() -> Self {
         Self {
             font_size: 17.0,
-            line_height: 1.2_f32,
+            line_height: 1.6_f32,
         }
     }
 }

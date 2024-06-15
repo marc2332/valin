@@ -194,7 +194,7 @@ fn PanelTab(
         }
     };
 
-    rsx!(Tab {
+    rsx!(EditorTab {
         key: "{tab_data.id}",
         onclick,
         onclickaction,

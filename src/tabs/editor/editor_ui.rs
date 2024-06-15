@@ -17,20 +17,9 @@ use freya::prelude::*;
 use lsp_types::Position;
 
 use skia_safe::textlayout::Paragraph;
-use winit::window::CursorIcon;
 
 static LINES_JUMP_ALT: usize = 5;
 static LINES_JUMP_CONTROL: usize = 3;
-
-/// Indicates the current focus status of the Editor.
-#[derive(Debug, Default, PartialEq, Clone, Copy)]
-pub enum EditorStatus {
-    /// Default state.
-    #[default]
-    Idle,
-    /// Mouse is hovering the editor.
-    Hovering,
-}
 
 #[allow(non_snake_case)]
 pub fn EditorUi(
@@ -81,24 +70,6 @@ pub fn EditorUi(
             )));
         },
     );
-    let platform = use_platform();
-    let mut status = use_signal(EditorStatus::default);
-
-    use_drop(move || {
-        if *status.read() == EditorStatus::Hovering {
-            platform.set_cursor(CursorIcon::default());
-        }
-    });
-
-    let onmouseenter = move |_| {
-        platform.set_cursor(CursorIcon::Text);
-        status.set(EditorStatus::Hovering);
-    };
-
-    let onmouseleave = move |_| {
-        platform.set_cursor(CursorIcon::default());
-        status.set(EditorStatus::default());
-    };
 
     let onscroll = move |(axis, scroll): (Axis, i32)| match axis {
         Axis::X => {
@@ -228,8 +199,6 @@ pub fn EditorUi(
                 onglobalclick,
                 onclick,
                 cursor_reference,
-                onmouseenter,
-                onmouseleave,
                 EditorScrollView {
                     offset_x: scroll_offsets.read().0,
                     offset_y: scroll_offsets.read().1,

@@ -196,7 +196,7 @@ impl TextEditor for EditorData {
         line.map(|line| Line { text: line.into() })
     }
 
-    fn len_lines<'a>(&self) -> usize {
+    fn len_lines(&self) -> usize {
         self.rope.len_lines()
     }
 
@@ -358,5 +358,9 @@ impl TextEditor for EditorData {
         } else {
             None
         }
+    }
+
+    fn get_identation(&self) -> u8 {
+        4
     }
 }

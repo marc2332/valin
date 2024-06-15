@@ -31,6 +31,16 @@ pub fn get_scroll_position_from_wheel(
     new_position as i32
 }
 
+/// Indicates the current focus status of the EditorScrollView.
+#[derive(Debug, Default, PartialEq, Clone, Copy)]
+pub enum EditorScrollViewStatus {
+    /// Default state.
+    #[default]
+    Idle,
+    /// Mouse is hovering the EditorScrollView.
+    Hovering,
+}
+
 /// Properties for the EditorScrollView component.
 #[derive(Props, Clone)]
 pub struct EditorScrollViewProps<
@@ -104,6 +114,14 @@ pub fn EditorScrollView<
     let mut focus = use_focus();
     let (node_ref, size) = use_node();
     let scrollbar_theme = use_applied_theme!(&None, scroll_bar);
+    let platform = use_platform();
+    let mut status = use_signal(EditorScrollViewStatus::default);
+
+    use_drop(move || {
+        if *status.read() == EditorScrollViewStatus::Hovering {
+            platform.set_cursor(CursorIcon::default());
+        }
+    });
 
     let padding = &props.padding;
     let user_container_width = &props.width;
@@ -243,6 +261,16 @@ pub fn EditorScrollView<
         }
     };
 
+    let onmouseenter_children = move |_| {
+        platform.set_cursor(CursorIcon::Text);
+        status.set(EditorScrollViewStatus::Hovering);
+    };
+
+    let onmouseleave_children = move |_| {
+        platform.set_cursor(CursorIcon::default());
+        status.set(EditorScrollViewStatus::default());
+    };
+
     let horizontal_scrollbar_size = if horizontal_scrollbar_is_visible {
         &scrollbar_theme.size
     } else {
@@ -305,7 +333,9 @@ pub fn EditorScrollView<
                     direction: "vertical",
                     offset_x: "{corrected_scrolled_x}",
                     reference: node_ref,
-                    onwheel: onwheel,
+                    onwheel,
+                    onmouseenter: onmouseenter_children,
+                    onmouseleave: onmouseleave_children,
                     offset_y: "{-offset_y}",
                     {children}
                 }

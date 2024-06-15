@@ -15,17 +15,17 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum FolderState {
-    Opened(Vec<TreeItem>),
+    Opened(Vec<ExplorerItem>),
     Closed,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum TreeItem {
+pub enum ExplorerItem {
     Folder { path: PathBuf, state: FolderState },
     File { path: PathBuf },
 }
 
-impl TreeItem {
+impl ExplorerItem {
     pub fn path(&self) -> &PathBuf {
         match self {
             Self::Folder { path, .. } => path,
@@ -34,7 +34,7 @@ impl TreeItem {
     }
 
     pub fn set_folder_state(&mut self, folder_path: &PathBuf, folder_state: &FolderState) {
-        if let TreeItem::Folder { path, state } = self {
+        if let ExplorerItem::Folder { path, state } = self {
             if path == folder_path {
                 *state = folder_state.clone(); // Ugly
             } else if folder_path.starts_with(path) {
@@ -49,7 +49,7 @@ impl TreeItem {
 
     pub fn flat(&self, depth: usize, root_path: &PathBuf) -> Vec<FlatItem> {
         let mut flat_items = vec![self.clone().into_flat(depth, root_path.clone())];
-        if let TreeItem::Folder {
+        if let ExplorerItem::Folder {
             state: FolderState::Opened(items),
             ..
         } = self
@@ -64,14 +64,14 @@ impl TreeItem {
 
     fn into_flat(self, depth: usize, root_path: PathBuf) -> FlatItem {
         match self {
-            TreeItem::File { path } => FlatItem {
+            ExplorerItem::File { path } => FlatItem {
                 path,
                 is_file: true,
                 is_opened: false,
                 depth,
                 root_path,
             },
-            TreeItem::Folder { path, state } => FlatItem {
+            ExplorerItem::Folder { path, state } => FlatItem {
                 path,
                 is_file: false,
                 is_opened: state != FolderState::Closed,
@@ -94,7 +94,7 @@ pub struct FlatItem {
 pub async fn read_folder_as_items(
     dir: &Path,
     transport: &FSTransport,
-) -> io::Result<Vec<TreeItem>> {
+) -> io::Result<Vec<ExplorerItem>> {
     let mut paths = transport.read_dir(dir).await?;
     let mut folder_items = Vec::default();
     let mut files_items = Vec::default();
@@ -105,9 +105,9 @@ pub async fn read_folder_as_items(
         let path = entry.path();
 
         if is_file {
-            files_items.push(TreeItem::File { path })
+            files_items.push(ExplorerItem::File { path })
         } else {
-            folder_items.push(TreeItem::Folder {
+            folder_items.push(ExplorerItem::Folder {
                 path,
                 state: FolderState::Closed,
             })
@@ -220,7 +220,7 @@ pub fn FileExplorer() -> Element {
 
                 let mut app_state = radio_app_state.write();
 
-                app_state.open_folder(TreeItem::Folder {
+                app_state.open_folder(ExplorerItem::Folder {
                     path,
                     state: FolderState::Opened(items),
                 });
