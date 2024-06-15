@@ -10,6 +10,11 @@
 
 You can download it from the [Releases](https://github.com/marc2332/valin/releases) page or run it from source code, with `--release` mode if you want max performance.
 
+## Notes
+- SVG support in Linux seems to be giving issues, see the [Tracking Issue](https://github.com/marc2332/valin/issues/52).
+- It currently uses Jetbrains Mono for the text editor and Fira Sans for the UI.
+- The syntax highlighter is still very generic and is targeted to Rust code at the moment.
+
 ## Features
 
 - [x] Open folders
