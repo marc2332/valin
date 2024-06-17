@@ -49,3 +49,5 @@ You can download it from the [Releases](https://github.com/marc2332/valin/releas
 - `Ctrl/Meta C`: Copy
 - `Ctrl/Meta V`: paste
 - `Ctrl/Meta S`: Save
+
+[MIT License](./LICENSE.md)
