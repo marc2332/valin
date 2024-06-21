@@ -630,7 +630,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "regex",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "shlex",
  "syn 2.0.64",
  "which",
@@ -1234,7 +1234,7 @@ dependencies = [
  "futures-util",
  "generational-box",
  "longest-increasing-subsequence",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "serde",
  "slab",
  "tracing",
@@ -1426,7 +1426,7 @@ dependencies = [
  "generational-box",
  "once_cell",
  "parking_lot",
- "rustc-hash",
+ "rustc-hash 1.1.0",
  "tracing",
 ]
 
@@ -1793,7 +1793,7 @@ dependencies = [
 [[package]]
 name = "freya"
 version = "0.2.2"
-source = "git+https://github.com/marc2332/freya?rev=2f1aecfe257730f1b06627e9293af63515b5ca8a#2f1aecfe257730f1b06627e9293af63515b5ca8a"
+source = "git+https://github.com/marc2332/freya?rev=a819b332e763c982580aeda57bc61af458acccdd#a819b332e763c982580aeda57bc61af458acccdd"
 dependencies = [
  "dioxus",
  "dioxus-core",
@@ -1816,14 +1816,14 @@ dependencies = [
 [[package]]
 name = "freya-common"
 version = "0.2.1"
-source = "git+https://github.com/marc2332/freya?rev=2f1aecfe257730f1b06627e9293af63515b5ca8a#2f1aecfe257730f1b06627e9293af63515b5ca8a"
+source = "git+https://github.com/marc2332/freya?rev=a819b332e763c982580aeda57bc61af458acccdd#a819b332e763c982580aeda57bc61af458acccdd"
 dependencies = [
  "accesskit",
  "accesskit_winit",
  "dioxus-core",
  "freya-engine",
  "freya-native-core",
- "rustc-hash",
+ "rustc-hash 2.0.0",
  "torin",
  "uuid",
  "winit",
@@ -1832,7 +1832,7 @@ dependencies = [
 [[package]]
 name = "freya-components"
 version = "0.2.1"
-source = "git+https://github.com/marc2332/freya?rev=2f1aecfe257730f1b06627e9293af63515b5ca8a#2f1aecfe257730f1b06627e9293af63515b5ca8a"
+source = "git+https://github.com/marc2332/freya?rev=a819b332e763c982580aeda57bc61af458acccdd#a819b332e763c982580aeda57bc61af458acccdd"
 dependencies = [
  "bytes",
  "dioxus",
@@ -1855,7 +1855,7 @@ dependencies = [
 [[package]]
 name = "freya-core"
 version = "0.2.1"
-source = "git+https://github.com/marc2332/freya?rev=2f1aecfe257730f1b06627e9293af63515b5ca8a#2f1aecfe257730f1b06627e9293af63515b5ca8a"
+source = "git+https://github.com/marc2332/freya?rev=a819b332e763c982580aeda57bc61af458acccdd#a819b332e763c982580aeda57bc61af458acccdd"
 dependencies = [
  "accesskit",
  "dioxus-core",
@@ -1865,7 +1865,7 @@ dependencies = [
  "freya-native-core",
  "freya-node-state",
  "itertools 0.13.0",
- "rustc-hash",
+ "rustc-hash 2.0.0",
  "smallvec",
  "tokio",
  "torin",
@@ -1877,7 +1877,7 @@ dependencies = [
 [[package]]
 name = "freya-elements"
 version = "0.2.0"
-source = "git+https://github.com/marc2332/freya?rev=2f1aecfe257730f1b06627e9293af63515b5ca8a#2f1aecfe257730f1b06627e9293af63515b5ca8a"
+source = "git+https://github.com/marc2332/freya?rev=a819b332e763c982580aeda57bc61af458acccdd#a819b332e763c982580aeda57bc61af458acccdd"
 dependencies = [
  "dioxus-core",
  "dioxus-rsx",
@@ -1889,7 +1889,7 @@ dependencies = [
 [[package]]
 name = "freya-engine"
 version = "0.2.2"
-source = "git+https://github.com/marc2332/freya?rev=2f1aecfe257730f1b06627e9293af63515b5ca8a#2f1aecfe257730f1b06627e9293af63515b5ca8a"
+source = "git+https://github.com/marc2332/freya?rev=a819b332e763c982580aeda57bc61af458acccdd#a819b332e763c982580aeda57bc61af458acccdd"
 dependencies = [
  "bitflags 2.5.0",
  "glutin",
@@ -1899,7 +1899,7 @@ dependencies = [
 [[package]]
 name = "freya-hooks"
 version = "0.2.1"
-source = "git+https://github.com/marc2332/freya?rev=2f1aecfe257730f1b06627e9293af63515b5ca8a#2f1aecfe257730f1b06627e9293af63515b5ca8a"
+source = "git+https://github.com/marc2332/freya?rev=a819b332e763c982580aeda57bc61af458acccdd#a819b332e763c982580aeda57bc61af458acccdd"
 dependencies = [
  "bitflags 2.5.0",
  "bytes",
@@ -1924,13 +1924,13 @@ dependencies = [
 [[package]]
 name = "freya-native-core"
 version = "0.2.1"
-source = "git+https://github.com/marc2332/freya?rev=2f1aecfe257730f1b06627e9293af63515b5ca8a#2f1aecfe257730f1b06627e9293af63515b5ca8a"
+source = "git+https://github.com/marc2332/freya?rev=a819b332e763c982580aeda57bc61af458acccdd#a819b332e763c982580aeda57bc61af458acccdd"
 dependencies = [
  "anymap",
  "dashmap",
  "dioxus-core",
  "parking_lot",
- "rustc-hash",
+ "rustc-hash 2.0.0",
  "shipyard",
  "smallvec",
 ]
@@ -1938,7 +1938,7 @@ dependencies = [
 [[package]]
 name = "freya-native-core-macro"
 version = "0.2.0"
-source = "git+https://github.com/marc2332/freya?rev=2f1aecfe257730f1b06627e9293af63515b5ca8a#2f1aecfe257730f1b06627e9293af63515b5ca8a"
+source = "git+https://github.com/marc2332/freya?rev=a819b332e763c982580aeda57bc61af458acccdd#a819b332e763c982580aeda57bc61af458acccdd"
 dependencies = [
  "quote",
  "syn 2.0.64",
@@ -1947,7 +1947,7 @@ dependencies = [
 [[package]]
 name = "freya-node-state"
 version = "0.2.1"
-source = "git+https://github.com/marc2332/freya?rev=2f1aecfe257730f1b06627e9293af63515b5ca8a#2f1aecfe257730f1b06627e9293af63515b5ca8a"
+source = "git+https://github.com/marc2332/freya?rev=a819b332e763c982580aeda57bc61af458acccdd#a819b332e763c982580aeda57bc61af458acccdd"
 dependencies = [
  "accesskit",
  "bytes",
@@ -1956,7 +1956,7 @@ dependencies = [
  "freya-engine",
  "freya-native-core",
  "freya-native-core-macro",
- "rustc-hash",
+ "rustc-hash 2.0.0",
  "serde_json",
  "shipyard",
  "tokio",
@@ -1967,7 +1967,7 @@ dependencies = [
 [[package]]
 name = "freya-renderer"
 version = "0.2.1"
-source = "git+https://github.com/marc2332/freya?rev=2f1aecfe257730f1b06627e9293af63515b5ca8a#2f1aecfe257730f1b06627e9293af63515b5ca8a"
+source = "git+https://github.com/marc2332/freya?rev=a819b332e763c982580aeda57bc61af458acccdd#a819b332e763c982580aeda57bc61af458acccdd"
 dependencies = [
  "accesskit",
  "accesskit_winit",
@@ -4262,6 +4262,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
+name = "rustc-hash"
+version = "2.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "583034fd73374156e66797ed8e5b0d5690409c9226b22d87cb7f19821c05d152"
+
+[[package]]
 name = "rustc_version"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5053,11 +5059,11 @@ dependencies = [
 [[package]]
 name = "torin"
 version = "0.2.0"
-source = "git+https://github.com/marc2332/freya?rev=2f1aecfe257730f1b06627e9293af63515b5ca8a#2f1aecfe257730f1b06627e9293af63515b5ca8a"
+source = "git+https://github.com/marc2332/freya?rev=a819b332e763c982580aeda57bc61af458acccdd#a819b332e763c982580aeda57bc61af458acccdd"
 dependencies = [
  "euclid",
  "freya-native-core",
- "rustc-hash",
+ "rustc-hash 2.0.0",
  "tracing",
 ]
 

@@ -111,7 +111,7 @@ fn StatusBarItem(children: Element, onclick: Option<EventHandler<()>>) -> Elemen
                 }
             },
             theme: theme_with!(ButtonTheme {
-                margin: "2".into(),
+                margin: "1 2".into(),
                 padding: "4 6".into(),
                 background: "none".into(),
                 border_fill: "none".into(),
