@@ -22,7 +22,7 @@ skia-safe = { version = "0.75.0", features = ["gl", "textlayout", "svg"] }
 ropey = "1.6.0"
 smallvec = "1.10.0"
 uuid = { version =  "1.2.2", features = ["v4"]}
-rfd = "0.11.0"
+rfd = "0.14.1"
 tokio-stream = { version = "0.1.14", features = ["fs"] }
 tower = "0.4.13"
 lsp-types = "0.94.0"
