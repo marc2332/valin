@@ -118,7 +118,7 @@ pub fn EditorLine(
     let line_background = if is_line_selected && !editable.has_any_highlight() {
         "rgb(70, 70, 70)"
     } else {
-        ""
+        "none"
     };
 
     rsx!(
