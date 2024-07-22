@@ -96,7 +96,7 @@ pub fn EditorLine(
     let longest_width = editor.metrics.longest_width;
     let line = editor.metrics.syntax_blocks.get_line(line_index);
     let highlights = editable.highlights_attr(line_index);
-    let gutter_width = font_size * 3.0;
+    let gutter_width = font_size * 5.0;
 
     let is_line_selected = editor.cursor_row() == line_index;
 
@@ -148,13 +148,16 @@ pub fn EditorLine(
                     }
                 }
             }
-            label {
+            rect {
                 width: "{gutter_width}",
-                text_align: "center",
-                font_size: "{font_size}",
-                color: "{gutter_color}",
-                main_align: "center",
-                "{line_index + 1} "
+                direction: "horizontal",
+                main_align: "end",
+                label {
+                    margin: "0 20 0 0",
+                    font_size: "{font_size}",
+                    color: "{gutter_color}",
+                    "{line_index + 1} "
+                }
             }
             paragraph {
                 onmousedown,
