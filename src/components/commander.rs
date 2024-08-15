@@ -139,7 +139,7 @@ pub fn Commander(CommanderProps { editor_commands }: CommanderProps) -> Element 
 }
 
 fn commander_option(command_id: &str, command_text: &str, is_selected: bool) -> Element {
-    let background = if is_selected { "rgb(65, 65, 65)" } else { "" };
+    let background = if is_selected { "rgb(65, 65, 65)" } else { "none" };
 
     rsx!(
         rect {
