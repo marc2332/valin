@@ -13,13 +13,22 @@ use crate::{
     state::Channel,
 };
 
-#[derive(Props, Clone, PartialEq)]
+#[derive(Props, Clone)]
 pub struct BuilderArgs {
     pub(crate) panel_index: usize,
     pub(crate) tab_index: usize,
     pub(crate) font_size: f32,
     pub(crate) rope: Rope,
     pub(crate) line_height: f32,
+}
+
+impl PartialEq for BuilderArgs {
+    fn eq(&self, other: &Self) -> bool {
+        self.panel_index == other.panel_index
+            && self.tab_index == other.tab_index
+            && self.font_size == other.font_size
+            && self.line_height == other.line_height
+    }
 }
 
 #[derive(Props, Clone, PartialEq)]

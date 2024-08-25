@@ -182,7 +182,7 @@ pub fn use_edit(radio: &RadioAppState, panel_index: usize, tab_index: usize) -> 
 
             let cursor_reference = CursorReference {
                 text_id,
-                cursor_sender: cursor_sender.clone(),
+                cursor_sender,
             };
 
             let task = spawn(async move {
