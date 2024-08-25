@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use dioxus_radio::hooks::use_radio;
 use dioxus_sdk::utils::timing::UseDebounce;
 use freya::prelude::*;
@@ -13,12 +15,14 @@ use crate::{
     state::Channel,
 };
 
+use super::SharedRope;
+
 #[derive(Props, Clone)]
 pub struct BuilderArgs {
     pub(crate) panel_index: usize,
     pub(crate) tab_index: usize,
     pub(crate) font_size: f32,
-    pub(crate) rope: Rope,
+    pub(crate) rope: SharedRope,
     pub(crate) line_height: f32,
 }
 
@@ -28,6 +32,7 @@ impl PartialEq for BuilderArgs {
             && self.tab_index == other.tab_index
             && self.font_size == other.font_size
             && self.line_height == other.line_height
+            && Rc::ptr_eq(&self.rope, &other.rope)
     }
 }
 
@@ -76,6 +81,7 @@ pub fn EditorLine(
     let onmouseover = {
         to_owned![rope];
         move |e: MouseEvent| {
+            let rope = rope.borrow();
             let line_str = rope.line(line_index).to_string();
             let coords = e.get_element_coordinates();
             let data = e.data;
@@ -189,7 +195,7 @@ pub fn EditorLine(
                 {line.iter().enumerate().map(|(i, (syntax_type, text))| {
                     let text = match text {
                         TextNode::Range(word_pos) => {
-                            rope.slice(word_pos.clone()).to_string()
+                            rope.borrow().slice(word_pos.clone()).to_string()
                         },
                         TextNode::LineOfChars { len, char } => {
                             format!("{char}").repeat(*len)

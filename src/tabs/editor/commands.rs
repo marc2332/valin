@@ -107,7 +107,7 @@ impl EditorCommand for SaveFileCommand {
                         .await
                         .unwrap();
                     let std_writer = writer.into_std().await;
-                    rope.write_to(std_writer).unwrap();
+                    rope.borrow_mut().write_to(std_writer).unwrap();
                     let mut app_state =
                         radio_app_state.write_channel(Channel::follow_tab(panel, active_tab));
                     let editor_tab = app_state.try_editor_tab_mut(panel, active_tab);

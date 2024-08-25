@@ -1,13 +1,11 @@
 use std::path::PathBuf;
 
-use ropey::Rope;
-
 use crate::{
     fs::FSTransport,
     state::{AppState, Panel, PanelTab},
 };
 
-use super::EditorTab;
+use super::{EditorTab, SharedRope};
 
 pub trait AppStateEditorUtils {
     fn editor_tab(&self, panel: usize, editor_id: usize) -> &EditorTab;
@@ -20,7 +18,7 @@ pub trait AppStateEditorUtils {
         &self,
         panel: usize,
         editor_id: usize,
-    ) -> Option<(Option<PathBuf>, Rope, FSTransport)>;
+    ) -> Option<(Option<PathBuf>, SharedRope, FSTransport)>;
 }
 
 impl AppStateEditorUtils for AppState {
@@ -45,7 +43,7 @@ impl AppStateEditorUtils for AppState {
         &self,
         panel: usize,
         editor_id: usize,
-    ) -> Option<(Option<PathBuf>, Rope, FSTransport)> {
+    ) -> Option<(Option<PathBuf>, SharedRope, FSTransport)> {
         let panel: &Panel = self.panel(panel);
         let editor = panel.tab(editor_id).as_text_editor();
         editor.map(|EditorTab { editor: data }| {

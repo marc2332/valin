@@ -1,3 +1,6 @@
+use std::borrow::Cow;
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::{cmp::Ordering, fmt::Display, ops::Range, path::PathBuf};
 
 use dioxus_sdk::clipboard::UseClipboard;
@@ -8,6 +11,8 @@ use lsp_types::Url;
 use skia_safe::textlayout::FontCollection;
 
 use crate::{fs::FSTransport, lsp::LanguageId, metrics::EditorMetrics};
+
+pub type SharedRope = Rc<RefCell<Rope>>;
 
 #[derive(Clone, PartialEq)]
 pub enum EditorType {
@@ -54,7 +59,7 @@ pub struct EditorData {
     pub(crate) editor_type: EditorType,
     pub(crate) cursor: TextCursor,
     pub(crate) history: EditorHistory,
-    pub(crate) rope: Rope,
+    pub(crate) rope: SharedRope,
     pub(crate) selected: Option<(usize, usize)>,
     pub(crate) clipboard: UseClipboard,
     pub(crate) last_saved_history_change: usize,
@@ -78,7 +83,7 @@ impl EditorData {
 
         Self {
             editor_type,
-            rope,
+            rope: Rc::new(RefCell::new(rope)),
             cursor: TextCursor::new(pos),
             selected: None,
             history: EditorHistory::new(),
@@ -96,7 +101,7 @@ impl EditorData {
     }
 
     pub fn text(&self) -> String {
-        self.rope.to_string()
+        self.rope.borrow().to_string()
     }
 
     pub fn is_edited(&self) -> bool {
@@ -115,17 +120,17 @@ impl EditorData {
         self.cursor.clone()
     }
 
-    pub fn rope(&self) -> &Rope {
+    pub fn rope(&self) -> &SharedRope {
         &self.rope
     }
 
     pub fn run_parser(&mut self) {
-        self.metrics.run_parser(&self.rope);
+        self.metrics.run_parser(&self.rope.borrow());
     }
 
     pub fn measure_longest_line(&mut self, font_size: f32, font_collection: &FontCollection) {
         self.metrics
-            .measure_longest_line(font_size, &self.rope, font_collection);
+            .measure_longest_line(font_size, &self.rope.borrow(), font_collection);
     }
 
     pub fn editor_type(&self) -> &EditorType {
@@ -135,7 +140,7 @@ impl EditorData {
 
 impl Display for EditorData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(&self.rope.to_string())
+        f.write_str(&self.rope.borrow().to_string())
     }
 }
 
@@ -145,8 +150,7 @@ impl TextEditor for EditorData {
         Self: 'a;
 
     fn lines(&self) -> Self::LinesIterator<'_> {
-        let lines = self.rope.lines();
-        LinesIterator { lines }
+        unimplemented!("Unused.")
     }
 
     fn insert_char(&mut self, char: char, char_idx: usize) {
@@ -154,7 +158,7 @@ impl TextEditor for EditorData {
             idx: char_idx,
             char,
         });
-        self.rope.insert_char(char_idx, char);
+        self.rope.borrow_mut().insert_char(char_idx, char);
     }
 
     fn insert(&mut self, text: &str, idx: usize) {
@@ -162,46 +166,49 @@ impl TextEditor for EditorData {
             idx,
             text: text.to_owned(),
         });
-        self.rope.insert(idx, text);
+        self.rope.borrow_mut().insert(idx, text);
     }
 
     fn remove(&mut self, range: Range<usize>) {
-        let text = self.rope.slice(range.clone()).to_string();
+        let text = self.rope.borrow().slice(range.clone()).to_string();
         self.history.push_change(HistoryChange::Remove {
             idx: range.start,
             text,
         });
-        self.rope.remove(range)
+        self.rope.borrow_mut().remove(range)
     }
 
     fn char_to_line(&self, char_idx: usize) -> usize {
-        self.rope.char_to_line(char_idx)
+        self.rope.borrow().char_to_line(char_idx)
     }
 
     fn line_to_char(&self, line_idx: usize) -> usize {
-        self.rope.line_to_char(line_idx)
+        self.rope.borrow().line_to_char(line_idx)
     }
 
     fn utf16_cu_to_char(&self, utf16_cu_idx: usize) -> usize {
-        self.rope.utf16_cu_to_char(utf16_cu_idx)
+        self.rope.borrow().utf16_cu_to_char(utf16_cu_idx)
     }
 
     fn char_to_utf16_cu(&self, idx: usize) -> usize {
-        self.rope.char_to_utf16_cu(idx)
+        self.rope.borrow().char_to_utf16_cu(idx)
     }
 
     fn line(&self, line_idx: usize) -> Option<Line<'_>> {
-        let line = self.rope.get_line(line_idx);
+        let rope = self.rope.borrow();
+        let line = rope.get_line(line_idx);
 
-        line.map(|line| Line { text: line.into() })
+        line.map(|line| Line {
+            text: Cow::Owned(line.to_string()),
+        })
     }
 
     fn len_lines(&self) -> usize {
-        self.rope.len_lines()
+        self.rope.borrow().len_lines()
     }
 
     fn len_chars(&self) -> usize {
-        self.rope.len_chars()
+        self.rope.borrow().len_chars()
     }
 
     fn cursor(&self) -> &TextCursor {
@@ -294,8 +301,8 @@ impl TextEditor for EditorData {
     }
 
     fn set(&mut self, text: &str) {
-        self.rope.remove(0..);
-        self.rope.insert(0, text);
+        self.rope.borrow_mut().remove(0..);
+        self.rope.borrow_mut().insert(0, text);
     }
 
     fn clear_selection(&mut self) {
@@ -328,7 +335,7 @@ impl TextEditor for EditorData {
     fn get_selected_text(&self) -> Option<String> {
         let (start, end) = self.get_selection_range()?;
 
-        Some(self.rope().get_slice(start..end)?.to_string())
+        Some(self.rope.borrow().get_slice(start..end)?.to_string())
     }
 
     fn get_selection_range(&self) -> Option<(usize, usize)> {
@@ -346,7 +353,7 @@ impl TextEditor for EditorData {
 
     fn redo(&mut self) -> Option<usize> {
         if self.history.can_redo() {
-            self.history.redo(&mut self.rope)
+            self.history.redo(&mut self.rope.borrow_mut())
         } else {
             None
         }
@@ -354,7 +361,7 @@ impl TextEditor for EditorData {
 
     fn undo(&mut self) -> Option<usize> {
         if self.history.can_undo() {
-            self.history.undo(&mut self.rope)
+            self.history.undo(&mut self.rope.borrow_mut())
         } else {
             None
         }
