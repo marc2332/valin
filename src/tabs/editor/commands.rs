@@ -34,7 +34,7 @@ impl EditorCommand for IncreaseFontSizeCommand {
         let mut radio_app_state = self.0;
         let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
         let font_size = app_state.font_size();
-        app_state.set_fontsize((font_size + 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE));
+        app_state.set_fontsize((font_size + 2.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE));
     }
 }
 
@@ -64,7 +64,7 @@ impl EditorCommand for DecreaseFontSizeCommand {
         let mut radio_app_state = self.0;
         let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
         let font_size = app_state.font_size();
-        app_state.set_fontsize((font_size - 4.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE));
+        app_state.set_fontsize((font_size - 2.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE));
     }
 }
 
