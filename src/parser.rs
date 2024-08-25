@@ -22,7 +22,7 @@ pub enum SyntaxType {
 impl SyntaxType {
     pub fn color(&self) -> &str {
         match self {
-            SyntaxType::Keyword => "rgb(205, 65, 65)",
+            SyntaxType::Keyword => "rgb(251, 60, 44)",
             SyntaxType::String => "rgb(151, 151, 26)",
             SyntaxType::Punctuation => "rgb(104, 157, 96)",
             SyntaxType::Punctuation2 => "rgb(252, 188, 61)",
