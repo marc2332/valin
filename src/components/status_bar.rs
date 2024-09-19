@@ -105,7 +105,7 @@ pub fn StatusBar(props: StatusBarProps) -> Element {
 fn StatusBarItem(children: Element, onclick: Option<EventHandler<()>>) -> Element {
     rsx!(
         Button {
-            onclick: move |_| {
+            onpress: move |_| {
                 if let Some(onclick) = onclick {
                     onclick.call(());
                 }

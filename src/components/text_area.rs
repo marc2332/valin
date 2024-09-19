@@ -22,11 +22,7 @@ pub fn TextArea(props: TextAreaProps) -> Element {
         || EditableConfig::new(props.value.to_string()),
         EditableMode::MultipleLinesSingleEditor,
     );
-    let mut focus = use_focus();
-
-    use_hook(move || {
-        focus.queue_focus();
-    });
+    let focus = use_focus();
 
     if &props.value != editable.editor().read().rope() {
         editable.editor_mut().write().set(&props.value);
@@ -43,8 +39,8 @@ pub fn TextArea(props: TextAreaProps) -> Element {
         }
     };
 
-    let onmouseover = move |e: MouseEvent| {
-        editable.process_event(&EditableEvent::MouseOver(e.data, 0));
+    let onmousemove = move |e: MouseEvent| {
+        editable.process_event(&EditableEvent::MouseMove(e.data, 0));
     };
 
     let onmouseenter = move |_| {
@@ -57,7 +53,6 @@ pub fn TextArea(props: TextAreaProps) -> Element {
         *status.write() = InputStatus::default();
     };
 
-    let focus_id = focus.attribute();
     let cursor_reference = editable.cursor_attr();
     let highlights = editable.highlights_attr(0);
     let cursor_char = editable.editor().read().cursor_pos().to_string();
@@ -87,15 +82,15 @@ pub fn TextArea(props: TextAreaProps) -> Element {
             padding: "8 6",
             margin: "0 0 2 0",
             cursor_reference,
-            focus_id,
-            focusable: "true",
-            role: "textInput",
+            a11y_id: focus.attribute(),
+            a11y_role: "textInput",
+            a11y_auto_focus: "true",
+            onkeydown,
             paragraph {
                 margin: "6 10",
-                onkeydown,
                 onmouseenter,
                 onmouseleave,
-                onmouseover,
+                onmousemove,
                 width: "100%",
                 cursor_id: "0",
                 cursor_index: "{cursor_char}",

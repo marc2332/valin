@@ -78,7 +78,7 @@ pub fn EditorLine(
         }
     };
 
-    let onmouseover = {
+    let onmousemove = {
         to_owned![rope];
         move |e: MouseEvent| {
             let rope = rope.borrow();
@@ -86,7 +86,7 @@ pub fn EditorLine(
             let coords = e.get_element_coordinates();
             let data = e.data;
 
-            editable.process_event(&EditableEvent::MouseOver(data, line_index));
+            editable.process_event(&EditableEvent::MouseMove(data, line_index));
 
             if !lsp.is_supported() {
                 return;
@@ -176,7 +176,7 @@ pub fn EditorLine(
             }
             paragraph {
                 onmousedown,
-                onmouseover,
+                onmousemove,
                 onmouseleave,
                 min_width: "fill",
                 width: "{longest_width}",

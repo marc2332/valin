@@ -111,7 +111,6 @@ pub fn EditorScrollView<
     let scrolled_y = props.offset_y;
     let scrolled_x = props.offset_x;
     let onscroll = props.onscroll.unwrap();
-    let mut focus = use_focus();
     let (node_ref, size) = use_node();
     let scrollbar_theme = use_applied_theme!(&None, scroll_bar);
     let platform = use_platform();
@@ -124,8 +123,6 @@ pub fn EditorScrollView<
     });
 
     let padding = &props.padding;
-    let user_container_width = &props.width;
-    let user_container_height = &props.height;
     let show_scrollbar = props.show_scrollbar;
     let items_length = props.length;
     let items_size = props.item_size;
@@ -137,9 +134,20 @@ pub fn EditorScrollView<
     let horizontal_scrollbar_is_visible =
         is_scrollbar_visible(show_scrollbar, size.inner.width, size.area.width());
 
-    let container_width = get_container_size(vertical_scrollbar_is_visible, &scrollbar_theme.size);
-    let container_height =
-        get_container_size(horizontal_scrollbar_is_visible, &scrollbar_theme.size);
+    let (container_width, content_width) = get_container_size(
+        &props.width,
+        true,
+        Axis::X,
+        vertical_scrollbar_is_visible,
+        &scrollbar_theme.size,
+    );
+    let (container_height, content_height) = get_container_size(
+        &props.height,
+        true,
+        Axis::Y,
+        horizontal_scrollbar_is_visible,
+        &scrollbar_theme.size,
+    );
 
     let corrected_scrolled_y =
         get_corrected_scroll_position(inner_size, size.area.height(), scrolled_y as f32);
@@ -186,12 +194,10 @@ pub fn EditorScrollView<
         );
 
         onscroll.call((Axis::X, scroll_position_x));
-
-        focus.focus();
     };
 
     // Drag the scrollbars
-    let onmouseover = move |e: MouseEvent| {
+    let onmousemove = move |e: MouseEvent| {
         let clicking_scrollbar = clicking_scrollbar.read();
 
         if let Some((Axis::Y, y)) = *clicking_scrollbar {
@@ -213,10 +219,6 @@ pub fn EditorScrollView<
             );
 
             onscroll.call((Axis::X, scroll_position))
-        }
-
-        if clicking_scrollbar.is_some() {
-            focus.focus();
         }
     };
 
@@ -315,10 +317,10 @@ pub fn EditorScrollView<
         rect {
             overflow: "clip",
             direction: "horizontal",
-            width: "{user_container_width}",
-            height: "{user_container_height}",
+            width: "{props.width}",
+            height: "{props.height}",
             onclick: onclick,
-            onglobalmouseover: onmouseover,
+            onglobalmousemove: onmousemove,
             onkeydown: onkeydown,
             onkeyup: onkeyup,
             rect {
@@ -328,8 +330,8 @@ pub fn EditorScrollView<
                 rect {
                     overflow: "clip",
                     padding: "{padding}",
-                    height: "100%",
-                    width: "100%",
+                    height: "{content_height}",
+                    width: "{content_width}",
                     direction: "vertical",
                     offset_x: "{corrected_scrolled_x}",
                     reference: node_ref,

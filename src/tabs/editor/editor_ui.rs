@@ -28,6 +28,7 @@ pub fn EditorUi(
         panel_index,
     }: TabProps,
 ) -> Element {
+    let mut focus = use_focus();
     // Subscribe to the changes of this Tab.
     let mut radio_app_state = use_radio(Channel::follow_tab(panel_index, tab_index));
 
@@ -92,7 +93,9 @@ pub fn EditorUi(
         }
     };
 
-    let onclick = move |_: MouseEvent| {
+    let onclick = move |e: MouseEvent| {
+        e.stop_propagation();
+        focus.focus();
         let (is_code_editor_view_focused, is_editor_focused) = {
             let app_state = radio_app_state.read();
             let panel = app_state.panel(panel_index);
@@ -137,6 +140,8 @@ pub fn EditorUi(
     };
 
     let onkeydown = move |e: KeyboardEvent| {
+        focus.prevent_navigation();
+        e.stop_propagation();
         let (is_panel_focused, is_editor_focused) = {
             let app_state = radio_app_state.read();
             let panel = app_state.panel(panel_index);
@@ -194,6 +199,7 @@ pub fn EditorUi(
                 }
             }
             rect {
+                a11y_id: focus.attribute(),
                 onkeydown,
                 onkeyup,
                 onglobalclick,

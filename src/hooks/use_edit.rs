@@ -1,7 +1,8 @@
 use dioxus::{dioxus_core::AttributeValue, prelude::use_memo};
+use freya::core::prelude::{EventMessage, TextGroupMeasurement};
 
 use crate::tabs::editor::AppStateEditorUtils;
-use freya::common::{CursorLayoutResponse, EventMessage, TextGroupMeasurement};
+use freya::common::CursorLayoutResponse;
 use freya::prelude::{keyboard::Modifiers, *};
 use freya_node_state::CursorReference;
 use tokio::sync::mpsc::unbounded_channel;
@@ -66,7 +67,7 @@ impl UseEdit {
 
                 Some((*id, Some(coords), None))
             }
-            EditableEvent::MouseOver(e, id) => {
+            EditableEvent::MouseMove(e, id) => {
                 if let Some(src) = self.dragging.peek().get_cursor_coords() {
                     let new_dist = e.get_element_coordinates();
 

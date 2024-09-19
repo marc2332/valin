@@ -1,5 +1,4 @@
 use crate::{
-    keyboard_navigation::use_keyboard_navigation,
     state::{Channel, EditorCommands, EditorView},
     TextArea,
 };
@@ -16,7 +15,6 @@ pub fn Commander(CommanderProps { editor_commands }: CommanderProps) -> Element 
     let mut radio_app_state = use_radio(Channel::Global);
     let mut value = use_signal(String::new);
     let mut selected = use_signal(|| 0);
-    let mut keyboard_navigation = use_keyboard_navigation();
     let mut focus = use_focus();
 
     let commands = editor_commands.read();
@@ -47,23 +45,21 @@ pub fn Commander(CommanderProps { editor_commands }: CommanderProps) -> Element 
     let onsubmit = move |_: String| {
         to_owned![command_id];
 
-        // Focus the previous view
-        keyboard_navigation.callback(true, move || {
-            let editor_commands = editor_commands.read();
-            let command = command_id
-                .as_ref()
-                .and_then(|command_i| editor_commands.commands.get(command_i));
-            if let Some(command) = command {
-                // Run the command
-                command.run();
+        let editor_commands = editor_commands.read();
+        let command = command_id
+            .as_ref()
+            .and_then(|command_i| editor_commands.commands.get(command_i));
+        if let Some(command) = command {
+            // Run the command
+            command.run();
 
-                let mut app_state = radio_app_state.write();
-                app_state.set_focused_view_to_previous();
-            }
-        });
+            let mut app_state = radio_app_state.write();
+            app_state.set_focused_view_to_previous();
+        }
     };
 
     let onkeydown = move |e: KeyboardEvent| {
+        e.stop_propagation();
         focus.prevent_navigation();
         match e.code {
             Code::ArrowDown => {
@@ -119,9 +115,7 @@ pub fn Commander(CommanderProps { editor_commands }: CommanderProps) -> Element 
                         onsubmit,
                     }
                     ScrollView {
-                        theme: theme_with!(ScrollViewTheme {
-                            height: options_height.to_string().into(),
-                        }),
+                        height: "{options_height}",
                         if filtered_commands.is_empty() {
                             {commander_option("not-found", "Command Not Found", true)}
                         }

@@ -137,6 +137,7 @@ enum TreeTask {
 
 #[allow(non_snake_case)]
 pub fn FileExplorer() -> Element {
+    let mut focus = use_focus();
     let mut radio_app_state = use_radio::<AppState, Channel>(Channel::FileExplorer);
     let app_state = radio_app_state.read();
     let mut focused_item = use_signal(|| 0);
@@ -254,6 +255,11 @@ pub fn FileExplorer() -> Element {
         }
     };
 
+    let onclick = move |e: MouseEvent| {
+        e.stop_propagation();
+        focus.focus();
+    };
+
     if items.is_empty() {
         rsx!(
             rect {
@@ -274,11 +280,9 @@ pub fn FileExplorer() -> Element {
             width: "100%",
             height: "100%",
             onkeydown,
+            onclick,
+            a11y_id: focus.attribute(),
             VirtualScrollView {
-                theme: theme_with!(ScrollViewTheme {
-                    width: "100%".into(),
-                    height: "100%".into(),
-                }),
                 length: items.len(),
                 item_size: 27.0,
                 builder_args: (items, channel, focused_item, radio_app_state),
@@ -390,13 +394,20 @@ fn FileExplorerItem(
     let mut status = use_signal(|| ButtonStatus::Idle);
 
     let onmouseenter = move |_| status.set(ButtonStatus::Hovering);
+
     let onmouseleave = move |_| status.set(ButtonStatus::Idle);
-    let onkeydown = move |e: KeyboardEvent| {
+
+    let onglobalkeydown = move |e: KeyboardEvent| {
         let is_focused_files_explorer =
             *radio_app_state.read().focused_view() == EditorView::FilesExplorer;
         if e.code == Code::Enter && is_focused && is_focused_files_explorer {
             onclick.call(());
+            e.stop_propagation();
         }
+    };
+
+    let onclick = move |_: MouseEvent| {
+        onclick.call(());
     };
 
     let background = match *status.read() {
@@ -414,8 +425,8 @@ fn FileExplorerItem(
     rsx!(rect {
         onmouseenter: onmouseenter,
         onmouseleave: onmouseleave,
-        onclick: move |_| onclick.call(()),
-        onkeydown,
+        onclick,
+        onglobalkeydown,
         background: "{background}",
         width: "100%",
         padding: "0 0 0 {(depth * 10) + 10}",

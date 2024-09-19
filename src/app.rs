@@ -113,11 +113,10 @@ pub fn App() -> Element {
     });
 
     // Trigger Shortcuts
-    #[allow(clippy::explicit_auto_deref)]
-    let onkeydown = move |e: KeyboardEvent| {
+    let onglobalkeydown = move |e: KeyboardEvent| {
         keyboard_shorcuts
             .write()
-            .run(&e.data, &mut *editor_commands.write(), radio_app_state);
+            .run(&e.data, &mut editor_commands.write(), radio_app_state);
     };
 
     let focused_view = radio_app_state.read().focused_view;
@@ -131,7 +130,7 @@ pub fn App() -> Element {
             background: "rgb(20, 20, 20)",
             width: "100%",
             height: "100%",
-            onkeydown: onkeydown,
+            onglobalkeydown,
             if focused_view == EditorView::Commander {
                 Commander {
                     editor_commands

@@ -65,9 +65,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                     cross_align: "center",
                     ScrollView {
                         direction: "horizontal",
-                        theme: theme_with!(ScrollViewTheme {
-                            width: format!("calc(100% - {tabsbar_tools_width})").into(),
-                        }),
+                        width: "calc(100% - {tabsbar_tools_width})",
                         show_scrollbar: false,
                         {panel.tabs().iter().enumerate().map(|(tab_index, _)| {
                             let is_selected = active_tab_index == Some(tab_index);
@@ -86,10 +84,12 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                         cross_align: "center",
                         main_align: "end",
                         height: "100%",
+                        spacing: "4",
+                        padding: "4",
                         if show_close_panel {
                             Button {
                                 theme: theme_with!(ButtonTheme {
-                                    height: "100%".into(),
+                                    height: "fill".into(),
                                     padding: "10 8".into(),
                                 }),
                                 onpress: close_panel,
@@ -100,7 +100,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                         }
                         Button {
                             theme: theme_with!(ButtonTheme {
-                                height: "100%".into(),
+                                height: "fill".into(),
                                 padding: "10 8".into(),
                             }),
                             onpress: split_panel,

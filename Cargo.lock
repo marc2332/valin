@@ -1828,7 +1828,7 @@ dependencies = [
 [[package]]
 name = "freya"
 version = "0.2.2"
-source = "git+https://github.com/marc2332/freya?branch=feat/incremental-rendering#daf1391a566ab7fee69e1bd6126e0286f7d01cf0"
+source = "git+https://github.com/marc2332/freya?rev=1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1#1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1"
 dependencies = [
  "dioxus",
  "dioxus-core",
@@ -1851,10 +1851,9 @@ dependencies = [
 [[package]]
 name = "freya-common"
 version = "0.2.1"
-source = "git+https://github.com/marc2332/freya?branch=feat/incremental-rendering#daf1391a566ab7fee69e1bd6126e0286f7d01cf0"
+source = "git+https://github.com/marc2332/freya?rev=1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1#1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1"
 dependencies = [
  "accesskit",
- "accesskit_winit",
  "dioxus-core",
  "freya-engine",
  "freya-native-core",
@@ -1868,7 +1867,7 @@ dependencies = [
 [[package]]
 name = "freya-components"
 version = "0.2.1"
-source = "git+https://github.com/marc2332/freya?branch=feat/incremental-rendering#daf1391a566ab7fee69e1bd6126e0286f7d01cf0"
+source = "git+https://github.com/marc2332/freya?rev=1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1#1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1"
 dependencies = [
  "bytes",
  "dioxus",
@@ -1891,9 +1890,10 @@ dependencies = [
 [[package]]
 name = "freya-core"
 version = "0.2.1"
-source = "git+https://github.com/marc2332/freya?branch=feat/incremental-rendering#daf1391a566ab7fee69e1bd6126e0286f7d01cf0"
+source = "git+https://github.com/marc2332/freya?rev=1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1#1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1"
 dependencies = [
  "accesskit",
+ "accesskit_winit",
  "dioxus-core",
  "freya-common",
  "freya-elements",
@@ -1913,7 +1913,7 @@ dependencies = [
 [[package]]
 name = "freya-elements"
 version = "0.2.0"
-source = "git+https://github.com/marc2332/freya?branch=feat/incremental-rendering#daf1391a566ab7fee69e1bd6126e0286f7d01cf0"
+source = "git+https://github.com/marc2332/freya?rev=1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1#1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1"
 dependencies = [
  "dioxus-core",
  "dioxus-rsx",
@@ -1925,7 +1925,7 @@ dependencies = [
 [[package]]
 name = "freya-engine"
 version = "0.2.2"
-source = "git+https://github.com/marc2332/freya?branch=feat/incremental-rendering#daf1391a566ab7fee69e1bd6126e0286f7d01cf0"
+source = "git+https://github.com/marc2332/freya?rev=1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1#1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1"
 dependencies = [
  "bitflags 2.6.0",
  "glutin",
@@ -1935,7 +1935,7 @@ dependencies = [
 [[package]]
 name = "freya-hooks"
 version = "0.2.1"
-source = "git+https://github.com/marc2332/freya?branch=feat/incremental-rendering#daf1391a566ab7fee69e1bd6126e0286f7d01cf0"
+source = "git+https://github.com/marc2332/freya?rev=1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1#1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1"
 dependencies = [
  "bitflags 2.6.0",
  "bytes",
@@ -1960,7 +1960,7 @@ dependencies = [
 [[package]]
 name = "freya-native-core"
 version = "0.2.1"
-source = "git+https://github.com/marc2332/freya?branch=feat/incremental-rendering#daf1391a566ab7fee69e1bd6126e0286f7d01cf0"
+source = "git+https://github.com/marc2332/freya?rev=1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1#1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1"
 dependencies = [
  "anymap",
  "dashmap",
@@ -1974,7 +1974,7 @@ dependencies = [
 [[package]]
 name = "freya-native-core-macro"
 version = "0.2.0"
-source = "git+https://github.com/marc2332/freya?branch=feat/incremental-rendering#daf1391a566ab7fee69e1bd6126e0286f7d01cf0"
+source = "git+https://github.com/marc2332/freya?rev=1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1#1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1"
 dependencies = [
  "quote",
  "syn 2.0.72",
@@ -1983,7 +1983,7 @@ dependencies = [
 [[package]]
 name = "freya-node-state"
 version = "0.2.1"
-source = "git+https://github.com/marc2332/freya?branch=feat/incremental-rendering#daf1391a566ab7fee69e1bd6126e0286f7d01cf0"
+source = "git+https://github.com/marc2332/freya?rev=1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1#1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1"
 dependencies = [
  "accesskit",
  "bytes",
@@ -1997,13 +1997,14 @@ dependencies = [
  "shipyard",
  "tokio",
  "torin",
+ "tracing",
  "uuid",
 ]
 
 [[package]]
 name = "freya-renderer"
 version = "0.2.1"
-source = "git+https://github.com/marc2332/freya?branch=feat/incremental-rendering#daf1391a566ab7fee69e1bd6126e0286f7d01cf0"
+source = "git+https://github.com/marc2332/freya?rev=1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1#1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1"
 dependencies = [
  "accesskit",
  "accesskit_winit",
@@ -5057,7 +5058,7 @@ dependencies = [
 [[package]]
 name = "torin"
 version = "0.2.0"
-source = "git+https://github.com/marc2332/freya?branch=feat/incremental-rendering#daf1391a566ab7fee69e1bd6126e0286f7d01cf0"
+source = "git+https://github.com/marc2332/freya?rev=1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1#1b1a24a84e2a80bffc3d439ae023cb9a812ec1b1"
 dependencies = [
  "euclid",
  "freya-native-core",
