@@ -31,7 +31,7 @@ pub fn Commander(CommanderProps { editor_commands }: CommanderProps) -> Element 
         })
         .collect::<Vec<String>>();
     let filtered_commands_len = filtered_commands.len();
-    let options_height = ((filtered_commands_len.max(1)) * 30).min(200);
+    let options_height = ((filtered_commands_len.max(1)) * 30).max(175);
 
     let onchange = move |v| {
         if *value.read() != v {
@@ -43,8 +43,6 @@ pub fn Commander(CommanderProps { editor_commands }: CommanderProps) -> Element 
     let command_id = filtered_commands.get(selected()).cloned();
 
     let onsubmit = move |_: String| {
-        to_owned![command_id];
-
         let editor_commands = editor_commands.read();
         let command = command_id
             .as_ref()
@@ -98,16 +96,19 @@ pub fn Commander(CommanderProps { editor_commands }: CommanderProps) -> Element 
             onkeydown,
             rect {
                 width: "100%",
+                height: "100v",
                 main_align: "center",
                 cross_align: "center",
-                padding: "10",
                 rect {
                     background: "rgb(45, 45, 45)",
                     shadow: "0 4 15 8 rgb(0, 0, 0, 0.3)",
-                    corner_radius: "10",
-                    onmousedown: |_| {},
-                    width: "300",
+                    corner_radius: "12",
+                    onmousedown: |e| {
+                        e.stop_propagation();
+                    },
+                    width: "500",
                     padding: "5",
+                    spacing: "5",
                     TextArea {
                         placeholder: "Run a command...",
                         value: "{value}",
