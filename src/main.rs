@@ -45,6 +45,10 @@ struct Args {
     // Open certain folders or files.
     #[arg(num_args(0..))]
     paths: Vec<PathBuf>,
+
+    /// Enable the performance overlay.
+    #[arg(short, long)]
+    performance_overlay: bool,
 }
 
 fn main() {
@@ -63,6 +67,12 @@ fn main() {
 
     info!("Starting valin. \n{args:#?}");
 
+    let mut config = LaunchConfig::<Arc<Args>>::default();
+
+    if args.performance_overlay {
+        config = config.with_plugin(PerformanceOverlayPlugin::default())
+    }
+
     launch_cfg(
         || {
             rsx!(
@@ -72,7 +82,7 @@ fn main() {
                 }
             )
         },
-        LaunchConfig::<Arc<Args>>::default()
+        config
             .with_size(1280.0, 720.0)
             .with_title("Valin")
             .with_state(Arc::new(args)),
