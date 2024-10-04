@@ -1,5 +1,6 @@
 use std::ops::Range;
 
+use dioxus_use_computed::hooks::use_computed;
 use freya::prelude::*;
 use freya::prelude::{dioxus_elements, keyboard::Key, use_applied_theme};
 
@@ -292,12 +293,10 @@ pub fn EditorScrollView<
         items_length as f32,
     );
 
-    let children = use_memo(use_reactive(
-        &(render_range, props.builder_args),
-        move |(render_range, builder_args)| {
-            rsx!({ render_range.map(|i| (props.builder)(i, &builder_args)) })
-        },
-    ));
+    let children = use_computed(
+        (render_range.clone(), props.builder_args.clone()),
+        move || rsx!({ render_range.map(|i| (props.builder)(i, &props.builder_args)) }),
+    );
 
     let is_scrolling_x = clicking_scrollbar
         .read()

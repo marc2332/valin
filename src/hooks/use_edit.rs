@@ -1,4 +1,5 @@
-use dioxus::{dioxus_core::AttributeValue, prelude::use_memo};
+use dioxus::dioxus_core::AttributeValue;
+use dioxus_use_computed::hooks::use_computed;
 use freya::core::prelude::{EventMessage, TextGroupMeasurement};
 
 use crate::tabs::editor::AppStateEditorUtils;
@@ -171,9 +172,9 @@ pub fn use_edit(radio: &RadioAppState, panel_index: usize, tab_index: usize) -> 
     let platform = use_platform();
     let mut cursor_receiver_task = use_signal::<Option<Task>>(|| None);
 
-    let cursor_reference = use_memo(use_reactive(&(panel_index, tab_index), {
+    let cursor_reference = use_computed((panel_index, tab_index), {
         to_owned![radio];
-        move |(panel_index, tab_index)| {
+        move || {
             if let Some(cursor_receiver_task) = cursor_receiver_task.write_unchecked().take() {
                 cursor_receiver_task.cancel();
             }
@@ -256,7 +257,7 @@ pub fn use_edit(radio: &RadioAppState, panel_index: usize, tab_index: usize) -> 
 
             cursor_reference
         }
-    }));
+    });
 
     UseEdit {
         radio: *radio,

@@ -1481,6 +1481,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "dioxus-use-computed"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3a3ae58cf104712482c4f170598ceff16c25c06faacf56a3e319d1a29eedda2"
+dependencies = [
+ "dioxus-lib",
+]
+
+[[package]]
 name = "dispatch"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5289,6 +5298,7 @@ dependencies = [
  "dioxus",
  "dioxus-radio",
  "dioxus-sdk",
+ "dioxus-use-computed",
  "freya",
  "freya-hooks",
  "freya-node-state",

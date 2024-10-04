@@ -38,6 +38,7 @@ home = "0.5.9"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 notify = "6.1.1"
+dioxus-use-computed = "0.1.0"
 
 
 [profile.release]
