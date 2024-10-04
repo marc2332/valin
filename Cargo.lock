@@ -5290,7 +5290,7 @@ dependencies = [
 
 [[package]]
 name = "valin"
-version = "0.0.12"
+version = "0.0.13"
 dependencies = [
  "async-lsp",
  "async-trait",
