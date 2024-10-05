@@ -1,5 +1,4 @@
 use dioxus::dioxus_core::AttributeValue;
-use dioxus_use_computed::hooks::use_computed;
 use freya::core::prelude::{EventMessage, TextGroupMeasurement};
 
 use crate::tabs::editor::AppStateEditorUtils;
@@ -172,9 +171,9 @@ pub fn use_edit(radio: &RadioAppState, panel_index: usize, tab_index: usize) -> 
     let platform = use_platform();
     let mut cursor_receiver_task = use_signal::<Option<Task>>(|| None);
 
-    let cursor_reference = use_computed((panel_index, tab_index), {
+    let cursor_reference = use_memo(use_reactive(&(panel_index, tab_index), {
         to_owned![radio];
-        move || {
+        move |(panel_index, tab_index)| {
             if let Some(cursor_receiver_task) = cursor_receiver_task.write_unchecked().take() {
                 cursor_receiver_task.cancel();
             }
@@ -200,16 +199,15 @@ pub fn use_edit(radio: &RadioAppState, panel_index: usize, tab_index: usize) -> 
                                 id,
                             );
 
-                            // Only update if it's actually different
-                            if editor_tab.editor.cursor != new_cursor {
+                            // Only update and clear the selection if the cursor has changed
+                            if editor_tab.editor.cursor() != new_cursor {
                                 let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
                                 *editor_tab.editor.cursor_mut() = new_cursor;
-
                                 if let TextDragging::FromCursorToPoint { cursor: from, .. } =
-                                    dragging()
+                                    &*dragging.read()
                                 {
                                     let to = editor_tab.editor.cursor_pos();
-                                    editor_tab.editor.set_selection((from, to));
+                                    editor_tab.editor.set_selection((*from, to));
                                 } else {
                                     editor_tab.editor.clear_selection();
                                 }
@@ -218,34 +216,26 @@ pub fn use_edit(radio: &RadioAppState, panel_index: usize, tab_index: usize) -> 
                         // Update the text selections calculated by the layout
                         CursorLayoutResponse::TextSelection { from, to, id } => {
                             let mut app_state = radio.write();
-                            let editor_tab = app_state.editor_tab(panel_index, tab_index);
+                            let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
 
                             let current_cursor = editor_tab.editor.cursor().clone();
                             let current_selection = editor_tab.editor.get_selection();
 
                             let maybe_new_cursor = editor_tab.editor.measure_new_cursor(to, id);
-                            let (from, to) = (
-                                editor_tab.editor.utf16_cu_to_char(from),
-                                editor_tab.editor.utf16_cu_to_char(to),
-                            );
                             let maybe_new_selection =
                                 editor_tab.editor.measure_new_selection(from, to, id);
 
                             // Update the text selection if it has changed
                             if let Some(current_selection) = current_selection {
                                 if current_selection != maybe_new_selection {
-                                    let editor_tab =
-                                        app_state.editor_tab_mut(panel_index, tab_index);
                                     editor_tab.editor.set_selection(maybe_new_selection);
                                 }
                             } else {
-                                let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
                                 editor_tab.editor.set_selection(maybe_new_selection);
                             }
 
                             // Update the cursor if it has changed
                             if current_cursor != maybe_new_cursor {
-                                let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
                                 *editor_tab.editor.cursor_mut() = maybe_new_cursor;
                             }
                         }
@@ -257,7 +247,7 @@ pub fn use_edit(radio: &RadioAppState, panel_index: usize, tab_index: usize) -> 
 
             cursor_reference
         }
-    });
+    }));
 
     UseEdit {
         radio: *radio,

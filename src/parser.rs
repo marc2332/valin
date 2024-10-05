@@ -1,5 +1,6 @@
 use std::{borrow::Cow, ops::Range};
 
+use fxhash::FxHashMap;
 use ropey::Rope;
 use smallvec::SmallVec;
 
@@ -60,16 +61,16 @@ pub type SyntaxLine = SmallVec<[(SyntaxType, TextNode); 4]>;
 
 #[derive(Default)]
 pub struct SyntaxBlocks {
-    blocks: Vec<SyntaxLine>,
+    blocks: FxHashMap<usize, SyntaxLine>,
 }
 
 impl SyntaxBlocks {
     pub fn push_line(&mut self, line: SyntaxLine) {
-        self.blocks.push(line);
+        self.blocks.insert(self.len(), line);
     }
 
     pub fn get_line(&self, line: usize) -> &[(SyntaxType, TextNode)] {
-        &self.blocks[line]
+        self.blocks.get(&line).unwrap()
     }
 
     pub fn len(&self) -> usize {

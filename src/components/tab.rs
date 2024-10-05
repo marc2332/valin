@@ -11,7 +11,7 @@ pub fn EditorTab(
     is_edited: bool,
 ) -> Element {
     let mut status = use_signal(ButtonStatus::default);
-    let theme = use_get_theme();
+    let theme = use_applied_theme!(None, button);
     let platform = use_platform();
 
     use_drop(move || {
@@ -35,7 +35,7 @@ pub fn EditorTab(
         ButtonStatus::Hovering => "rgb(30, 30, 30)",
         ButtonStatus::Idle => "transparent",
     };
-    let color = theme.button.font_theme.color;
+    let color = theme.font_theme.color;
     let selected_color = if is_selected {
         "rgb(60, 60, 60)"
     } else {

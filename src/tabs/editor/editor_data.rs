@@ -153,29 +153,60 @@ impl TextEditor for EditorData {
         unimplemented!("Unused.")
     }
 
-    fn insert_char(&mut self, char: char, char_idx: usize) {
+    fn insert_char(&mut self, ch: char, idx: usize) -> usize {
+        let idx_utf8 = self.utf16_cu_to_char(idx);
+
+        let len_before_insert = self.len_utf16_cu();
+        self.rope.borrow_mut().insert_char(idx_utf8, ch);
+        let len_after_insert = self.len_utf16_cu();
+
+        let inserted_text_len = len_after_insert - len_before_insert;
+
         self.history.push_change(HistoryChange::InsertChar {
-            idx: char_idx,
-            char,
+            idx,
+            ch,
+            len: inserted_text_len,
         });
-        self.rope.borrow_mut().insert_char(char_idx, char);
+
+        inserted_text_len
     }
 
-    fn insert(&mut self, text: &str, idx: usize) {
+    fn insert(&mut self, text: &str, idx: usize) -> usize {
+        let idx_utf8 = self.utf16_cu_to_char(idx);
+
+        let len_before_insert = self.len_utf16_cu();
+        self.rope.borrow_mut().insert(idx_utf8, text);
+        let len_after_insert = self.len_utf16_cu();
+
+        let inserted_text_len = len_after_insert - len_before_insert;
+
         self.history.push_change(HistoryChange::InsertText {
             idx,
             text: text.to_owned(),
+            len: inserted_text_len,
         });
-        self.rope.borrow_mut().insert(idx, text);
+
+        inserted_text_len
     }
 
-    fn remove(&mut self, range: Range<usize>) {
+    fn remove(&mut self, range_utf16: Range<usize>) -> usize {
+        let range =
+            self.utf16_cu_to_char(range_utf16.start)..self.utf16_cu_to_char(range_utf16.end);
         let text = self.rope.borrow().slice(range.clone()).to_string();
+
+        let len_before_remove = self.len_utf16_cu();
+        self.rope.borrow_mut().remove(range);
+        let len_after_remove = self.len_utf16_cu();
+
+        let removed_text_len = len_before_remove - len_after_remove;
+
         self.history.push_change(HistoryChange::Remove {
-            idx: range.start,
+            idx: range_utf16.end - removed_text_len,
             text,
+            len: removed_text_len,
         });
-        self.rope.borrow_mut().remove(range)
+
+        removed_text_len
     }
 
     fn char_to_line(&self, char_idx: usize) -> usize {
@@ -200,6 +231,7 @@ impl TextEditor for EditorData {
 
         line.map(|line| Line {
             text: Cow::Owned(line.to_string()),
+            utf16_len: line.len_utf16_cu(),
         })
     }
 
@@ -209,6 +241,10 @@ impl TextEditor for EditorData {
 
     fn len_chars(&self) -> usize {
         self.rope.borrow().len_chars()
+    }
+
+    fn len_utf16_cu(&self) -> usize {
+        self.rope.borrow().len_utf16_cu()
     }
 
     fn cursor(&self) -> &TextCursor {
@@ -238,25 +274,21 @@ impl TextEditor for EditorData {
 
     fn get_visible_selection(&self, editor_id: usize) -> Option<(usize, usize)> {
         let (selected_from, selected_to) = self.selected?;
+        let selected_from_row = self.char_to_line(self.utf16_cu_to_char(selected_from));
+        let selected_to_row = self.char_to_line(self.utf16_cu_to_char(selected_to));
 
-        let selected_to_row = self.char_to_line(selected_to);
-        let selected_from_row = self.char_to_line(selected_from);
+        let editor_row_idx = self.char_to_utf16_cu(self.line_to_char(editor_id));
+        let selected_from_row_idx = self.char_to_utf16_cu(self.line_to_char(selected_from_row));
+        let selected_to_row_idx = self.char_to_utf16_cu(self.line_to_char(selected_to_row));
 
-        let selected_to_line = self.char_to_line(selected_to);
-        let selected_from_line = self.char_to_line(selected_from);
-
-        let editor_row_idx = self.line_to_char(editor_id);
-        let selected_to_row_idx = self.line_to_char(selected_to_line);
-        let selected_from_row_idx = self.line_to_char(selected_from_line);
-
-        let selected_to_col_idx = selected_to - selected_to_row_idx;
         let selected_from_col_idx = selected_from - selected_from_row_idx;
+        let selected_to_col_idx = selected_to - selected_to_row_idx;
 
         // Between starting line and endling line
         if (editor_id > selected_from_row && editor_id < selected_to_row)
             || (editor_id < selected_from_row && editor_id > selected_to_row)
         {
-            let len = self.line(editor_id).unwrap().len_chars();
+            let len = self.line(editor_id).unwrap().utf16_len();
             return Some((0, len));
         }
 
@@ -268,7 +300,7 @@ impl TextEditor for EditorData {
                     Some((0, selected_from_col_idx))
                 } else if selected_to_row == editor_id {
                     // Ending line
-                    let len = self.line(selected_to_row).unwrap().len_chars();
+                    let len = self.line(selected_to_row).unwrap().utf16_len();
                     Some((selected_to_col_idx, len))
                 } else {
                     None
@@ -278,7 +310,7 @@ impl TextEditor for EditorData {
             Ordering::Less => {
                 if selected_from_row == editor_id {
                     // Starting line
-                    let len = self.line(selected_from_row).unwrap().len_chars();
+                    let len = self.line(selected_from_row).unwrap().utf16_len();
                     Some((selected_from_col_idx, len))
                 } else if selected_to_row == editor_id {
                     // Ending line
@@ -287,17 +319,14 @@ impl TextEditor for EditorData {
                     None
                 }
             }
-            Ordering::Equal => {
+            Ordering::Equal if selected_from_row == editor_id => {
                 // Starting and endline line are the same
-                if selected_from_row == editor_id {
-                    Some((selected_from - editor_row_idx, selected_to - editor_row_idx))
-                } else {
-                    None
-                }
+                Some((selected_from - editor_row_idx, selected_to - editor_row_idx))
             }
+            _ => None,
         };
 
-        highlights.map(|(from, to)| (self.char_to_utf16_cu(from), self.char_to_utf16_cu(to)))
+        highlights
     }
 
     fn set(&mut self, text: &str) {
@@ -311,6 +340,7 @@ impl TextEditor for EditorData {
 
     fn measure_new_selection(&self, from: usize, to: usize, editor_id: usize) -> (usize, usize) {
         let row_idx = self.line_to_char(editor_id);
+        let row_idx = self.char_to_utf16_cu(row_idx);
         if let Some((start, _)) = self.selected {
             (start, row_idx + to)
         } else {
@@ -320,7 +350,7 @@ impl TextEditor for EditorData {
 
     fn measure_new_cursor(&self, to: usize, editor_id: usize) -> TextCursor {
         let row_char = self.line_to_char(editor_id);
-        let pos = row_char + to;
+        let pos = self.char_to_utf16_cu(row_char) + to;
         TextCursor::new(pos)
     }
 
