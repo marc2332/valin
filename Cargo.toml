@@ -1,15 +1,15 @@
 [package]
 name = "valin"
-version = "0.0.13"
+version = "0.0.14"
 edition = "2021"
 
 [patch.crates-io]
 dioxus-sdk = { git = "https://github.com/DioxusLabs/sdk", rev = "57ab3fa972c6d4a7acc25e82a0aafc3ff9e63403" }
 
 [dependencies]
-freya-node-state = { git = "https://github.com/marc2332/freya", rev = "523a9d98339c356d4edc43fec7f87ba35c3ffe59" }
-freya = { git = "https://github.com/marc2332/freya", rev = "523a9d98339c356d4edc43fec7f87ba35c3ffe59" }
-freya-hooks = { git = "https://github.com/marc2332/freya", rev = "523a9d98339c356d4edc43fec7f87ba35c3ffe59" }
+freya-node-state = { git = "https://github.com/marc2332/freya", rev = "44d1ee86154fa12bb3e5a0f70dbd752f012a909a" }
+freya = { git = "https://github.com/marc2332/freya", rev = "44d1ee86154fa12bb3e5a0f70dbd752f012a909a" }
+freya-hooks = { git = "https://github.com/marc2332/freya", rev = "44d1ee86154fa12bb3e5a0f70dbd752f012a909a" }
 
 dioxus-radio = "0.2.4"
 dioxus = "0.5"

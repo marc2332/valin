@@ -83,7 +83,7 @@ pub fn TextArea(props: TextAreaProps) -> Element {
             margin: "0 0 2 0",
             cursor_reference,
             a11y_id: focus.attribute(),
-            a11y_role: "textInput",
+            a11y_role: "text-input",
             a11y_auto_focus: "true",
             onkeydown,
             paragraph {
