@@ -90,7 +90,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                             Button {
                                 theme: theme_with!(ButtonTheme {
                                     height: "fill".into(),
-                                    padding: "10 8".into(),
+                                    padding: "0 8".into(),
                                 }),
                                 onpress: close_panel,
                                 label {
@@ -101,7 +101,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                         Button {
                             theme: theme_with!(ButtonTheme {
                                 height: "fill".into(),
-                                padding: "10 8".into(),
+                                padding: "0 8".into(),
                             }),
                             onpress: split_panel,
                             label {

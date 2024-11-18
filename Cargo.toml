@@ -1,23 +1,21 @@
 [package]
 name = "valin"
-version = "0.0.15"
+version = "0.0.16"
 edition = "2021"
 
-[patch.crates-io]
-dioxus-sdk = { git = "https://github.com/DioxusLabs/sdk", rev = "57ab3fa972c6d4a7acc25e82a0aafc3ff9e63403" }
-
 [dependencies]
-freya-node-state = { git = "https://github.com/marc2332/freya", rev = "175aa299029e797b7288f51b4d95c2d53a45fce9" }
-freya = { git = "https://github.com/marc2332/freya", rev = "175aa299029e797b7288f51b4d95c2d53a45fce9" }
-freya-hooks = { git = "https://github.com/marc2332/freya", rev = "175aa299029e797b7288f51b4d95c2d53a45fce9" }
+freya-node-state = { git = "https://github.com/marc2332/freya", rev = "e617db5a733297fc4e52f75936b53a690d807c82" }
+freya = { git = "https://github.com/marc2332/freya", rev = "e617db5a733297fc4e52f75936b53a690d807c82" }
+freya-hooks = { git = "https://github.com/marc2332/freya", rev = "e617db5a733297fc4e52f75936b53a690d807c82" }
 
 dioxus-radio = "0.2.4"
 dioxus = "0.5"
-dioxus-sdk = { git = "https://github.com/DioxusLabs/sdk", rev = "57ab3fa972c6d4a7acc25e82a0aafc3ff9e63403", features = ["clipboard", "timing"] }
+dioxus-clipboard = "*"
+dioxus-sdk = { git = "https://github.com/DioxusLabs/sdk", rev = "57ab3fa972c6d4a7acc25e82a0aafc3ff9e63403", features = ["timing"] }
 
 tokio = { version = "1.33.0", features = ["fs", "process"]}
 winit = "0.30.1"
-skia-safe = { version = "0.75.0", features = ["gl", "textlayout", "svg"] }
+skia-safe = { version = "0.80.0", features = ["gl", "textlayout", "svg"] }
 
 ropey = "1.6.0"
 smallvec = "1.10.0"

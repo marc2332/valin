@@ -8,8 +8,8 @@ use crate::{
 use crate::{global_defaults::GlobalDefaults, state::KeyboardShortcuts};
 use crate::{hooks::*, settings::watch_settings};
 use crate::{tabs::editor::EditorTab, utils::*};
+use dioxus_clipboard::prelude::use_clipboard;
 use dioxus_radio::prelude::*;
-use dioxus_sdk::clipboard::use_clipboard;
 use freya::prelude::*;
 use std::sync::Arc;
 use tracing::info;

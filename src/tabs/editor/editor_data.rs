@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::{cmp::Ordering, fmt::Display, ops::Range, path::PathBuf};
 
-use dioxus_sdk::clipboard::UseClipboard;
+use dioxus_clipboard::prelude::UseClipboard;
 use freya::hooks::{EditorHistory, HistoryChange, Line, TextCursor, TextEditor};
 use freya::prelude::Rope;
 use freya_hooks::LinesIterator;
@@ -145,7 +145,8 @@ impl Display for EditorData {
 }
 
 impl TextEditor for EditorData {
-    type LinesIterator<'a> = LinesIterator<'a>
+    type LinesIterator<'a>
+        = LinesIterator<'a>
     where
         Self: 'a;
 

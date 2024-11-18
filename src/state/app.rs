@@ -1,7 +1,7 @@
 use std::{collections::HashMap, vec};
 
+use dioxus_clipboard::prelude::UseClipboard;
 use dioxus_radio::prelude::{Radio, RadioChannel};
-use dioxus_sdk::clipboard::UseClipboard;
 use skia_safe::{textlayout::FontCollection, FontMgr};
 use tracing::info;
 
