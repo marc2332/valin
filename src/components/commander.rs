@@ -1,6 +1,6 @@
 use crate::{
-    state::{Channel, EditorCommands, EditorView},
-    TextArea,
+    state::{Channel, CommandRunContext, EditorCommands},
+    Overlay, TextArea,
 };
 use dioxus_radio::prelude::use_radio;
 use freya::prelude::*;
@@ -48,11 +48,15 @@ pub fn Commander(CommanderProps { editor_commands }: CommanderProps) -> Element 
             .as_ref()
             .and_then(|command_i| editor_commands.commands.get(command_i));
         if let Some(command) = command {
-            // Run the command
-            command.run();
+            let mut ctx = CommandRunContext::default();
 
-            let mut app_state = radio_app_state.write();
-            app_state.set_focused_view_to_previous();
+            // Run the command
+            command.run(&mut ctx);
+
+            if ctx.focus_previous_view {
+                let mut app_state = radio_app_state.write();
+                app_state.set_focused_view_to_previous();
+            }
         }
     };
 
@@ -80,51 +84,26 @@ pub fn Commander(CommanderProps { editor_commands }: CommanderProps) -> Element 
         }
     };
 
-    let onglobalmousedown = move |_| {
-        if *radio_app_state.read().focused_view() == EditorView::Commander {
-            let mut app_state = radio_app_state.write_channel(Channel::Global);
-            app_state.set_focused_view_to_previous();
-        }
-    };
-
     rsx!(
-        rect {
-            width: "100%",
-            height: "0",
-            layer: "-100",
-            onglobalmousedown,
-            onkeydown,
+        Overlay {
             rect {
-                width: "100%",
-                height: "100v",
-                main_align: "center",
-                cross_align: "center",
-                rect {
-                    background: "rgb(45, 45, 45)",
-                    shadow: "0 4 15 8 rgb(0, 0, 0, 0.3)",
-                    corner_radius: "12",
-                    onmousedown: |e| {
-                        e.stop_propagation();
-                    },
-                    width: "500",
-                    padding: "5",
-                    spacing: "5",
-                    TextArea {
-                        placeholder: "Run a command...",
-                        value: "{value}",
-                        onchange,
-                        onsubmit,
+                onkeydown,
+                spacing: "5",
+                TextArea {
+                    placeholder: "Run a command...",
+                    value: "{value}",
+                    onchange,
+                    onsubmit,
+                }
+                ScrollView {
+                    height: "{options_height}",
+                    if filtered_commands.is_empty() {
+                        {commander_option("not-found", "Command Not Found", true)}
                     }
-                    ScrollView {
-                        height: "{options_height}",
-                        if filtered_commands.is_empty() {
-                            {commander_option("not-found", "Command Not Found", true)}
-                        }
-                        for (n, command_id) in filtered_commands.into_iter().enumerate() {
-                            {
-                                let command = commands.commands.get(&command_id).unwrap();
-                                commander_option(&command_id, command.text(), n == selected())
-                            }
+                    for (n, command_id) in filtered_commands.into_iter().enumerate() {
+                        {
+                            let command = commands.commands.get(&command_id).unwrap();
+                            commander_option(&command_id, command.text(), n == selected())
                         }
                     }
                 }
