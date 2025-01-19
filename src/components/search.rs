@@ -31,7 +31,7 @@ pub fn Search() -> Element {
             .line_number(true)
             .build();
 
-        let path = "D:\\Projects\\freya-editor\\Cargo.toml";
+        let path = "...";
 
         searcher
             .search_path(
