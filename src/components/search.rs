@@ -1,10 +1,7 @@
-use clap::ColorChoice;
 use freya::prelude::*;
 use grep::{
-    cli::StandardStream,
-    printer::{ColorSpecs, StandardBuilder},
     regex::RegexMatcher,
-    searcher::{sinks::UTF8, BinaryDetection, Searcher, SearcherBuilder, Sink, SinkMatch},
+    searcher::{sinks::UTF8, BinaryDetection, SearcherBuilder},
 };
 
 use crate::{Overlay, TextArea};
@@ -36,25 +33,28 @@ pub fn Search() -> Element {
 
         let path = "D:\\Projects\\freya-editor\\Cargo.toml";
 
-        let _ = searcher.search_path(&matcher, path, UTF8(|a, b| {
-            print!("{}:{}", a, b);
-            results.push((a, b.to_string()));
-            Ok(true)
-        })).unwrap();
+        searcher
+            .search_path(
+                &matcher,
+                path,
+                UTF8(|a, b| {
+                    print!("{}:{}", a, b);
+                    results.push((a, b.to_string()));
+                    Ok(true)
+                }),
+            )
+            .unwrap();
 
         results
     });
 
     let onsubmit = move |_: String| {
         println!("{value}");
-
-       
     };
 
     let onkeydown = move |e: KeyboardEvent| {
         e.stop_propagation();
         focus.prevent_navigation();
-
     };
 
     rsx!(

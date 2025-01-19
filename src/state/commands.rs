@@ -1,16 +1,9 @@
 use std::collections::HashMap;
 
+#[derive(Default)]
 pub struct CommandRunContext {
     /// Only for Commander.
     pub focus_previous_view: bool,
-}
-
-impl Default for CommandRunContext {
-    fn default() -> Self {
-        Self {
-            focus_previous_view: false,
-        }
-    }
 }
 
 pub trait EditorCommand {
