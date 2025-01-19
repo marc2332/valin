@@ -8,7 +8,7 @@ freya-node-state = { git = "https://github.com/marc2332/freya", rev = "621f10540
 freya = { git = "https://github.com/marc2332/freya", rev = "621f10540ab7df1d79615704eed720e86f46ee0b" }
 freya-hooks = { git = "https://github.com/marc2332/freya", rev = "621f10540ab7df1d79615704eed720e86f46ee0b" }
 
-dioxus-radio = "0.2.4"
+dioxus-radio = "0.2.5"
 dioxus = "0.5"
 dioxus-clipboard = "*"
 dioxus-sdk = { git = "https://github.com/DioxusLabs/sdk", rev = "57ab3fa972c6d4a7acc25e82a0aafc3ff9e63403", features = ["timing"] }

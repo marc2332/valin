@@ -1,6 +1,6 @@
 use crate::{
     state::{Channel, CommandRunContext, EditorCommand, EditorView, Panel, RadioAppState},
-    tabs::settings::Settings,
+    views::panels::tabs::settings::Settings,
 };
 
 #[allow(non_snake_case)]

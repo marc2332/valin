@@ -1,6 +1,6 @@
 #[allow(non_snake_case)]
 pub mod Settings {
-    use crate::{settings::settings_path, state::AppState, tabs::editor::EditorTab};
+    use crate::{settings::settings_path, state::AppState, views::panels::tabs::editor::EditorTab};
 
     pub fn open_with(app_state: &mut AppState) {
         let settings_path = settings_path().unwrap();

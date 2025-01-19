@@ -3,7 +3,7 @@ use freya::prelude::*;
 
 use crate::{
     state::{Channel, EditorSidePanel, EditorView},
-    tabs::{editor::TabEditorUtils, settings::Settings},
+    views::panels::tabs::{editor::TabEditorUtils, settings::Settings},
     LspStatuses,
 };
 

@@ -1,24 +1,21 @@
 use dioxus::dioxus_core::AttributeValue;
 use freya::core::prelude::{EventMessage, TextGroupMeasurement};
 
-use crate::tabs::editor::AppStateEditorUtils;
+use crate::views::panels::tabs::editor::{AppStateEditorUtils, EditorTab};
 use freya::common::CursorLayoutResponse;
 use freya::prelude::{keyboard::Modifiers, *};
 use freya_node_state::CursorReference;
 use tokio::sync::mpsc::unbounded_channel;
 use uuid::Uuid;
 
-use crate::state::RadioAppState;
+use crate::state::{Channel, RadioAppState};
 
 /// Manage an editable content.
 #[derive(Clone, Copy, PartialEq)]
 pub struct UseEdit {
-    pub(crate) radio: RadioAppState,
     pub(crate) cursor_reference: Memo<CursorReference>,
     pub(crate) dragging: Signal<TextDragging>,
     pub(crate) platform: UsePlatform,
-    pub(crate) panel_index: usize,
-    pub(crate) tab_index: usize,
 }
 
 impl UseEdit {
@@ -30,9 +27,7 @@ impl UseEdit {
     }
 
     /// Check if there is any highlight at all.
-    pub fn has_any_highlight(&self) -> bool {
-        let app_state = self.radio.read();
-        let editor_tab = app_state.editor_tab(self.panel_index, self.tab_index);
+    pub fn has_any_highlight(&self, editor_tab: &EditorTab) -> bool {
         editor_tab
             .editor
             .selected
@@ -41,9 +36,7 @@ impl UseEdit {
     }
 
     /// Create a highlights attribute.
-    pub fn highlights_attr(&self, editor_id: usize) -> AttributeValue {
-        let app_state = self.radio.read();
-        let editor_tab = app_state.editor_tab(self.panel_index, self.tab_index);
+    pub fn highlights_attr(&self, editor_id: usize, editor_tab: &EditorTab) -> AttributeValue {
         AttributeValue::any_value(CustomAttributeValues::TextHighlights(
             editor_tab
                 .editor
@@ -54,15 +47,12 @@ impl UseEdit {
     }
 
     /// Process a [`EditableEvent`] event.
-    pub fn process_event(&mut self, edit_event: &EditableEvent) {
+    pub fn process_event(&mut self, edit_event: &EditableEvent, editor_tab: &mut EditorTab) {
         let res = match edit_event {
             EditableEvent::MouseDown(e, id) => {
                 let coords = e.get_element_coordinates();
 
                 self.dragging.write().set_cursor_coords(coords);
-
-                let mut app_state = self.radio.write();
-                let editor_tab = app_state.editor_tab_mut(self.panel_index, self.tab_index);
                 editor_tab.editor.clear_selection();
 
                 Some((*id, Some(coords), None))
@@ -99,8 +89,6 @@ impl UseEdit {
                             *shift_pressed = true;
                         }
                         TextDragging::None => {
-                            let app_state = self.radio.read();
-                            let editor_tab = app_state.editor_tab(self.panel_index, self.tab_index);
                             *dragging = TextDragging::FromCursorToPoint {
                                 shift: true,
                                 clicked: false,
@@ -124,8 +112,6 @@ impl UseEdit {
                     return;
                 }
 
-                let mut app_state = self.radio.write();
-                let editor_tab = app_state.editor_tab_mut(self.panel_index, self.tab_index);
                 let event = editor_tab.editor.process_key(&e.key, &e.code, &e.modifiers);
                 if event.contains(TextEvent::TEXT_CHANGED) {
                     editor_tab.editor.run_parser();
@@ -166,13 +152,13 @@ impl UseEdit {
     }
 }
 
-pub fn use_edit(radio: &RadioAppState, panel_index: usize, tab_index: usize) -> UseEdit {
+pub fn use_edit(mut radio: RadioAppState, panel_index: usize, tab_index: usize) -> UseEdit {
     let dragging = use_signal(|| TextDragging::None);
     let platform = use_platform();
     let mut cursor_receiver_task = use_signal::<Option<Task>>(|| None);
+    let tab_channel = Channel::follow_tab(panel_index, tab_index);
 
     let cursor_reference = use_memo(use_reactive(&(panel_index, tab_index), {
-        to_owned![radio];
         move |(panel_index, tab_index)| {
             if let Some(cursor_receiver_task) = cursor_receiver_task.write_unchecked().take() {
                 cursor_receiver_task.cancel();
@@ -191,53 +177,67 @@ pub fn use_edit(radio: &RadioAppState, panel_index: usize, tab_index: usize) -> 
                     match message {
                         // Update the cursor position calculated by the layout
                         CursorLayoutResponse::CursorPosition { position, id } => {
-                            let mut app_state = radio.write();
-                            let editor_tab = app_state.editor_tab(panel_index, tab_index);
+                            radio.write_with_map_channel(|app_state| {
+                                let editor_tab = app_state.editor_tab(panel_index, tab_index);
 
-                            let new_cursor = editor_tab.editor.measure_new_cursor(
-                                editor_tab.editor.utf16_cu_to_char(position),
-                                id,
-                            );
+                                let new_cursor = editor_tab.editor.measure_new_cursor(
+                                    editor_tab.editor.utf16_cu_to_char(position),
+                                    id,
+                                );
 
-                            // Only update and clear the selection if the cursor has changed
-                            if editor_tab.editor.cursor() != new_cursor {
-                                let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
-                                *editor_tab.editor.cursor_mut() = new_cursor;
-                                if let TextDragging::FromCursorToPoint { cursor: from, .. } =
-                                    &*dragging.read()
-                                {
-                                    let to = editor_tab.editor.cursor_pos();
-                                    editor_tab.editor.set_selection((*from, to));
+                                // Only update and clear the selection if the cursor has changed
+                                if editor_tab.editor.cursor() != new_cursor {
+                                    let editor_tab =
+                                        app_state.editor_tab_mut(panel_index, tab_index);
+                                    *editor_tab.editor.cursor_mut() = new_cursor;
+                                    if let TextDragging::FromCursorToPoint {
+                                        cursor: from, ..
+                                    } = &*dragging.read()
+                                    {
+                                        let to = editor_tab.editor.cursor_pos();
+                                        editor_tab.editor.set_selection((*from, to));
+                                    } else {
+                                        editor_tab.editor.clear_selection();
+                                    }
+                                    tab_channel
                                 } else {
-                                    editor_tab.editor.clear_selection();
+                                    Channel::Void
                                 }
-                            }
+                            });
                         }
                         // Update the text selections calculated by the layout
                         CursorLayoutResponse::TextSelection { from, to, id } => {
-                            let mut app_state = radio.write();
-                            let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
+                            radio.write_with_map_channel(|app_state| {
+                                let mut channel = Channel::Void;
 
-                            let current_cursor = editor_tab.editor.cursor().clone();
-                            let current_selection = editor_tab.editor.get_selection();
+                                let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
 
-                            let maybe_new_cursor = editor_tab.editor.measure_new_cursor(to, id);
-                            let maybe_new_selection =
-                                editor_tab.editor.measure_new_selection(from, to, id);
+                                let current_cursor = editor_tab.editor.cursor().clone();
+                                let current_selection = editor_tab.editor.get_selection();
 
-                            // Update the text selection if it has changed
-                            if let Some(current_selection) = current_selection {
-                                if current_selection != maybe_new_selection {
+                                let maybe_new_cursor = editor_tab.editor.measure_new_cursor(to, id);
+                                let maybe_new_selection =
+                                    editor_tab.editor.measure_new_selection(from, to, id);
+
+                                // Update the text selection if it has changed
+                                if let Some(current_selection) = current_selection {
+                                    if current_selection != maybe_new_selection {
+                                        editor_tab.editor.set_selection(maybe_new_selection);
+                                        channel = tab_channel;
+                                    }
+                                } else {
                                     editor_tab.editor.set_selection(maybe_new_selection);
+                                    channel = tab_channel;
                                 }
-                            } else {
-                                editor_tab.editor.set_selection(maybe_new_selection);
-                            }
 
-                            // Update the cursor if it has changed
-                            if current_cursor != maybe_new_cursor {
-                                *editor_tab.editor.cursor_mut() = maybe_new_cursor;
-                            }
+                                // Update the cursor if it has changed
+                                if current_cursor != maybe_new_cursor {
+                                    *editor_tab.editor.cursor_mut() = maybe_new_cursor;
+                                    channel = tab_channel;
+                                }
+
+                                channel
+                            });
                         }
                     }
                 }
@@ -250,11 +250,8 @@ pub fn use_edit(radio: &RadioAppState, panel_index: usize, tab_index: usize) -> 
     }));
 
     UseEdit {
-        radio: *radio,
         cursor_reference,
         dragging,
         platform,
-        panel_index,
-        tab_index,
     }
 }

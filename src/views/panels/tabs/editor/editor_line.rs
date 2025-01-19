@@ -7,8 +7,8 @@ use lsp_types::Hover;
 use skia_safe::textlayout::Paragraph;
 
 use crate::parser::TextNode;
-use crate::tabs::editor::hover_box::HoverBox;
-use crate::tabs::editor::AppStateEditorUtils;
+use crate::views::panels::tabs::editor::hover_box::HoverBox;
+use crate::views::panels::tabs::editor::AppStateEditorUtils;
 use crate::{hooks::UseEdit, utils::create_paragraph};
 use crate::{
     lsp::{HoverToText, LspAction, UseLsp},
@@ -66,10 +66,12 @@ pub fn EditorLine(
         mut debouncer,
     }: EditorLineProps,
 ) -> Element {
-    let radio_app_state = use_radio(Channel::follow_tab(panel_index, tab_index));
+    let mut radio_app_state = use_radio(Channel::follow_tab(panel_index, tab_index));
 
     let onmousedown = move |e: MouseEvent| {
-        editable.process_event(&EditableEvent::MouseDown(e.data, line_index));
+        let mut app_state = radio_app_state.write();
+        let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
+        editable.process_event(&EditableEvent::MouseDown(e.data, line_index), editor_tab);
     };
 
     let onmouseleave = move |_| {
@@ -86,7 +88,9 @@ pub fn EditorLine(
             let coords = e.get_element_coordinates();
             let data = e.data;
 
-            editable.process_event(&EditableEvent::MouseMove(data, line_index));
+            let mut app_state = radio_app_state.write();
+            let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
+            editable.process_event(&EditableEvent::MouseMove(data, line_index), editor_tab);
 
             if !lsp.is_supported() {
                 return;
@@ -110,7 +114,7 @@ pub fn EditorLine(
     let editor = &editor_tab.editor;
     let longest_width = editor.metrics.longest_width;
     let line = editor.metrics.syntax_blocks.get_line(line_index);
-    let highlights = editable.highlights_attr(line_index);
+    let highlights = editable.highlights_attr(line_index, editor_tab);
     let gutter_width = font_size * 5.0;
 
     let is_line_selected = editor.cursor_row() == line_index;
@@ -130,7 +134,7 @@ pub fn EditorLine(
     };
 
     // Only highlight the active line when there is no text selected
-    let line_background = if is_line_selected && !editable.has_any_highlight() {
+    let line_background = if is_line_selected && !editable.has_any_highlight(editor_tab) {
         "rgb(70, 70, 70)"
     } else {
         "none"

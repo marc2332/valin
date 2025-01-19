@@ -14,8 +14,8 @@ mod metrics;
 mod parser;
 mod settings;
 mod state;
-mod tabs;
 mod utils;
+mod views;
 
 use std::{path::PathBuf, sync::Arc};
 

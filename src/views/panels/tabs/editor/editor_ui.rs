@@ -3,9 +3,9 @@ use std::{ffi::OsStr, path::PathBuf, time::Duration};
 use crate::hooks::*;
 use crate::lsp::{use_lsp, LspAction};
 use crate::state::{EditorView, TabProps};
-use crate::tabs::editor::AppStateEditorUtils;
-use crate::tabs::editor::BuilderArgs;
-use crate::tabs::editor::EditorLine;
+use crate::views::panels::tabs::editor::AppStateEditorUtils;
+use crate::views::panels::tabs::editor::BuilderArgs;
+use crate::views::panels::tabs::editor::EditorLine;
 use crate::{components::*, state::Channel};
 
 use dioxus_radio::prelude::use_radio;
@@ -29,7 +29,8 @@ pub fn EditorUi(
     }: TabProps,
 ) -> Element {
     // Subscribe to the changes of this Tab.
-    let mut radio_app_state = use_radio(Channel::follow_tab(panel_index, tab_index));
+    let tab_channel = Channel::follow_tab(panel_index, tab_index);
+    let mut radio_app_state = use_radio(tab_channel);
 
     let app_state = radio_app_state.read();
     let editor_tab = app_state.editor_tab(panel_index, tab_index);
@@ -45,7 +46,7 @@ pub fn EditorUi(
     let cursor_coords = use_signal(CursorPoint::default);
 
     // Initialize the editable text
-    let mut editable = use_edit(&radio_app_state, panel_index, tab_index);
+    let mut editable = use_edit(radio_app_state, panel_index, tab_index);
 
     // The scroll positions of the editor
     let mut scroll_offsets = use_signal(|| (0, 0));
@@ -86,36 +87,38 @@ pub fn EditorUi(
         }
     };
 
-    let onglobalclick = move |_: MouseEvent| {
-        let is_panel_focused = radio_app_state.read().focused_panel() == panel_index;
-
-        if is_panel_focused {
-            editable.process_event(&EditableEvent::Click);
-        }
-    };
-
     let onclick = move |e: MouseEvent| {
         e.stop_propagation();
         focus.focus();
-        let (is_code_editor_view_focused, is_editor_focused) = {
-            let app_state = radio_app_state.read();
+        radio_app_state.write_with_map_channel(|app_state| {
+            let mut channel = Channel::Void;
+
             let panel = app_state.panel(panel_index);
-            let is_code_editor_view_focused = *app_state.focused_view() == EditorView::Panels;
+            let is_panels_view_focused = *app_state.focused_view() == EditorView::Panels;
             let is_editor_focused =
                 app_state.focused_panel() == panel_index && panel.active_tab() == Some(tab_index);
-            (is_code_editor_view_focused, is_editor_focused)
-        };
+            let is_panel_focused = app_state.focused_panel() == panel_index;
 
-        if !is_code_editor_view_focused {
-            let mut app_state = radio_app_state.write_channel(Channel::Global);
-            app_state.set_focused_view(EditorView::Panels);
-        }
+            if is_panel_focused {
+                let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
+                editable.process_event(&EditableEvent::Click, editor_tab);
 
-        if !is_editor_focused {
-            let mut app_state = radio_app_state.write_channel(Channel::Global);
-            app_state.set_focused_panel(panel_index);
-            app_state.panel_mut(panel_index).set_active_tab(tab_index);
-        }
+                channel = tab_channel;
+            }
+
+            if !is_panels_view_focused {
+                app_state.set_focused_view(EditorView::Panels);
+                channel = Channel::Global;
+            }
+
+            if !is_editor_focused {
+                app_state.set_focused_panel(panel_index);
+                app_state.panel_mut(panel_index).set_active_tab(tab_index);
+                channel = Channel::Global;
+            }
+
+            channel
+        });
     };
 
     let cursor_reference = editable.cursor_attr();
@@ -126,66 +129,72 @@ pub fn EditorUi(
     let syntax_blocks_len = editor.metrics.syntax_blocks.len();
 
     let onkeyup = move |e: KeyboardEvent| {
-        let (is_panel_focused, is_editor_focused) = {
-            let app_state = radio_app_state.read();
+        radio_app_state.write_with_map_channel(|app_state| {
             let panel = app_state.panel(panel_index);
             let is_panel_focused = app_state.focused_panel() == panel_index;
             let is_editor_focused = *app_state.focused_view() == EditorView::Panels
                 && panel.active_tab() == Some(tab_index);
-            (is_panel_focused, is_editor_focused)
-        };
 
-        if is_panel_focused && is_editor_focused {
-            editable.process_event(&EditableEvent::KeyUp(e.data));
-        }
+            if is_panel_focused && is_editor_focused {
+                let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
+                editable.process_event(&EditableEvent::KeyUp(e.data), editor_tab);
+
+                tab_channel
+            } else {
+                Channel::Void
+            }
+        });
     };
 
     let onkeydown = move |e: KeyboardEvent| {
         focus.prevent_navigation();
         e.stop_propagation();
-        let (is_panel_focused, is_editor_focused) = {
-            let app_state = radio_app_state.read();
+        radio_app_state.write_with_map_channel(|app_state| {
             let panel = app_state.panel(panel_index);
             let is_panel_focused = app_state.focused_panel() == panel_index;
             let is_editor_focused = *app_state.focused_view() == EditorView::Panels
                 && panel.active_tab() == Some(tab_index);
-            (is_panel_focused, is_editor_focused)
-        };
 
-        if is_panel_focused && is_editor_focused {
-            let current_scroll = scroll_offsets.read().1;
-            let lines_jump = (manual_line_height * LINES_JUMP_ALT as f32).ceil() as i32;
-            let min_height = -(syntax_blocks_len as f32 * manual_line_height) as i32;
-            let max_height = 0; // TODO, this should be the height of the viewport
+            if is_panel_focused && is_editor_focused {
+                let current_scroll = scroll_offsets.read().1;
+                let lines_jump = (manual_line_height * LINES_JUMP_ALT as f32).ceil() as i32;
+                let min_height = -(syntax_blocks_len as f32 * manual_line_height) as i32;
+                let max_height = 0; // TODO, this should be the height of the viewport
 
-            let events = match &e.key {
-                Key::ArrowUp if e.modifiers.contains(Modifiers::ALT) => {
-                    let jump = (current_scroll + lines_jump).clamp(min_height, max_height);
-                    scroll_offsets.write().1 = jump;
-                    (0..LINES_JUMP_ALT)
+                let events = match &e.key {
+                    Key::ArrowUp if e.modifiers.contains(Modifiers::ALT) => {
+                        let jump = (current_scroll + lines_jump).clamp(min_height, max_height);
+                        scroll_offsets.write().1 = jump;
+                        (0..LINES_JUMP_ALT)
+                            .map(|_| EditableEvent::KeyDown(e.data.clone()))
+                            .collect::<Vec<EditableEvent>>()
+                    }
+                    Key::ArrowDown if e.modifiers.contains(Modifiers::ALT) => {
+                        let jump = (current_scroll - lines_jump).clamp(min_height, max_height);
+                        scroll_offsets.write().1 = jump;
+                        (0..LINES_JUMP_ALT)
+                            .map(|_| EditableEvent::KeyDown(e.data.clone()))
+                            .collect::<Vec<EditableEvent>>()
+                    }
+                    Key::ArrowDown | Key::ArrowUp if e.modifiers.contains(Modifiers::CONTROL) => (0
+                        ..LINES_JUMP_CONTROL)
                         .map(|_| EditableEvent::KeyDown(e.data.clone()))
-                        .collect::<Vec<EditableEvent>>()
-                }
-                Key::ArrowDown if e.modifiers.contains(Modifiers::ALT) => {
-                    let jump = (current_scroll - lines_jump).clamp(min_height, max_height);
-                    scroll_offsets.write().1 = jump;
-                    (0..LINES_JUMP_ALT)
-                        .map(|_| EditableEvent::KeyDown(e.data.clone()))
-                        .collect::<Vec<EditableEvent>>()
-                }
-                Key::ArrowDown | Key::ArrowUp if e.modifiers.contains(Modifiers::CONTROL) => (0
-                    ..LINES_JUMP_CONTROL)
-                    .map(|_| EditableEvent::KeyDown(e.data.clone()))
-                    .collect::<Vec<EditableEvent>>(),
-                _ => {
-                    vec![EditableEvent::KeyDown(e.data.clone())]
-                }
-            };
+                        .collect::<Vec<EditableEvent>>(),
+                    _ => {
+                        vec![EditableEvent::KeyDown(e.data.clone())]
+                    }
+                };
 
-            for event in events {
-                editable.process_event(&event);
+                let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
+                for event in events {
+                    editable.process_event(&event, editor_tab);
+                }
+
+                tab_channel
+            } else {
+                Channel::Void
             }
-        }
+        });
     };
 
     rsx!(
@@ -203,7 +212,6 @@ pub fn EditorUi(
                 a11y_id: focus.attribute(),
                 onkeydown,
                 onkeyup,
-                onglobalclick,
                 onclick,
                 cursor_reference,
                 EditorScrollView {

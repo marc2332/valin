@@ -1,13 +1,18 @@
+use crate::views::commander::commander_ui::Commander;
+use crate::views::file_explorer::file_explorer_ui::{
+    read_folder_as_items, ExplorerItem, FileExplorer, FolderState,
+};
+use crate::views::search::search_ui::Search;
 use crate::Args;
 use crate::{
     components::*,
     fs::{FSLocal, FSTransport},
     state::EditorCommands,
-    tabs::welcome::WelcomeTab,
+    views::panels::tabs::welcome::WelcomeTab,
 };
 use crate::{global_defaults::GlobalDefaults, state::KeyboardShortcuts};
 use crate::{hooks::*, settings::watch_settings};
-use crate::{tabs::editor::EditorTab, utils::*};
+use crate::{utils::*, views::panels::tabs::editor::EditorTab};
 use dioxus_clipboard::prelude::use_clipboard;
 use dioxus_radio::prelude::*;
 use freya::prelude::*;
@@ -72,7 +77,7 @@ pub fn App() -> Element {
                     let items =
                         read_folder_as_items(&folder_path, &app_state.default_transport).await;
                     if let Ok(items) = items {
-                        app_state.open_folder(ExplorerItem::Folder {
+                        app_state.file_explorer.open_folder(ExplorerItem::Folder {
                             path: folder_path,
                             state: FolderState::Opened(items),
                         });

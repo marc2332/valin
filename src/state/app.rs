@@ -2,15 +2,15 @@ use std::{collections::HashMap, vec};
 
 use dioxus_clipboard::prelude::UseClipboard;
 use dioxus_radio::prelude::{Radio, RadioChannel};
-use freya::prelude::AccessibilityId;
-use freya_hooks::{UseFocus, UsePlatform};
+use freya_hooks::UsePlatform;
 use skia_safe::{textlayout::FontCollection, FontMgr};
 use tracing::info;
 
 use crate::{
     fs::FSTransport,
     lsp::{create_lsp_client, LSPClient, LspConfig},
-    ExplorerItem, LspStatusSender,
+    views::file_explorer::file_explorer_state::FileExplorerState,
+    LspStatusSender,
 };
 
 use super::{AppSettings, EditorView, Panel, PanelTab};
@@ -31,7 +31,7 @@ impl AppStateUtils for RadioAppState {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Channel {
     /// Affects global components
     Global,
@@ -48,6 +48,8 @@ pub enum Channel {
     Settings,
     // Only affects the file explorer
     FileExplorer,
+    // Affects nothing
+    Void,
 }
 
 impl RadioChannel<AppState> for Channel {
@@ -123,17 +125,18 @@ pub enum EditorSidePanel {
 pub struct AppState {
     pub previous_focused_view: Option<EditorView>,
     pub focused_view: EditorView,
+
     pub focused_panel: usize,
     pub panels: Vec<Panel>,
     pub settings: AppSettings,
     pub language_servers: HashMap<String, LSPClient>,
     pub lsp_sender: LspStatusSender,
     pub side_panel: Option<EditorSidePanel>,
-    pub file_explorer_folders: Vec<ExplorerItem>,
     pub default_transport: FSTransport,
     pub font_collection: FontCollection,
     pub clipboard: UseClipboard,
-    pub file_explorer_focus_id: AccessibilityId,
+
+    pub file_explorer: FileExplorerState,
 }
 
 impl AppState {
@@ -154,11 +157,11 @@ impl AppState {
             language_servers: HashMap::default(),
             lsp_sender,
             side_panel: Some(EditorSidePanel::default()),
-            file_explorer_folders: Vec::new(),
             default_transport,
             font_collection,
             clipboard,
-            file_explorer_focus_id: UseFocus::new_id(),
+
+            file_explorer: FileExplorerState::new(),
         }
     }
 
@@ -207,8 +210,7 @@ impl AppState {
                 );
             }
             EditorView::FilesExplorer => {
-                let platform = UsePlatform::new();
-                platform.focus(self.file_explorer_focus_id);
+                self.file_explorer.focus();
             }
             _ => {}
         }
@@ -232,8 +234,7 @@ impl AppState {
                 );
             }
             EditorView::FilesExplorer => {
-                let platform = UsePlatform::new();
-                platform.focus(self.file_explorer_focus_id);
+                self.file_explorer.focus();
             }
             _ => {}
         }
@@ -313,11 +314,9 @@ impl AppState {
 
     pub fn focus_tab(&mut self, panel_i: usize, tab: Option<usize>) {
         self.panels[panel_i].active_tab = tab;
-        println!("focus_tab");
         if let Some(tab) = tab {
             let platform = UsePlatform::new();
             let tab = self.panels[panel_i].tab(tab);
-            println!("TAB");
             platform.focus(tab.get_data().focus_id);
         }
     }
@@ -375,9 +374,5 @@ impl AppState {
                 client
             }
         }
-    }
-
-    pub fn open_folder(&mut self, item: ExplorerItem) {
-        self.file_explorer_folders.push(item)
     }
 }

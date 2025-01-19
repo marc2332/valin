@@ -1,4 +1,4 @@
-use crate::tabs::editor::{AppStateEditorUtils, EditorType};
+use crate::views::panels::tabs::editor::{AppStateEditorUtils, EditorType};
 use freya::prelude::*;
 use lsp_types::{
     Hover, HoverParams, Position, TextDocumentIdentifier, TextDocumentPositionParams, Url,

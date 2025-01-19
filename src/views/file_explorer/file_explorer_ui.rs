@@ -10,7 +10,7 @@ use tokio::io;
 use crate::{
     fs::FSTransport,
     state::{AppState, Channel, EditorView, RadioAppState},
-    tabs::editor::EditorTab,
+    views::panels::tabs::editor::EditorTab,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -139,11 +139,12 @@ enum TreeTask {
 pub fn FileExplorer() -> Element {
     let mut radio_app_state = use_radio::<AppState, Channel>(Channel::FileExplorer);
     let app_state = radio_app_state.read();
-    let mut focus = use_focus_from_id(app_state.file_explorer_focus_id);
+    let mut focus = use_focus_from_id(app_state.file_explorer.focus_id);
     let mut focused_item = use_signal(|| 0);
 
     let items = app_state
-        .file_explorer_folders
+        .file_explorer
+        .folders
         .iter()
         .flat_map(|tree| tree.flat(0, tree.path()))
         .collect::<Vec<FlatItem>>();
@@ -169,7 +170,8 @@ pub fn FileExplorer() -> Element {
                         if let Ok(items) = read_folder_as_items(&folder_path, &transport).await {
                             let mut app_state = radio_app_state.write();
                             let folder = app_state
-                                .file_explorer_folders
+                                .file_explorer
+                                .folders
                                 .iter_mut()
                                 .find(|folder| folder.path() == &root_path)
                                 .unwrap();
@@ -182,7 +184,8 @@ pub fn FileExplorer() -> Element {
                     } => {
                         let mut app_state = radio_app_state.write();
                         let folder = app_state
-                            .file_explorer_folders
+                            .file_explorer
+                            .folders
                             .iter_mut()
                             .find(|folder| folder.path() == &root_path)
                             .unwrap();
@@ -221,7 +224,7 @@ pub fn FileExplorer() -> Element {
 
                 let mut app_state = radio_app_state.write();
 
-                app_state.open_folder(ExplorerItem::Folder {
+                app_state.file_explorer.open_folder(ExplorerItem::Folder {
                     path,
                     state: FolderState::Opened(items),
                 });

@@ -1355,9 +1355,9 @@ dependencies = [
 
 [[package]]
 name = "dioxus-radio"
-version = "0.2.4"
+version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea121893ada21cc848a39e12cd3fb724e922ad2af06c556722d8ddc500d5ee45"
+checksum = "f1af709bc153db73da16671aef4d2da7aee92f4c08deafb36ed11bd3f4f6b751"
 dependencies = [
  "dioxus-lib",
  "generational-box",

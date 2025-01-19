@@ -6,7 +6,7 @@ use crate::{
     state::{AppStateUtils, Channel, CommandRunContext, EditorCommand, RadioAppState},
 };
 
-use crate::tabs::editor::utils::AppStateEditorUtils;
+use crate::views::panels::tabs::editor::utils::AppStateEditorUtils;
 
 #[derive(Clone)]
 pub struct IncreaseFontSizeCommand(pub RadioAppState);
