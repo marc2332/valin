@@ -2,6 +2,8 @@ use std::{collections::HashMap, vec};
 
 use dioxus_clipboard::prelude::UseClipboard;
 use dioxus_radio::prelude::{Radio, RadioChannel};
+use freya::prelude::AccessibilityId;
+use freya_hooks::{UseFocus, UsePlatform};
 use skia_safe::{textlayout::FontCollection, FontMgr};
 use tracing::info;
 
@@ -131,6 +133,7 @@ pub struct AppState {
     pub default_transport: FSTransport,
     pub font_collection: FontCollection,
     pub clipboard: UseClipboard,
+    pub file_explorer_focus_id: AccessibilityId,
 }
 
 impl AppState {
@@ -155,6 +158,7 @@ impl AppState {
             default_transport,
             font_collection,
             clipboard,
+            file_explorer_focus_id: UseFocus::new_id(),
         }
     }
 
@@ -194,6 +198,20 @@ impl AppState {
         }
 
         self.focused_view = focused_view;
+
+        match focused_view {
+            EditorView::Panels => {
+                self.focus_tab(
+                    self.focused_panel,
+                    self.panels[self.focused_panel].active_tab,
+                );
+            }
+            EditorView::FilesExplorer => {
+                let platform = UsePlatform::new();
+                platform.focus(self.file_explorer_focus_id);
+            }
+            _ => {}
+        }
     }
 
     pub fn focused_view(&self) -> &EditorView {
@@ -204,6 +222,20 @@ impl AppState {
         if let Some(previous_focused_view) = self.previous_focused_view {
             self.focused_view = previous_focused_view;
             self.previous_focused_view = None;
+        }
+
+        match self.focused_view {
+            EditorView::Panels => {
+                self.focus_tab(
+                    self.focused_panel,
+                    self.panels[self.focused_panel].active_tab,
+                );
+            }
+            EditorView::FilesExplorer => {
+                let platform = UsePlatform::new();
+                platform.focus(self.file_explorer_focus_id);
+            }
+            _ => {}
         }
     }
 
@@ -229,14 +261,14 @@ impl AppState {
         if let Some((tab_index, _)) = opened_tab {
             if focus {
                 self.focused_panel = panel;
-                self.panels[panel].active_tab = Some(tab_index);
+                self.focus_tab(panel, Some(tab_index));
             }
         } else {
             self.panels[panel].tabs.push(Box::new(tab));
 
             if focus {
                 self.focused_panel = panel;
-                self.panels[panel].active_tab = Some(self.panels[panel].tabs.len() - 1);
+                self.focus_tab(panel, Some(self.panels[panel].tabs.len() - 1));
             }
         }
 
@@ -255,15 +287,18 @@ impl AppState {
             let prev_tab = tab > 0;
             let next_tab = self.panels[panel].tabs.get(tab + 1).is_some();
             if active_tab == tab {
-                self.panels[panel].active_tab = if next_tab {
-                    Some(tab)
-                } else if prev_tab {
-                    Some(tab - 1)
-                } else {
-                    None
-                };
+                self.focus_tab(
+                    panel,
+                    if next_tab {
+                        Some(tab)
+                    } else if prev_tab {
+                        Some(tab - 1)
+                    } else {
+                        None
+                    },
+                );
             } else if active_tab >= tab {
-                self.panels[panel].active_tab = Some(active_tab - 1);
+                self.focus_tab(panel, Some(active_tab - 1));
             }
         }
 
@@ -274,6 +309,17 @@ impl AppState {
 
         let mut panel_tab = self.panels[panel].tabs.remove(tab);
         panel_tab.on_close(self);
+    }
+
+    pub fn focus_tab(&mut self, panel_i: usize, tab: Option<usize>) {
+        self.panels[panel_i].active_tab = tab;
+        println!("focus_tab");
+        if let Some(tab) = tab {
+            let platform = UsePlatform::new();
+            let tab = self.panels[panel_i].tab(tab);
+            println!("TAB");
+            platform.focus(tab.get_data().focus_id);
+        }
     }
 
     pub fn push_panel(&mut self, panel: Panel) {

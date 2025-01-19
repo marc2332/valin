@@ -46,7 +46,7 @@ impl AppStateEditorUtils for AppState {
     ) -> Option<(Option<PathBuf>, SharedRope, FSTransport)> {
         let panel: &Panel = self.panel(panel);
         let editor = panel.tab(editor_id).as_text_editor();
-        editor.map(|EditorTab { editor: data }| {
+        editor.map(|EditorTab { editor: data, .. }| {
             (
                 data.path().cloned(),
                 data.rope.clone(),

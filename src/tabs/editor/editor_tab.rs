@@ -20,6 +20,7 @@ use super::{
 /// A tab with an embedded Editor.
 pub struct EditorTab {
     pub editor: EditorData,
+    pub focus_id: AccessibilityId,
 }
 
 impl PanelTab for EditorTab {
@@ -57,6 +58,7 @@ impl PanelTab for EditorTab {
             id,
             title,
             edited: self.editor.is_edited(),
+            focus_id: self.focus_id,
         }
     }
     fn render(&self) -> fn(TabProps) -> Element {
@@ -73,6 +75,13 @@ impl PanelTab for EditorTab {
 }
 
 impl EditorTab {
+    pub fn new(editor: EditorData) -> Self {
+        Self {
+            editor,
+            focus_id: UseFocus::new_id(),
+        }
+    }
+
     /// Open an EditorTab in the focused panel.
     pub fn open_with(app_state: &mut AppState, path: PathBuf, root_path: PathBuf, content: String) {
         let data = EditorData::new(
@@ -85,7 +94,7 @@ impl EditorTab {
             &app_state.font_collection.clone(),
         );
 
-        app_state.push_tab(Self { editor: data }, app_state.focused_panel, true);
+        app_state.push_tab(Self::new(data), app_state.focused_panel, true);
     }
 
     /// Initialize the EditorTab module.

@@ -35,6 +35,7 @@ pub struct PanelTabData {
     pub edited: bool,
     pub title: String,
     pub id: String,
+    pub focus_id: AccessibilityId,
 }
 
 #[derive(Default)]

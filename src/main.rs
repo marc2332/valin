@@ -85,7 +85,6 @@ fn main() {
         config
             .with_size(1280.0, 720.0)
             .with_title("Valin")
-            .with_state(Arc::new(args))
-            .with_max_paragraph_cache_size(200),
+            .with_state(Arc::new(args)), // .with_max_paragraph_cache_size(200),
     );
 }

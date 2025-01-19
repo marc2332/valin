@@ -28,7 +28,6 @@ pub fn EditorUi(
         panel_index,
     }: TabProps,
 ) -> Element {
-    let mut focus = use_focus();
     // Subscribe to the changes of this Tab.
     let mut radio_app_state = use_radio(Channel::follow_tab(panel_index, tab_index));
 
@@ -36,6 +35,8 @@ pub fn EditorUi(
     let editor_tab = app_state.editor_tab(panel_index, tab_index);
     let editor = &editor_tab.editor;
     let paths = editor.editor_type().paths();
+
+    let mut focus = use_focus_from_id(editor_tab.focus_id);
 
     // What position in the text the user is hovering
     let hover_location = use_signal(|| None);

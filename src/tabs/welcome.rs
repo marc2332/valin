@@ -2,7 +2,9 @@ use freya::prelude::*;
 
 use crate::state::{AppState, PanelTab, PanelTabData, TabProps};
 
-pub struct WelcomeTab;
+pub struct WelcomeTab {
+    focus_id: AccessibilityId,
+}
 
 impl PanelTab for WelcomeTab {
     fn get_data(&self) -> PanelTabData {
@@ -10,6 +12,7 @@ impl PanelTab for WelcomeTab {
             id: "welcome".to_string(),
             title: "welcome".to_string(),
             edited: false,
+            focus_id: self.focus_id,
         }
     }
     fn render(&self) -> fn(TabProps) -> Element {
@@ -26,8 +29,14 @@ impl PanelTab for WelcomeTab {
 }
 
 impl WelcomeTab {
+    pub fn new() -> Self {
+        Self {
+            focus_id: UseFocus::new_id(),
+        }
+    }
+
     pub fn open_with(app_state: &mut AppState) {
-        app_state.push_tab(Self, app_state.focused_panel, true);
+        app_state.push_tab(Self::new(), app_state.focused_panel, true);
     }
 }
 

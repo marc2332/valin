@@ -137,9 +137,9 @@ enum TreeTask {
 
 #[allow(non_snake_case)]
 pub fn FileExplorer() -> Element {
-    let mut focus = use_focus();
     let mut radio_app_state = use_radio::<AppState, Channel>(Channel::FileExplorer);
     let app_state = radio_app_state.read();
+    let mut focus = use_focus_from_id(app_state.file_explorer_focus_id);
     let mut focused_item = use_signal(|| 0);
 
     let items = app_state
