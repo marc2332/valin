@@ -1,5 +1,5 @@
 use crate::{
-    state::{Channel, EditorCommand, EditorView, Panel, RadioAppState},
+    state::{Channel, CommandRunContext, EditorCommand, EditorView, Panel, RadioAppState},
     tabs::settings::Settings,
 };
 
@@ -9,7 +9,9 @@ pub mod GlobalDefaults {
 
     use crate::state::{Channel, EditorCommands, EditorView, KeyboardShortcuts, RadioAppState};
 
-    use super::{OpenSettingsCommand, SplitPanelCommand, ToggleCommanderCommand};
+    use super::{
+        OpenSearchCommand, OpenSettingsCommand, SplitPanelCommand, ToggleCommanderCommand,
+    };
 
     pub fn init(
         keyboard_shorcuts: &mut KeyboardShortcuts,
@@ -20,6 +22,7 @@ pub mod GlobalDefaults {
         commands.register(SplitPanelCommand(radio_app_state));
         commands.register(ToggleCommanderCommand(radio_app_state));
         commands.register(OpenSettingsCommand(radio_app_state));
+        commands.register(OpenSearchCommand(radio_app_state));
 
         // Register Shortcuts
         keyboard_shorcuts.register(
@@ -73,7 +76,7 @@ impl EditorCommand for SplitPanelCommand {
         "Split Panel"
     }
 
-    fn run(&self) {
+    fn run(&self, _ctx: &mut CommandRunContext) {
         let mut radio_app_state = self.0;
         let len_panels = radio_app_state.read().panels().len();
         let mut app_state = radio_app_state.write_channel(Channel::Global);
@@ -109,7 +112,7 @@ impl EditorCommand for ToggleCommanderCommand {
         "Toggle Commander"
     }
 
-    fn run(&self) {
+    fn run(&self, _ctx: &mut CommandRunContext) {
         let mut radio_app_state = self.0;
         let mut app_state = radio_app_state.write_channel(Channel::Global);
         if app_state.focused_view == EditorView::Commander {
@@ -142,9 +145,40 @@ impl EditorCommand for OpenSettingsCommand {
         "Open Settings"
     }
 
-    fn run(&self) {
+    fn run(&self, _ctx: &mut CommandRunContext) {
         let mut radio_app_state = self.0;
         let mut app_state = radio_app_state.write_channel(Channel::Global);
         Settings::open_with(&mut app_state);
+    }
+}
+
+#[derive(Clone)]
+pub struct OpenSearchCommand(pub RadioAppState);
+
+impl OpenSearchCommand {
+    pub fn id() -> &'static str {
+        "open-search"
+    }
+}
+
+impl EditorCommand for OpenSearchCommand {
+    fn matches(&self, input: &str) -> bool {
+        self.text().to_lowercase().contains(&input.to_lowercase())
+    }
+
+    fn id(&self) -> &str {
+        Self::id()
+    }
+
+    fn text(&self) -> &str {
+        "Open Search"
+    }
+
+    fn run(&self, ctx: &mut CommandRunContext) {
+        ctx.focus_previous_view = false;
+
+        let mut radio_app_state = self.0;
+        let mut app_state = radio_app_state.write_channel(Channel::Global);
+        app_state.set_focused_view(EditorView::Search);
     }
 }

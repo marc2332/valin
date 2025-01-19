@@ -189,7 +189,9 @@ impl AppState {
     }
 
     pub fn set_focused_view(&mut self, focused_view: EditorView) {
-        self.previous_focused_view = Some(self.focused_view);
+        if !self.focused_view.is_popup() {
+            self.previous_focused_view = Some(self.focused_view);
+        }
 
         self.focused_view = focused_view;
     }

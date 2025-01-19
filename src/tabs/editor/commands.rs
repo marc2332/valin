@@ -3,7 +3,7 @@ use tokio::fs::OpenOptions;
 
 use crate::{
     constants::{BASE_FONT_SIZE, MAX_FONT_SIZE},
-    state::{AppStateUtils, Channel, EditorCommand, RadioAppState},
+    state::{AppStateUtils, Channel, CommandRunContext, EditorCommand, RadioAppState},
 };
 
 use crate::tabs::editor::utils::AppStateEditorUtils;
@@ -30,7 +30,7 @@ impl EditorCommand for IncreaseFontSizeCommand {
         "Increase Font Size"
     }
 
-    fn run(&self) {
+    fn run(&self, _ctx: &mut CommandRunContext) {
         let mut radio_app_state = self.0;
         let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
         let font_size = app_state.font_size();
@@ -60,7 +60,7 @@ impl EditorCommand for DecreaseFontSizeCommand {
         "Decrease Font Size"
     }
 
-    fn run(&self) {
+    fn run(&self, _ctx: &mut CommandRunContext) {
         let mut radio_app_state = self.0;
         let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
         let font_size = app_state.font_size();
@@ -90,7 +90,7 @@ impl EditorCommand for SaveFileCommand {
         "Save File"
     }
 
-    fn run(&self) {
+    fn run(&self, _ctx: &mut CommandRunContext) {
         let mut radio_app_state = self.0;
         let (panel, active_tab) = radio_app_state.get_focused_data();
 

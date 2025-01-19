@@ -1,5 +1,11 @@
 use std::collections::HashMap;
 
+#[derive(Default)]
+pub struct CommandRunContext {
+    /// Only for Commander.
+    pub focus_previous_view: bool,
+}
+
 pub trait EditorCommand {
     fn is_visible(&self) -> bool {
         true
@@ -11,7 +17,7 @@ pub trait EditorCommand {
 
     fn text(&self) -> &str;
 
-    fn run(&self);
+    fn run(&self, ctx: &mut CommandRunContext);
 }
 
 #[derive(Default)]
@@ -29,7 +35,7 @@ impl EditorCommands {
         let command = self.commands.get(command_name);
 
         if let Some(command) = command {
-            command.run();
+            command.run(&mut CommandRunContext::default());
         }
     }
 }

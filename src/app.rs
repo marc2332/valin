@@ -135,6 +135,8 @@ pub fn App() -> Element {
                 Commander {
                     editor_commands
                 }
+            } else if focused_view == EditorView::Search {
+                Search { }
             }
             rect {
                 height: "calc(100% - 35)",
