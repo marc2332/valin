@@ -60,7 +60,7 @@ pub struct EditorScrollViewProps<
     pub show_scrollbar: bool,
     pub offset_y: i32,
     pub offset_x: i32,
-    pub onscroll: Option<EventHandler<(Axis, i32)>>,
+    pub onscroll: EventHandler<(Axis, i32)>,
     pub pressing_shift: ReadOnlySignal<bool>,
     pub pressing_alt: ReadOnlySignal<bool>,
 
@@ -73,10 +73,16 @@ impl<BuilderArgs: Clone + PartialEq, Builder: Clone + Fn(usize, &BuilderArgs) ->
 {
     fn eq(&self, other: &Self) -> bool {
         self.length == other.length
-            && self.offset_x == other.offset_x
-            && self.offset_y == other.offset_y
             && self.item_size == other.item_size
+            && self.width == other.width
+            && self.height == other.height
+            && self.padding == other.padding
             && self.show_scrollbar == other.show_scrollbar
+            && self.offset_y == other.offset_y
+            && self.offset_x == other.offset_x
+            && self.onscroll == other.onscroll
+            && self.pressing_shift == other.pressing_shift
+            && self.pressing_alt == other.pressing_alt
             && self.builder_args == other.builder_args
     }
 }
@@ -106,12 +112,23 @@ pub fn EditorScrollView<
     Builder: Clone + Fn(usize, &BuilderArgs) -> Element,
     BuilderArgs: Clone + PartialEq,
 >(
-    props: EditorScrollViewProps<Builder, BuilderArgs>,
+    EditorScrollViewProps {
+        length,
+        item_size,
+        height,
+        width,
+        padding,
+        show_scrollbar,
+        offset_x,
+        offset_y,
+        onscroll,
+        pressing_alt,
+        pressing_shift,
+        builder,
+        builder_args,
+    }: EditorScrollViewProps<Builder, BuilderArgs>,
 ) -> Element {
     let mut clicking_scrollbar = use_signal::<Option<(Axis, f64)>>(|| None);
-    let scrolled_y = props.offset_y;
-    let scrolled_x = props.offset_x;
-    let onscroll = props.onscroll.unwrap();
     let (node_ref, size) = use_node();
     let scrollbar_theme = use_applied_theme!(&None, scroll_bar);
     let platform = use_platform();
@@ -123,14 +140,7 @@ pub fn EditorScrollView<
         }
     });
 
-    let padding = &props.padding;
-    let show_scrollbar = props.show_scrollbar;
-    let items_length = props.length;
-    let items_size = props.item_size;
-    let pressing_alt = props.pressing_alt;
-    let pressing_shift = props.pressing_shift;
-
-    let inner_size = items_size + (items_size * items_length as f32);
+    let inner_size = item_size + (item_size * length as f32);
 
     let vertical_scrollbar_is_visible =
         is_scrollbar_visible(show_scrollbar, inner_size, size.area.height());
@@ -138,14 +148,14 @@ pub fn EditorScrollView<
         is_scrollbar_visible(show_scrollbar, size.inner.width, size.area.width());
 
     let (container_width, content_width) = get_container_size(
-        &props.width,
+        &width,
         true,
         Axis::X,
         vertical_scrollbar_is_visible,
         &scrollbar_theme.size,
     );
     let (container_height, content_height) = get_container_size(
-        &props.height,
+        &height,
         true,
         Axis::Y,
         horizontal_scrollbar_is_visible,
@@ -153,9 +163,9 @@ pub fn EditorScrollView<
     );
 
     let corrected_scrolled_y =
-        get_corrected_scroll_position(inner_size, size.area.height(), scrolled_y as f32);
+        get_corrected_scroll_position(inner_size, size.area.height(), offset_y as f32);
     let corrected_scrolled_x =
-        get_corrected_scroll_position(size.inner.width, size.area.width(), scrolled_x as f32);
+        get_corrected_scroll_position(size.inner.width, size.area.width(), offset_x as f32);
 
     let (scrollbar_y, scrollbar_height) =
         get_scrollbar_pos_and_size(inner_size, size.area.height(), corrected_scrolled_y);
@@ -188,7 +198,7 @@ pub fn EditorScrollView<
             y_movement,
             inner_size,
             size.area.height(),
-            scrolled_y as f32,
+            offset_y as f32,
         );
 
         onscroll.call((Axis::Y, scroll_position_y));
@@ -273,14 +283,13 @@ pub fn EditorScrollView<
     let render_range = get_render_range(
         size.area.height(),
         corrected_scrolled_y,
-        items_size,
-        items_length as f32,
+        item_size,
+        length as f32,
     );
 
-    let children = use_computed(
-        (render_range.clone(), props.builder_args.clone()),
-        move || rsx!({ render_range.map(|i| (props.builder)(i, &props.builder_args)) }),
-    );
+    let children = use_computed((render_range.clone(), builder_args.clone()), move || {
+        rsx!({ render_range.map(|i| (builder)(i, &builder_args)) })
+    });
 
     let is_scrolling_x = clicking_scrollbar
         .read()
@@ -293,15 +302,15 @@ pub fn EditorScrollView<
         .map(|f| f.0 == Axis::Y)
         .unwrap_or_default();
 
-    let offset_y_min = (-corrected_scrolled_y / items_size).floor() * items_size;
+    let offset_y_min = (-corrected_scrolled_y / item_size).floor() * item_size;
     let offset_y = -corrected_scrolled_y - offset_y_min;
 
     rsx!(
         rect {
             overflow: "clip",
             direction: "horizontal",
-            width: props.width,
-            height: props.height,
+            width: width,
+            height: height,
             onclick,
             onglobalmousemove: onmousemove,
             rect {
