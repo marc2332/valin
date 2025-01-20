@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use dioxus_use_computed::hooks::use_computed;
 use freya::prelude::*;
-use freya::prelude::{dioxus_elements, keyboard::Key, use_applied_theme};
+use freya::prelude::{dioxus_elements, use_applied_theme};
 
 use crate::{
     get_container_size, get_corrected_scroll_position, get_scroll_position_from_cursor,
@@ -61,6 +61,8 @@ pub struct EditorScrollViewProps<
     pub offset_y: i32,
     pub offset_x: i32,
     pub onscroll: Option<EventHandler<(Axis, i32)>>,
+    pub pressing_shift: ReadOnlySignal<bool>,
+    pub pressing_alt: ReadOnlySignal<bool>,
 
     builder_args: BuilderArgs,
     builder: Builder,
@@ -106,8 +108,6 @@ pub fn EditorScrollView<
 >(
     props: EditorScrollViewProps<Builder, BuilderArgs>,
 ) -> Element {
-    let mut clicking_shift = use_signal(|| false);
-    let mut clicking_alt = use_signal(|| false);
     let mut clicking_scrollbar = use_signal::<Option<(Axis, f64)>>(|| None);
     let scrolled_y = props.offset_y;
     let scrolled_x = props.offset_x;
@@ -127,6 +127,8 @@ pub fn EditorScrollView<
     let show_scrollbar = props.show_scrollbar;
     let items_length = props.length;
     let items_size = props.item_size;
+    let pressing_alt = props.pressing_alt;
+    let pressing_shift = props.pressing_shift;
 
     let inner_size = items_size + (items_size * items_length as f32);
 
@@ -162,33 +164,37 @@ pub fn EditorScrollView<
 
     // Moves the Y axis when the user scrolls in the container
     let onwheel = move |e: WheelEvent| {
-        let speed_multiplier = if *clicking_alt.read() {
+        let speed_multiplier = if pressing_alt() {
             SCROLL_SPEED_MULTIPLIER
         } else {
             1.0
         };
 
-        if !*clicking_shift.read() {
-            let wheel_y = e.get_delta_y() as f32 * speed_multiplier;
+        let invert_direction = pressing_shift();
 
-            let scroll_position_y = get_scroll_position_from_wheel(
-                wheel_y,
-                inner_size,
-                size.area.height(),
-                scrolled_y as f32,
-            );
-
-            onscroll.call((Axis::Y, scroll_position_y));
-        }
-
-        let wheel_x = if *clicking_shift.read() {
-            e.get_delta_y() as f32
+        let (x_movement, y_movement) = if invert_direction {
+            (
+                e.get_delta_y() as f32 * speed_multiplier,
+                e.get_delta_x() as f32 * speed_multiplier,
+            )
         } else {
-            e.get_delta_x() as f32
-        } * speed_multiplier;
+            (
+                e.get_delta_x() as f32 * speed_multiplier,
+                e.get_delta_y() as f32 * speed_multiplier,
+            )
+        };
+
+        let scroll_position_y = get_scroll_position_from_wheel(
+            y_movement,
+            inner_size,
+            size.area.height(),
+            scrolled_y as f32,
+        );
+
+        onscroll.call((Axis::Y, scroll_position_y));
 
         let scroll_position_x = get_scroll_position_from_wheel(
-            wheel_x,
+            x_movement,
             size.inner.width,
             size.area.width(),
             corrected_scrolled_x,
@@ -220,28 +226,6 @@ pub fn EditorScrollView<
             );
 
             onscroll.call((Axis::X, scroll_position))
-        }
-    };
-
-    let onkeydown = move |e: KeyboardEvent| {
-        match &e.key {
-            Key::Shift => {
-                clicking_shift.set(true);
-            }
-            Key::Alt => {
-                clicking_alt.set(true);
-            }
-            _ => {
-                // TODO: Support other keys with `manage_key_event`
-            }
-        };
-    };
-
-    let onkeyup = move |e: KeyboardEvent| {
-        if e.key == Key::Shift {
-            clicking_shift.set(false);
-        } else if e.key == Key::Alt {
-            clicking_alt.set(false);
         }
     };
 
@@ -316,12 +300,10 @@ pub fn EditorScrollView<
         rect {
             overflow: "clip",
             direction: "horizontal",
-            width: "{props.width}",
-            height: "{props.height}",
-            onclick: onclick,
+            width: props.width,
+            height: props.height,
+            onclick,
             onglobalmousemove: onmousemove,
-            onkeydown: onkeydown,
-            onkeyup: onkeyup,
             rect {
                 direction: "vertical",
                 width: "{container_width}",

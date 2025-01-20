@@ -60,6 +60,9 @@ pub fn EditorUi(
         hover_location,
     );
 
+    let mut pressing_shift = use_signal(|| false);
+    let mut pressing_alt = use_signal(|| false);
+
     // Send hover notifications to the LSP only every 300ms and when hovering
     let debouncer = use_debounce(
         Duration::from_millis(300),
@@ -129,6 +132,18 @@ pub fn EditorUi(
     let syntax_blocks_len = editor.metrics.syntax_blocks.len();
 
     let onkeyup = move |e: KeyboardEvent| {
+        match &e.key {
+            Key::Shift => {
+                pressing_shift.set(false);
+                return;
+            }
+            Key::Alt => {
+                pressing_alt.set(false);
+                return;
+            }
+            _ => {}
+        };
+
         radio_app_state.write_with_map_channel(|app_state| {
             let panel = app_state.panel(panel_index);
             let is_panel_focused = app_state.focused_panel() == panel_index;
@@ -149,6 +164,19 @@ pub fn EditorUi(
     let onkeydown = move |e: KeyboardEvent| {
         focus.prevent_navigation();
         e.stop_propagation();
+
+        match &e.key {
+            Key::Shift => {
+                pressing_shift.set(true);
+                return;
+            }
+            Key::Alt => {
+                pressing_alt.set(true);
+                return;
+            }
+            _ => {}
+        };
+
         radio_app_state.write_with_map_channel(|app_state| {
             let panel = app_state.panel(panel_index);
             let is_panel_focused = app_state.focused_panel() == panel_index;
@@ -227,6 +255,8 @@ pub fn EditorUi(
                         line_height: manual_line_height,
                         rope: editor.rope().clone(),
                     },
+                    pressing_alt,
+                    pressing_shift,
                     builder: move |i: usize, builder_args: &BuilderArgs| rsx!(
                         EditorLine {
                             key: "{i}",
