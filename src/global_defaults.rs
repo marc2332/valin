@@ -10,7 +10,8 @@ pub mod GlobalDefaults {
     use crate::state::{Channel, EditorCommands, EditorView, KeyboardShortcuts, RadioAppState};
 
     use super::{
-        OpenSearchCommand, OpenSettingsCommand, SplitPanelCommand, ToggleCommanderCommand,
+        CloseActiveTabCommand, OpenSearchCommand, OpenSettingsCommand, SplitPanelCommand,
+        ToggleCommanderCommand,
     };
 
     pub fn init(
@@ -23,6 +24,7 @@ pub mod GlobalDefaults {
         commands.register(ToggleCommanderCommand(radio_app_state));
         commands.register(OpenSettingsCommand(radio_app_state));
         commands.register(OpenSearchCommand(radio_app_state));
+        commands.register(CloseActiveTabCommand(radio_app_state));
 
         // Register Shortcuts
         keyboard_shorcuts.register(
@@ -30,6 +32,7 @@ pub mod GlobalDefaults {
              commands: &mut EditorCommands,
              mut radio_app_state: RadioAppState| {
                 let is_pressing_alt = data.modifiers == Modifiers::ALT;
+                let is_pressing_ctrl = data.modifiers == Modifiers::CONTROL;
 
                 match data.code {
                     // Pressing `Esc`
@@ -44,6 +47,10 @@ pub mod GlobalDefaults {
                         } else {
                             app_state.set_focused_view(EditorView::FilesExplorer)
                         }
+                    }
+                    // Pressing `Ctrl W`
+                    Code::KeyW if is_pressing_ctrl => {
+                        commands.trigger(CloseActiveTabCommand::id());
                     }
 
                     _ => return false,
@@ -180,5 +187,34 @@ impl EditorCommand for OpenSearchCommand {
         let mut radio_app_state = self.0;
         let mut app_state = radio_app_state.write_channel(Channel::Global);
         app_state.set_focused_view(EditorView::Search);
+    }
+}
+
+#[derive(Clone)]
+pub struct CloseActiveTabCommand(pub RadioAppState);
+
+impl CloseActiveTabCommand {
+    pub fn id() -> &'static str {
+        "close-active-tab"
+    }
+}
+
+impl EditorCommand for CloseActiveTabCommand {
+    fn matches(&self, input: &str) -> bool {
+        self.text().to_lowercase().contains(&input.to_lowercase())
+    }
+
+    fn id(&self) -> &str {
+        Self::id()
+    }
+
+    fn text(&self) -> &str {
+        "Close Active Tab"
+    }
+
+    fn run(&self, _ctx: &mut CommandRunContext) {
+        let mut radio_app_state = self.0;
+        let mut app_state = radio_app_state.write_channel(Channel::Global);
+        app_state.close_active_tab();
     }
 }

@@ -321,6 +321,13 @@ impl AppState {
         }
     }
 
+    pub fn close_active_tab(&mut self) {
+        let panel = self.focused_panel;
+        if let Some(active_tab) = self.panels[panel].active_tab {
+            self.close_tab(panel, active_tab);
+        }
+    }
+
     pub fn push_panel(&mut self, panel: Panel) {
         self.panels.push(panel);
     }

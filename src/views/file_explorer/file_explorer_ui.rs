@@ -140,7 +140,7 @@ pub fn FileExplorer() -> Element {
     let mut radio_app_state = use_radio::<AppState, Channel>(Channel::FileExplorer);
     let app_state = radio_app_state.read();
     let mut focus = use_focus_from_id(app_state.file_explorer.focus_id);
-    let mut focused_item = use_signal(|| 0);
+    let mut focused_item_index = use_signal(|| 0);
 
     let items = app_state
         .file_explorer
@@ -149,6 +149,7 @@ pub fn FileExplorer() -> Element {
         .flat_map(|tree| tree.flat(0, tree.path()))
         .collect::<Vec<FlatItem>>();
     let items_len = items.len();
+    let focused_item = items.get(focused_item_index()).cloned();
 
     let channel = use_coroutine(move |mut rx| {
         async move {
@@ -205,7 +206,7 @@ pub fn FileExplorer() -> Element {
                         }
                     }
                 }
-                focused_item.set(item_index);
+                focused_item_index.set(item_index);
             }
         }
     });
@@ -240,18 +241,47 @@ pub fn FileExplorer() -> Element {
         if is_focused_files_explorer {
             match ev.code {
                 Code::ArrowDown => {
-                    focused_item.with_mut(|i| {
+                    focused_item_index.with_mut(|i| {
                         if *i < items_len - 1 {
                             *i += 1
                         }
                     });
                 }
                 Code::ArrowUp => {
-                    focused_item.with_mut(|i| {
+                    focused_item_index.with_mut(|i| {
                         if *i > 0 {
                             *i -= 1
                         }
                     });
+                }
+                Code::Enter => {
+                    if let Some(focused_item) = &focused_item {
+                        if focused_item.is_file {
+                            channel.send((
+                                TreeTask::OpenFile {
+                                    file_path: focused_item.path.clone(),
+                                    root_path: focused_item.root_path.clone(),
+                                },
+                                focused_item_index(),
+                            ));
+                        } else if focused_item.is_opened {
+                            channel.send((
+                                TreeTask::CloseFolder {
+                                    folder_path: focused_item.path.clone(),
+                                    root_path: focused_item.root_path.clone(),
+                                },
+                                focused_item_index(),
+                            ));
+                        } else {
+                            channel.send((
+                                TreeTask::OpenFolder {
+                                    folder_path: focused_item.path.clone(),
+                                    root_path: focused_item.root_path.clone(),
+                                },
+                                focused_item_index(),
+                            ));
+                        }
+                    }
                 }
                 _ => {}
             }
@@ -288,7 +318,7 @@ pub fn FileExplorer() -> Element {
             VirtualScrollView {
                 length: items.len(),
                 item_size: 27.0,
-                builder_args: (items, channel, focused_item, radio_app_state),
+                builder_args: (items, channel, focused_item_index, radio_app_state),
                 direction: "vertical",
                 scroll_with_arrows: false,
                 builder: file_explorer_item_builder
@@ -400,15 +430,6 @@ fn FileExplorerItem(
 
     let onmouseleave = move |_| status.set(ButtonStatus::Idle);
 
-    let onglobalkeydown = move |e: KeyboardEvent| {
-        let is_focused_files_explorer =
-            *radio_app_state.read().focused_view() == EditorView::FilesExplorer;
-        if e.code == Code::Enter && is_focused && is_focused_files_explorer {
-            onclick.call(());
-            e.stop_propagation();
-        }
-    };
-
     let onclick = move |_: MouseEvent| {
         onclick.call(());
     };
@@ -429,7 +450,6 @@ fn FileExplorerItem(
         onmouseenter,
         onmouseleave,
         onclick,
-        onglobalkeydown,
         background,
         width: "100%",
         padding: "0 0 0 {(depth * 10) + 10}",

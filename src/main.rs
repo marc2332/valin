@@ -31,6 +31,7 @@ const CUSTOM_THEME: Theme = Theme {
     button: ButtonTheme {
         border_fill: Cow::Borrowed("rgb(45, 49, 50)"),
         background: Cow::Borrowed("rgb(28, 31, 32)"),
+        hover_background: Cow::Borrowed("rgb(20, 23, 24)"),
         ..DARK_THEME.button
     },
     input: InputTheme {
