@@ -31,8 +31,8 @@ pub fn EditorTab(
     };
 
     let background = match *status.read() {
-        _ if is_selected => "rgb(37, 37, 37)",
-        ButtonStatus::Hovering => "rgb(30, 30, 30)",
+        _ if is_selected => "rgb(29, 32, 33)",
+        ButtonStatus::Hovering => "rgb(25, 28, 29)",
         ButtonStatus::Idle => "transparent",
     };
     let color = theme.font_theme.color;
@@ -50,11 +50,11 @@ pub fn EditorTab(
             rect {
                 height: "2",
                 width: "100%",
-                background: "{selected_color}"
+                background: selected_color
             }
             rect {
                 color: "{color}",
-                background: "{background}",
+                background,
                 onclick: move |_| onclick.call(()),
                 onmouseenter,
                 onmouseleave,

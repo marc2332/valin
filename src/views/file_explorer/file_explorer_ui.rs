@@ -414,8 +414,8 @@ fn FileExplorerItem(
     };
 
     let background = match *status.read() {
-        ButtonStatus::Idle | ButtonStatus::Hovering if is_focused => "rgb(35, 35, 35)",
-        ButtonStatus::Hovering => "rgb(35, 35, 35, 0.7)",
+        ButtonStatus::Idle | ButtonStatus::Hovering if is_focused => "rgb(29, 32, 33)",
+        ButtonStatus::Hovering => "rgb(29, 32, 33, 0.7)",
         ButtonStatus::Idle => "transparent",
     };
 
@@ -426,11 +426,11 @@ fn FileExplorerItem(
     };
 
     rsx!(rect {
-        onmouseenter: onmouseenter,
-        onmouseleave: onmouseleave,
+        onmouseenter,
+        onmouseleave,
         onclick,
         onglobalkeydown,
-        background: "{background}",
+        background,
         width: "100%",
         padding: "0 0 0 {(depth * 10) + 10}",
         main_align: "center",

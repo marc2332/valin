@@ -23,7 +23,7 @@ pub fn Overlay(children: Element) -> Element {
                 main_align: "center",
                 cross_align: "center",
                 rect {
-                    background: "rgb(45, 45, 45)",
+                    background: "rgb(35, 38, 39)",
                     shadow: "0 4 15 8 rgb(0, 0, 0, 0.3)",
                     corner_radius: "12",
                     onmousedown: |e| {

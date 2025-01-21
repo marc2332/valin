@@ -45,7 +45,7 @@ pub fn render(_: TabProps) -> Element {
         rect {
             height: "100%",
             width: "100%",
-            background: "rgb(35, 35, 35)",
+            background: "rgb(29, 32, 33)",
             padding: "20",
             Link {
                 to: "https://github.com/marc2332/freya",

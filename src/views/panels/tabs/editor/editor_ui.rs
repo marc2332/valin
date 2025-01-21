@@ -229,7 +229,7 @@ pub fn EditorUi(
         rect {
             width: "100%",
             height: "100%",
-            background: "rgb(40, 40, 40)",
+            background: "rgb(29, 32, 33)",
             if let Some((path, root_path)) = paths {
                 FilePath {
                     path: path.clone(),

@@ -133,7 +133,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                             cross_align: "center",
                             width: "100%",
                             height: "100%",
-                            background: "rgb(20, 20, 20)",
+                            background: "rgb(17, 20, 21)",
                             ExpandedIcon {
                                 Logo {
                                     enabled: is_focused,

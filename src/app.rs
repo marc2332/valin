@@ -132,7 +132,7 @@ pub fn App() -> Element {
         rect {
             font_size: "14",
             color: "white",
-            background: "rgb(20, 20, 20)",
+            background: "rgb(17, 20, 21)",
             width: "100%",
             height: "100%",
             onglobalkeydown,

@@ -29,8 +29,13 @@ use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 const CUSTOM_THEME: Theme = Theme {
     button: ButtonTheme {
-        border_fill: Cow::Borrowed("rgb(50, 50, 50)"),
+        border_fill: Cow::Borrowed("rgb(45, 49, 50)"),
+        background: Cow::Borrowed("rgb(28, 31, 32)"),
         ..DARK_THEME.button
+    },
+    input: InputTheme {
+        background: Cow::Borrowed("rgb(28, 31, 32)"),
+        ..DARK_THEME.input
     },
     ..DARK_THEME
 };
