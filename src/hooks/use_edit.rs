@@ -100,13 +100,10 @@ impl UseEdit {
                     }
                 }
 
-                let is_plus = e.key == Key::Character("+".to_string());
-                let is_minus = e.key == Key::Character("-".to_string());
-                let is_e = e.code == Code::KeyE;
                 let is_s = e.code == Code::KeyS;
 
                 if e.code == Code::Escape
-                    || (e.modifiers.contains(Modifiers::ALT) && (is_plus || is_minus || is_e))
+                    || e.modifiers.contains(Modifiers::ALT)
                     || (e.modifiers.contains(Modifiers::CONTROL) && is_s)
                 {
                     return;

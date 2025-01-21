@@ -11,7 +11,6 @@ use crate::{components::*, state::Channel};
 use dioxus_radio::prelude::use_radio;
 use dioxus_sdk::utils::timing::use_debounce;
 use freya::events::KeyboardEvent;
-use freya::prelude::keyboard::Key;
 use freya::prelude::keyboard::Modifiers;
 use freya::prelude::*;
 use lsp_types::Position;

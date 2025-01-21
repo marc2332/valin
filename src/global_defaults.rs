@@ -5,13 +5,13 @@ use crate::{
 
 #[allow(non_snake_case)]
 pub mod GlobalDefaults {
-    use freya::events::{Code, KeyboardData, Modifiers};
+    use freya::events::{Code, Key, KeyboardData, Modifiers};
 
     use crate::state::{Channel, EditorCommands, EditorView, KeyboardShortcuts, RadioAppState};
 
     use super::{
-        CloseActiveTabCommand, OpenSearchCommand, OpenSettingsCommand, SplitPanelCommand,
-        ToggleCommanderCommand,
+        ClosePanelCommand, CloseTabCommand, OpenSearchCommand, OpenSettingsCommand,
+        SplitPanelCommand, ToggleCommanderCommand,
     };
 
     pub fn init(
@@ -21,10 +21,11 @@ pub mod GlobalDefaults {
     ) {
         // Register Commands
         commands.register(SplitPanelCommand(radio_app_state));
+        commands.register(ClosePanelCommand(radio_app_state));
         commands.register(ToggleCommanderCommand(radio_app_state));
         commands.register(OpenSettingsCommand(radio_app_state));
         commands.register(OpenSearchCommand(radio_app_state));
-        commands.register(CloseActiveTabCommand(radio_app_state));
+        commands.register(CloseTabCommand(radio_app_state));
 
         // Register Shortcuts
         keyboard_shorcuts.register(
@@ -50,9 +51,16 @@ pub mod GlobalDefaults {
                     }
                     // Pressing `Ctrl W`
                     Code::KeyW if is_pressing_ctrl => {
-                        commands.trigger(CloseActiveTabCommand::id());
+                        commands.trigger(CloseTabCommand::id());
                     }
-
+                    // Pressing `Alt +`
+                    _ if is_pressing_alt && data.key == Key::Character("+".to_string()) => {
+                        commands.trigger(SplitPanelCommand::id());
+                    }
+                    // Pressing `Alt -`
+                    _ if is_pressing_alt && data.key == Key::Character("-".to_string()) => {
+                        commands.trigger(ClosePanelCommand::id());
+                    }
                     _ => return false,
                 }
                 true
@@ -85,10 +93,40 @@ impl EditorCommand for SplitPanelCommand {
 
     fn run(&self, _ctx: &mut CommandRunContext) {
         let mut radio_app_state = self.0;
-        let len_panels = radio_app_state.read().panels().len();
+
         let mut app_state = radio_app_state.write_channel(Channel::Global);
         app_state.push_panel(Panel::new());
+        let len_panels = app_state.panels().len();
         app_state.set_focused_panel(len_panels - 1);
+    }
+}
+
+#[derive(Clone)]
+pub struct ClosePanelCommand(pub RadioAppState);
+
+impl ClosePanelCommand {
+    pub fn id() -> &'static str {
+        "cllose-panel"
+    }
+}
+
+impl EditorCommand for ClosePanelCommand {
+    fn matches(&self, input: &str) -> bool {
+        self.text().to_lowercase().contains(input)
+    }
+
+    fn id(&self) -> &str {
+        Self::id()
+    }
+
+    fn text(&self) -> &str {
+        "Close Panel"
+    }
+
+    fn run(&self, _ctx: &mut CommandRunContext) {
+        let mut radio_app_state = self.0;
+        let mut app_state = radio_app_state.write_channel(Channel::Global);
+        app_state.close_active_panel();
     }
 }
 
@@ -191,15 +229,15 @@ impl EditorCommand for OpenSearchCommand {
 }
 
 #[derive(Clone)]
-pub struct CloseActiveTabCommand(pub RadioAppState);
+pub struct CloseTabCommand(pub RadioAppState);
 
-impl CloseActiveTabCommand {
+impl CloseTabCommand {
     pub fn id() -> &'static str {
-        "close-active-tab"
+        "close-tab"
     }
 }
 
-impl EditorCommand for CloseActiveTabCommand {
+impl EditorCommand for CloseTabCommand {
     fn matches(&self, input: &str) -> bool {
         self.text().to_lowercase().contains(&input.to_lowercase())
     }
@@ -209,7 +247,7 @@ impl EditorCommand for CloseActiveTabCommand {
     }
 
     fn text(&self) -> &str {
-        "Close Active Tab"
+        "Close Tab"
     }
 
     fn run(&self, _ctx: &mut CommandRunContext) {

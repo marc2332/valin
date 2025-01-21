@@ -35,8 +35,11 @@ You can download it from the [Releases](https://github.com/marc2332/valin/releas
 
 # Shortcuts
 - `Alt E`: Toggle focus between the files explorer and the code editors
-- `Alt +`: Increase font size
-- `Alt -`: Decrease font size
+- `Alt .`: Increase font size
+- `Alt ,`: Decrease font size
+- `Alt +`: Split Panel
+- `Alt -`: Close Panel
+- `Ctrl W`: Close Tab
 - `Esc`: Open Commander
 - `Arrows`: Navigate the files explorer when focused
 - `Alt Arrows`: Scroll the editor and the cursor with increased speed

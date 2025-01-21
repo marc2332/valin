@@ -1764,7 +1764,7 @@ dependencies = [
 [[package]]
 name = "freya"
 version = "0.3.0-rc.0"
-source = "git+https://github.com/marc2332/freya?rev=621f10540ab7df1d79615704eed720e86f46ee0b#621f10540ab7df1d79615704eed720e86f46ee0b"
+source = "git+https://github.com/marc2332/freya?rev=ce87cefe02f224343e574cb2b885e65e73192406#ce87cefe02f224343e574cb2b885e65e73192406"
 dependencies = [
  "dioxus",
  "dioxus-core",
@@ -1786,7 +1786,7 @@ dependencies = [
 [[package]]
 name = "freya-common"
 version = "0.3.0-rc.0"
-source = "git+https://github.com/marc2332/freya?rev=621f10540ab7df1d79615704eed720e86f46ee0b#621f10540ab7df1d79615704eed720e86f46ee0b"
+source = "git+https://github.com/marc2332/freya?rev=ce87cefe02f224343e574cb2b885e65e73192406#ce87cefe02f224343e574cb2b885e65e73192406"
 dependencies = [
  "accesskit",
  "dioxus-core",
@@ -1802,7 +1802,7 @@ dependencies = [
 [[package]]
 name = "freya-components"
 version = "0.3.0-rc.0"
-source = "git+https://github.com/marc2332/freya?rev=621f10540ab7df1d79615704eed720e86f46ee0b#621f10540ab7df1d79615704eed720e86f46ee0b"
+source = "git+https://github.com/marc2332/freya?rev=ce87cefe02f224343e574cb2b885e65e73192406#ce87cefe02f224343e574cb2b885e65e73192406"
 dependencies = [
  "bytes",
  "dioxus",
@@ -1825,7 +1825,7 @@ dependencies = [
 [[package]]
 name = "freya-core"
 version = "0.3.0-rc.0"
-source = "git+https://github.com/marc2332/freya?rev=621f10540ab7df1d79615704eed720e86f46ee0b#621f10540ab7df1d79615704eed720e86f46ee0b"
+source = "git+https://github.com/marc2332/freya?rev=ce87cefe02f224343e574cb2b885e65e73192406#ce87cefe02f224343e574cb2b885e65e73192406"
 dependencies = [
  "accesskit",
  "accesskit_winit",
@@ -1848,7 +1848,7 @@ dependencies = [
 [[package]]
 name = "freya-elements"
 version = "0.3.0-rc.0"
-source = "git+https://github.com/marc2332/freya?rev=621f10540ab7df1d79615704eed720e86f46ee0b#621f10540ab7df1d79615704eed720e86f46ee0b"
+source = "git+https://github.com/marc2332/freya?rev=ce87cefe02f224343e574cb2b885e65e73192406#ce87cefe02f224343e574cb2b885e65e73192406"
 dependencies = [
  "dioxus-core",
  "dioxus-rsx",
@@ -1860,7 +1860,7 @@ dependencies = [
 [[package]]
 name = "freya-engine"
 version = "0.3.0-rc.0"
-source = "git+https://github.com/marc2332/freya?rev=621f10540ab7df1d79615704eed720e86f46ee0b#621f10540ab7df1d79615704eed720e86f46ee0b"
+source = "git+https://github.com/marc2332/freya?rev=ce87cefe02f224343e574cb2b885e65e73192406#ce87cefe02f224343e574cb2b885e65e73192406"
 dependencies = [
  "bitflags 2.6.0",
  "glutin",
@@ -1870,7 +1870,7 @@ dependencies = [
 [[package]]
 name = "freya-hooks"
 version = "0.3.0-rc.0"
-source = "git+https://github.com/marc2332/freya?rev=621f10540ab7df1d79615704eed720e86f46ee0b#621f10540ab7df1d79615704eed720e86f46ee0b"
+source = "git+https://github.com/marc2332/freya?rev=ce87cefe02f224343e574cb2b885e65e73192406#ce87cefe02f224343e574cb2b885e65e73192406"
 dependencies = [
  "bitflags 2.6.0",
  "bytes",
@@ -1896,7 +1896,7 @@ dependencies = [
 [[package]]
 name = "freya-native-core"
 version = "0.3.0-rc.0"
-source = "git+https://github.com/marc2332/freya?rev=621f10540ab7df1d79615704eed720e86f46ee0b#621f10540ab7df1d79615704eed720e86f46ee0b"
+source = "git+https://github.com/marc2332/freya?rev=ce87cefe02f224343e574cb2b885e65e73192406#ce87cefe02f224343e574cb2b885e65e73192406"
 dependencies = [
  "dioxus-core",
  "parking_lot",
@@ -1908,7 +1908,7 @@ dependencies = [
 [[package]]
 name = "freya-native-core-macro"
 version = "0.3.0-rc.0"
-source = "git+https://github.com/marc2332/freya?rev=621f10540ab7df1d79615704eed720e86f46ee0b#621f10540ab7df1d79615704eed720e86f46ee0b"
+source = "git+https://github.com/marc2332/freya?rev=ce87cefe02f224343e574cb2b885e65e73192406#ce87cefe02f224343e574cb2b885e65e73192406"
 dependencies = [
  "quote",
  "syn 2.0.87",
@@ -1917,7 +1917,7 @@ dependencies = [
 [[package]]
 name = "freya-node-state"
 version = "0.3.0-rc.0"
-source = "git+https://github.com/marc2332/freya?rev=621f10540ab7df1d79615704eed720e86f46ee0b#621f10540ab7df1d79615704eed720e86f46ee0b"
+source = "git+https://github.com/marc2332/freya?rev=ce87cefe02f224343e574cb2b885e65e73192406#ce87cefe02f224343e574cb2b885e65e73192406"
 dependencies = [
  "accesskit",
  "bytes",
@@ -1939,7 +1939,7 @@ dependencies = [
 [[package]]
 name = "freya-renderer"
 version = "0.3.0-rc.0"
-source = "git+https://github.com/marc2332/freya?rev=621f10540ab7df1d79615704eed720e86f46ee0b#621f10540ab7df1d79615704eed720e86f46ee0b"
+source = "git+https://github.com/marc2332/freya?rev=ce87cefe02f224343e574cb2b885e65e73192406#ce87cefe02f224343e574cb2b885e65e73192406"
 dependencies = [
  "accesskit",
  "accesskit_winit",
@@ -4976,7 +4976,7 @@ dependencies = [
 [[package]]
 name = "torin"
 version = "0.3.0-rc.0"
-source = "git+https://github.com/marc2332/freya?rev=621f10540ab7df1d79615704eed720e86f46ee0b#621f10540ab7df1d79615704eed720e86f46ee0b"
+source = "git+https://github.com/marc2332/freya?rev=ce87cefe02f224343e574cb2b885e65e73192406#ce87cefe02f224343e574cb2b885e65e73192406"
 dependencies = [
  "euclid",
  "freya-native-core",

@@ -5,7 +5,6 @@ use crate::state::{
     RadioAppState, TabProps,
 };
 
-use freya::prelude::keyboard::Key;
 use freya::prelude::keyboard::Modifiers;
 use freya::prelude::*;
 
@@ -116,12 +115,12 @@ impl EditorTab {
                 let is_pressing_alt = data.modifiers == Modifiers::ALT;
                 let is_pressing_ctrl = data.modifiers == Modifiers::CONTROL;
                 match data.code {
-                    // Pressing `Alt +`
-                    _ if is_pressing_alt && data.key == Key::Character("+".to_string()) => {
+                    // Pressing `Alt ,`
+                    Code::Period if is_pressing_alt => {
                         commands.trigger(IncreaseFontSizeCommand::id());
                     }
-                    // Pressing `Alt -`
-                    _ if is_pressing_alt && data.key == Key::Character("-".to_string()) => {
+                    // Pressing `Alt .`
+                    Code::Comma if is_pressing_alt => {
                         commands.trigger(DecreaseFontSizeCommand::id());
                     }
                     // Pressing `Ctrl S`

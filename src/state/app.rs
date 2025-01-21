@@ -328,6 +328,10 @@ impl AppState {
         }
     }
 
+    pub fn close_active_panel(&mut self) {
+        self.close_panel(self.focused_panel);
+    }
+
     pub fn push_panel(&mut self, panel: Panel) {
         self.panels.push(panel);
     }

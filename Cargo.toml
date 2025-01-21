@@ -4,9 +4,9 @@ version = "0.0.16"
 edition = "2021"
 
 [dependencies]
-freya-node-state = { git = "https://github.com/marc2332/freya", rev = "621f10540ab7df1d79615704eed720e86f46ee0b" }
-freya = { git = "https://github.com/marc2332/freya", rev = "621f10540ab7df1d79615704eed720e86f46ee0b" }
-freya-hooks = { git = "https://github.com/marc2332/freya", rev = "621f10540ab7df1d79615704eed720e86f46ee0b" }
+freya-node-state = { git = "https://github.com/marc2332/freya", rev = "ce87cefe02f224343e574cb2b885e65e73192406" }
+freya = { git = "https://github.com/marc2332/freya", rev = "ce87cefe02f224343e574cb2b885e65e73192406" }
+freya-hooks = { git = "https://github.com/marc2332/freya", rev = "ce87cefe02f224343e574cb2b885e65e73192406" }
 
 dioxus-radio = "0.2.5"
 dioxus = "0.5"
