@@ -1,6 +1,6 @@
 [package]
 name = "valin"
-version = "0.0.18"
+version = "0.0.19"
 edition = "2021"
 
 [patch.crates-io]
@@ -52,9 +52,10 @@ grep = "0.3.2"
 
 
 [profile.release]
-panic = "unwind" 
-
-
+panic = "abort" 
+lto = true
+codegen-units = 1
+strip = true
 rpath = false
 debug = false
 debug-assertions = false
