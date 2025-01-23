@@ -71,51 +71,55 @@ pub fn use_lsp(
         });
 
         Some(use_coroutine(
-            move |mut rx: UnboundedReceiver<LspAction>| async move {
-                let (file_path, _) = lsp_config
-                    .editor_type
-                    .paths()
-                    .expect("Something went wrong.");
-                let file_uri = Url::from_file_path(file_path).unwrap();
+            move |mut rx: UnboundedReceiver<LspAction>| {
+                to_owned![lsp_config];
+                async move {
+                    let (file_path, _) = lsp_config
+                        .editor_type
+                        .paths()
+                        .expect("Something went wrong.");
+                    let file_uri = Url::from_file_path(file_path).unwrap();
 
-                while let Some(action) = rx.next().await {
-                    let lsp = radio.read().lsp(&lsp_config).cloned();
-                    let mut lsp = if let Some(lsp) = lsp {
-                        let is_indexed = *lsp.indexed.lock().unwrap();
-                        if is_indexed {
-                            lsp
-                        } else {
-                            info!("Language Server is indexing.");
-                            continue;
-                        }
-                    } else {
-                        info!("Language Server not running.");
-                        continue;
-                    };
-
-                    match action {
-                        LspAction::Hover(position) => {
-                            let line = position.line;
-                            let response = lsp
-                                .hover_file_with_prams(HoverParams {
-                                    text_document_position_params: TextDocumentPositionParams {
-                                        text_document: TextDocumentIdentifier {
-                                            uri: file_uri.clone(),
-                                        },
-                                        position,
-                                    },
-                                    work_done_progress_params: WorkDoneProgressParams::default(),
-                                })
-                                .await;
-
-                            if let Ok(Some(res)) = response {
-                                *hover_location.write() = Some((line, res));
+                    while let Some(action) = rx.next().await {
+                        let lsp = radio.read().lsp(&lsp_config).cloned();
+                        let mut lsp = if let Some(lsp) = lsp {
+                            let is_indexed = *lsp.indexed.lock().unwrap();
+                            if is_indexed {
+                                lsp
                             } else {
+                                info!("Language Server is indexing.");
+                                continue;
+                            }
+                        } else {
+                            info!("Language Server not running.");
+                            continue;
+                        };
+
+                        match action {
+                            LspAction::Hover(position) => {
+                                let line = position.line;
+                                let response = lsp
+                                    .hover_file_with_prams(HoverParams {
+                                        text_document_position_params: TextDocumentPositionParams {
+                                            text_document: TextDocumentIdentifier {
+                                                uri: file_uri.clone(),
+                                            },
+                                            position,
+                                        },
+                                        work_done_progress_params: WorkDoneProgressParams::default(
+                                        ),
+                                    })
+                                    .await;
+
+                                if let Ok(Some(res)) = response {
+                                    *hover_location.write() = Some((line, res));
+                                } else {
+                                    *hover_location.write() = None;
+                                }
+                            }
+                            LspAction::Clear => {
                                 *hover_location.write() = None;
                             }
-                        }
-                        LspAction::Clear => {
-                            *hover_location.write() = None;
                         }
                     }
                 }

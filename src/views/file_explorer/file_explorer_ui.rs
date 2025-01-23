@@ -1,7 +1,6 @@
 use std::path::{Path, PathBuf};
 
 use dioxus_radio::hooks::use_radio;
-use freya::elements as dioxus_elements;
 use freya::prelude::keyboard::Code;
 use freya::prelude::*;
 use futures::StreamExt;

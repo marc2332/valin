@@ -398,6 +398,10 @@ impl TextEditor for EditorData {
         }
     }
 
+    fn editor_history(&mut self) -> &mut EditorHistory {
+        &mut self.history
+    }
+
     fn get_identation(&self) -> u8 {
         4
     }

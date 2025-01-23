@@ -167,11 +167,9 @@ pub fn EditorUi(
         match &e.key {
             Key::Shift => {
                 pressing_shift.set(true);
-                return;
             }
             Key::Alt => {
                 pressing_alt.set(true);
-                return;
             }
             _ => {}
         };
