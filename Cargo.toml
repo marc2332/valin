@@ -1,7 +1,17 @@
 [package]
 name = "valin"
-version = "0.0.17"
+version = "0.0.18"
 edition = "2021"
+
+[patch.crates-io]
+dioxus = { git = "https://github.com/marc2332/dioxus", rev = "0e4862a272fbc27222c67b1a33baf59a05a8f534" }
+dioxus-rsx = { git = "https://github.com/marc2332/dioxus", rev = "0e4862a272fbc27222c67b1a33baf59a05a8f534" }
+dioxus-core-macro = { git = "https://github.com/marc2332/dioxus", rev = "0e4862a272fbc27222c67b1a33baf59a05a8f534" }
+dioxus-hooks = { git = "https://github.com/marc2332/dioxus", rev = "0e4862a272fbc27222c67b1a33baf59a05a8f534" }
+dioxus-signals = { git = "https://github.com/marc2332/dioxus", rev = "0e4862a272fbc27222c67b1a33baf59a05a8f534" }
+dioxus-core = { git = "https://github.com/marc2332/dioxus", rev = "0e4862a272fbc27222c67b1a33baf59a05a8f534" }
+dioxus-router = { git = "https://github.com/marc2332/dioxus", rev = "0e4862a272fbc27222c67b1a33baf59a05a8f534" }
+generational-box  = { git = "https://github.com/marc2332/dioxus", rev = "0e4862a272fbc27222c67b1a33baf59a05a8f534" }
 
 [dependencies]
 freya-node-state = { git = "https://github.com/marc2332/freya", rev = "23018a67e3590cd6522d4c98dc5035d1be3a55d6" }
@@ -42,10 +52,9 @@ grep = "0.3.2"
 
 
 [profile.release]
-panic = "abort" 
-lto = true
-codegen-units = 1
-strip = true
+panic = "unwind" 
+
+
 rpath = false
 debug = false
 debug-assertions = false
