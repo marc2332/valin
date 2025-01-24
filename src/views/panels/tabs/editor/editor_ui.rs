@@ -203,17 +203,29 @@ pub fn EditorUi(
                         ..LINES_JUMP_CONTROL)
                         .map(|_| EditableEvent::KeyDown(e.data.clone()))
                         .collect::<Vec<EditableEvent>>(),
+                    _ if e.code == Code::Escape
+                        || e.modifiers.contains(Modifiers::ALT)
+                        || (e.modifiers.contains(Modifiers::CONTROL) && e.code == Code::KeyS) =>
+                    {
+                        Vec::new()
+                    }
                     _ => {
                         vec![EditableEvent::KeyDown(e.data.clone())]
                     }
                 };
+
+                let no_changes = events.is_empty();
 
                 let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
                 for event in events {
                     editable.process_event(&event, editor_tab);
                 }
 
-                tab_channel
+                if no_changes {
+                    Channel::Void
+                } else {
+                    tab_channel
+                }
             } else {
                 Channel::Void
             }

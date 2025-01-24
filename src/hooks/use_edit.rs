@@ -3,7 +3,7 @@ use freya::core::prelude::{EventMessage, TextGroupMeasurement};
 
 use crate::views::panels::tabs::editor::{AppStateEditorUtils, EditorTab};
 use freya::common::CursorLayoutResponse;
-use freya::prelude::{keyboard::Modifiers, *};
+use freya::prelude::*;
 use freya_node_state::CursorReference;
 use tokio::sync::mpsc::unbounded_channel;
 use uuid::Uuid;
@@ -98,15 +98,6 @@ impl UseEdit {
                         }
                         _ => {}
                     }
-                }
-
-                let is_s = e.code == Code::KeyS;
-
-                if e.code == Code::Escape
-                    || e.modifiers.contains(Modifiers::ALT)
-                    || (e.modifiers.contains(Modifiers::CONTROL) && is_s)
-                {
-                    return;
                 }
 
                 let event = editor_tab.editor.process_key(&e.key, &e.code, &e.modifiers);
