@@ -332,6 +332,18 @@ impl AppState {
         self.close_panel(self.focused_panel);
     }
 
+    pub fn focus_previous_panel(&mut self) {
+        if self.focused_panel > 0 {
+            self.set_focused_panel(self.focused_panel - 1);
+        }
+    }
+
+    pub fn focus_next_panel(&mut self) {
+        if self.focused_panel < self.panels.len() - 1 {
+            self.set_focused_panel(self.focused_panel + 1);
+        }
+    }
+
     pub fn push_panel(&mut self, panel: Panel) {
         self.panels.push(panel);
     }

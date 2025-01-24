@@ -10,8 +10,8 @@ pub mod GlobalDefaults {
     use crate::state::{Channel, EditorCommands, EditorView, KeyboardShortcuts, RadioAppState};
 
     use super::{
-        ClosePanelCommand, CloseTabCommand, OpenSearchCommand, OpenSettingsCommand,
-        SplitPanelCommand, ToggleCommanderCommand,
+        ClosePanelCommand, CloseTabCommand, FocusNextPanelCommand, FocusPreviousPanelCommand,
+        OpenSearchCommand, OpenSettingsCommand, SplitPanelCommand, ToggleCommanderCommand,
     };
 
     pub fn init(
@@ -26,6 +26,8 @@ pub mod GlobalDefaults {
         commands.register(OpenSettingsCommand(radio_app_state));
         commands.register(OpenSearchCommand(radio_app_state));
         commands.register(CloseTabCommand(radio_app_state));
+        commands.register(FocusNextPanelCommand(radio_app_state));
+        commands.register(FocusPreviousPanelCommand(radio_app_state));
 
         // Register Shortcuts
         keyboard_shorcuts.register(
@@ -60,6 +62,14 @@ pub mod GlobalDefaults {
                     // Pressing `Alt -`
                     _ if is_pressing_alt && data.key == Key::Character("-".to_string()) => {
                         commands.trigger(ClosePanelCommand::id());
+                    }
+                    // Pressing `Alt ArrowRight`
+                    _ if is_pressing_alt && data.key == Key::ArrowRight => {
+                        commands.trigger(FocusNextPanelCommand::id());
+                    }
+                    // Pressing `Alt ArrowLeft`
+                    _ if is_pressing_alt && data.key == Key::ArrowLeft => {
+                        commands.trigger(FocusPreviousPanelCommand::id());
                     }
                     _ => return false,
                 }
@@ -254,5 +264,63 @@ impl EditorCommand for CloseTabCommand {
         let mut radio_app_state = self.0;
         let mut app_state = radio_app_state.write_channel(Channel::Global);
         app_state.close_active_tab();
+    }
+}
+
+#[derive(Clone)]
+pub struct FocusNextPanelCommand(pub RadioAppState);
+
+impl FocusNextPanelCommand {
+    pub fn id() -> &'static str {
+        "focus-next-panel"
+    }
+}
+
+impl EditorCommand for FocusNextPanelCommand {
+    fn matches(&self, input: &str) -> bool {
+        self.text().to_lowercase().contains(&input.to_lowercase())
+    }
+
+    fn id(&self) -> &str {
+        Self::id()
+    }
+
+    fn text(&self) -> &str {
+        "Focus Next Panel"
+    }
+
+    fn run(&self, _ctx: &mut CommandRunContext) {
+        let mut radio_app_state = self.0;
+        let mut app_state = radio_app_state.write_channel(Channel::Global);
+        app_state.focus_next_panel();
+    }
+}
+
+#[derive(Clone)]
+pub struct FocusPreviousPanelCommand(pub RadioAppState);
+
+impl FocusPreviousPanelCommand {
+    pub fn id() -> &'static str {
+        "focus-previous-panel"
+    }
+}
+
+impl EditorCommand for FocusPreviousPanelCommand {
+    fn matches(&self, input: &str) -> bool {
+        self.text().to_lowercase().contains(&input.to_lowercase())
+    }
+
+    fn id(&self) -> &str {
+        Self::id()
+    }
+
+    fn text(&self) -> &str {
+        "Focus Previous Panel"
+    }
+
+    fn run(&self, _ctx: &mut CommandRunContext) {
+        let mut radio_app_state = self.0;
+        let mut app_state = radio_app_state.write_channel(Channel::Global);
+        app_state.focus_previous_panel();
     }
 }

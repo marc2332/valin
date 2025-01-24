@@ -39,12 +39,12 @@ You can download it from the [Releases](https://github.com/marc2332/valin/releas
 - `Alt ,`: Decrease font size
 - `Alt +`: Split Panel
 - `Alt -`: Close Panel
+- `Alt ArrowsLeft/Right`: Focus the previous/next panels
 - `Ctrl W`: Close Tab
 - `Esc`: Open Commander
 - `Arrows`: Navigate the files explorer when focused
-- `Alt Arrows`: Scroll the editor and the cursor with increased speed
-- `Alt Arrows`: Scroll the cursor with increased speed  
-- `Ctrl Arrows`: Scroll the cursor with increased speed  
+- `Alt ArrowsUp/Down`: Scroll the editor and the cursor with increased speed
+- `Ctrl ArrowsUp/Down`: Scroll the cursor with increased speed
 - `Ctrl/Meta Z`: Undo
 - `Ctrl/Meta Y`: Redo
 - `Ctrl/Meta X`: Cut
