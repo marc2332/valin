@@ -93,20 +93,15 @@ pub fn EditorUi(
         e.stop_propagation();
         focus.focus();
         radio_app_state.write_with_map_channel(|app_state| {
-            let mut channel = Channel::Void;
+            let mut channel = tab_channel;
 
             let panel = app_state.panel(panel_index);
             let is_panels_view_focused = *app_state.focused_view() == EditorView::Panels;
             let is_editor_focused =
                 app_state.focused_panel() == panel_index && panel.active_tab() == Some(tab_index);
-            let is_panel_focused = app_state.focused_panel() == panel_index;
 
-            if is_panel_focused {
-                let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
-                editable.process_event(&EditableEvent::Click, editor_tab);
-
-                channel = tab_channel;
-            }
+            let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
+            editable.process_event(&EditableEvent::Click, editor_tab);
 
             if !is_panels_view_focused {
                 app_state.set_focused_view(EditorView::Panels);
