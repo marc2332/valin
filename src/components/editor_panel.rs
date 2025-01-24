@@ -30,10 +30,9 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
     };
 
     let split_panel = move |_| {
-        let len_panels = radio_app_state.read().panels().len();
         let mut app_state = radio_app_state.write_channel(Channel::Global);
         app_state.push_panel(Panel::new());
-        app_state.set_focused_panel(len_panels - 1);
+        app_state.focus_next_panel();
     };
 
     let onclickpanel = move |_| {
