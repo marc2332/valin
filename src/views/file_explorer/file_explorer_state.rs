@@ -1,4 +1,4 @@
-use freya::prelude::AccessibilityId;
+use freya::{core::accessibility::AccessibilityFocusStrategy, prelude::AccessibilityId};
 use freya_hooks::{UseFocus, UsePlatform};
 
 use super::file_explorer_ui::ExplorerItem;
@@ -18,7 +18,7 @@ impl FileExplorerState {
 
     pub fn focus(&self) {
         let platform = UsePlatform::new();
-        platform.focus(self.focus_id);
+        platform.focus(AccessibilityFocusStrategy::Node(self.focus_id));
     }
 
     pub fn open_folder(&mut self, item: ExplorerItem) {

@@ -147,20 +147,8 @@ pub fn EditorScrollView<
     let horizontal_scrollbar_is_visible =
         is_scrollbar_visible(show_scrollbar, size.inner.width, size.area.width());
 
-    let (container_width, content_width) = get_container_size(
-        &width,
-        true,
-        Axis::X,
-        vertical_scrollbar_is_visible,
-        &scrollbar_theme.size,
-    );
-    let (container_height, content_height) = get_container_size(
-        &height,
-        true,
-        Axis::Y,
-        horizontal_scrollbar_is_visible,
-        &scrollbar_theme.size,
-    );
+    let (container_width, content_width) = get_container_size(&width, true, Axis::X);
+    let (container_height, content_height) = get_container_size(&height, true, Axis::Y);
 
     let corrected_scrolled_y =
         get_corrected_scroll_position(inner_size, size.area.height(), offset_y as f32);
@@ -268,17 +256,6 @@ pub fn EditorScrollView<
         status.set(EditorScrollViewStatus::default());
     };
 
-    let horizontal_scrollbar_size = if horizontal_scrollbar_is_visible {
-        &scrollbar_theme.size
-    } else {
-        "0"
-    };
-    let vertical_scrollbar_size = if vertical_scrollbar_is_visible {
-        &scrollbar_theme.size
-    } else {
-        "0"
-    };
-
     // Calculate from what to what items must be rendered
     let render_range = get_render_range(
         size.area.height(),
@@ -309,8 +286,8 @@ pub fn EditorScrollView<
         rect {
             overflow: "clip",
             direction: "horizontal",
-            width: width,
-            height: height,
+            width: "{width}",
+            height: "{height}",
             onclick,
             onglobalmousemove: onmousemove,
             rect {
@@ -331,29 +308,32 @@ pub fn EditorScrollView<
                     offset_y: "{-offset_y}",
                     {children}
                 }
-                ScrollBar {
-                    width: "100%",
-                    height: "{horizontal_scrollbar_size}",
-                    offset_x: "{scrollbar_x}",
-                    clicking_scrollbar: is_scrolling_x,
-                    ScrollThumb {
+                if show_scrollbar && horizontal_scrollbar_is_visible {
+                    ScrollBar {
+                        size: &scrollbar_theme.size,
+                        offset_x: scrollbar_x,
                         clicking_scrollbar: is_scrolling_x,
-                        onmousedown: onmousedown_x,
-                        width: "{scrollbar_width}",
-                        height: "100%",
-                    },
+                        ScrollThumb {
+                            clicking_scrollbar: is_scrolling_x,
+                            onmousedown: onmousedown_x,
+                            width: "{scrollbar_width}",
+                            height: "100%",
+                        },
+                    }
                 }
             }
-            ScrollBar {
-                width: "{vertical_scrollbar_size}",
-                height: "100%",
-                offset_y: "{scrollbar_y}",
-                clicking_scrollbar: is_scrolling_y,
-                ScrollThumb {
+            if show_scrollbar && vertical_scrollbar_is_visible {
+                ScrollBar {
+                    is_vertical: true,
+                    size: &scrollbar_theme.size,
+                    offset_y: scrollbar_y,
                     clicking_scrollbar: is_scrolling_y,
-                    onmousedown: onmousedown_y,
-                    width: "100%",
-                    height: "{scrollbar_height}",
+                    ScrollThumb {
+                        clicking_scrollbar: is_scrolling_y,
+                        onmousedown: onmousedown_y,
+                        width: "100%",
+                        height: "{scrollbar_height}",
+                    }
                 }
             }
         }

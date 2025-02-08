@@ -4,19 +4,18 @@ version = "0.0.19"
 edition = "2021"
 
 [patch.crates-io]
-dioxus = { git = "https://github.com/marc2332/dioxus", rev = "0e4862a272fbc27222c67b1a33baf59a05a8f534" }
-dioxus-rsx = { git = "https://github.com/marc2332/dioxus", rev = "0e4862a272fbc27222c67b1a33baf59a05a8f534" }
-dioxus-core-macro = { git = "https://github.com/marc2332/dioxus", rev = "0e4862a272fbc27222c67b1a33baf59a05a8f534" }
-dioxus-hooks = { git = "https://github.com/marc2332/dioxus", rev = "0e4862a272fbc27222c67b1a33baf59a05a8f534" }
-dioxus-signals = { git = "https://github.com/marc2332/dioxus", rev = "0e4862a272fbc27222c67b1a33baf59a05a8f534" }
-dioxus-core = { git = "https://github.com/marc2332/dioxus", rev = "0e4862a272fbc27222c67b1a33baf59a05a8f534" }
-dioxus-router = { git = "https://github.com/marc2332/dioxus", rev = "0e4862a272fbc27222c67b1a33baf59a05a8f534" }
-generational-box  = { git = "https://github.com/marc2332/dioxus", rev = "0e4862a272fbc27222c67b1a33baf59a05a8f534" }
+# dioxus = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
+# dioxus-rsx = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
+# dioxus-core-macro = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
+# dioxus-hooks = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
+# dioxus-signals = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
+# dioxus-core = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
+# dioxus-router = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
+# generational-box  = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
 
 [dependencies]
-freya-node-state = { git = "https://github.com/marc2332/freya", rev = "23018a67e3590cd6522d4c98dc5035d1be3a55d6" }
-freya = { git = "https://github.com/marc2332/freya", rev = "23018a67e3590cd6522d4c98dc5035d1be3a55d6" }
-freya-hooks = { git = "https://github.com/marc2332/freya", rev = "23018a67e3590cd6522d4c98dc5035d1be3a55d6" }
+freya = { version = "0.3.0-rc.1" }
+freya-hooks = { version = "0.3.0-rc.1" }
 
 dioxus-radio = "0.3.1"
 dioxus = { version = "0.6", default-features = false }
@@ -25,7 +24,7 @@ dioxus-sdk = { version = "*", features = ["timing"] }
 
 tokio = { version = "1.33.0", features = ["fs", "process"]}
 winit = "0.30.1"
-skia-safe = { version = "0.80.0", features = ["gl", "textlayout", "svg"] }
+skia-safe = { version = "0.81.0", features = ["gl", "textlayout", "svg"] }
 
 ropey = "1.6.0"
 smallvec = "1.10.0"

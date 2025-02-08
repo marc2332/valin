@@ -59,7 +59,6 @@ pub fn TextArea(props: TextAreaProps) -> Element {
 
     let InputTheme {
         border_fill,
-        corner_radius,
         background,
         font_theme: FontTheme { color },
         ..
@@ -77,7 +76,7 @@ pub fn TextArea(props: TextAreaProps) -> Element {
             width: "100%",
             color: "{color}",
             background: "{background}",
-            corner_radius: "{corner_radius}",
+            corner_radius: "8",
             border: "1 solid {border_fill}",
             padding: "8 6",
             margin: "0 0 2 0",

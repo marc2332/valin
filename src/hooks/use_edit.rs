@@ -1,10 +1,13 @@
 use dioxus::dioxus_core::AttributeValue;
-use freya::core::prelude::{EventMessage, TextGroupMeasurement};
 
 use crate::views::panels::tabs::editor::{AppStateEditorUtils, EditorTab};
-use freya::common::CursorLayoutResponse;
-use freya::prelude::*;
-use freya_node_state::CursorReference;
+use freya::{
+    core::{
+        custom_attributes::{CursorLayoutResponse, CursorReference},
+        event_loop_messages::{EventLoopMessage, TextGroupMeasurement},
+    },
+    prelude::*,
+};
 use tokio::sync::mpsc::unbounded_channel;
 use uuid::Uuid;
 
@@ -128,7 +131,7 @@ impl UseEdit {
         if let Some((cursor_id, cursor_position, cursor_selection)) = res {
             if self.dragging.peek().has_cursor_coords() {
                 self.platform
-                    .send(EventMessage::RemeasureTextGroup(TextGroupMeasurement {
+                    .send(EventLoopMessage::RemeasureTextGroup(TextGroupMeasurement {
                         text_id: self.cursor_reference.peek().text_id,
                         cursor_id,
                         cursor_position,
