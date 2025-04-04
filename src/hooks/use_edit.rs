@@ -50,7 +50,11 @@ impl UseEdit {
     }
 
     /// Process a [`EditableEvent`] event.
-    pub fn process_event(&mut self, edit_event: &EditableEvent, editor_tab: &mut EditorTab) {
+    pub fn process_event(
+        &mut self,
+        edit_event: &EditableEvent,
+        editor_tab: &mut EditorTab,
+    ) -> bool {
         let res = match edit_event {
             EditableEvent::MouseDown(e, id) => {
                 let coords = e.get_element_coordinates();
@@ -139,6 +143,9 @@ impl UseEdit {
                     }))
                     .unwrap()
             }
+            true
+        } else {
+            false
         }
     }
 }

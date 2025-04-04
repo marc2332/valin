@@ -83,18 +83,27 @@ pub fn EditorLine(
     let onmousemove = {
         to_owned![rope];
         move |e: MouseEvent| {
-            let rope = rope.borrow();
-            let line_str = rope.line(line_index).to_string();
             let coords = e.get_element_coordinates();
             let data = e.data;
 
-            let mut app_state = radio_app_state.write();
-            let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
-            editable.process_event(&EditableEvent::MouseMove(data, line_index), editor_tab);
+            radio_app_state.write_with_map_optional_channel(|app_state| {
+                let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
+                let processed =
+                    editable.process_event(&EditableEvent::MouseMove(data, line_index), editor_tab);
+
+                if processed {
+                    None
+                } else {
+                    Some(Channel::Void)
+                }
+            });
 
             if !lsp.is_supported() {
                 return;
             }
+
+            let rope = rope.borrow();
+            let line_str = rope.line(line_index).to_string();
 
             cursor_coords.set(coords);
 
@@ -120,7 +129,7 @@ pub fn EditorLine(
     let is_line_selected = editor.cursor_row() == line_index;
 
     // Only show the cursor in the active line
-    let character_index = if is_line_selected {
+    let cursor_index = if is_line_selected {
         editor.cursor_col().to_string()
     } else {
         "none".to_string()
@@ -151,7 +160,7 @@ pub fn EditorLine(
                     if let Some(content) = hover.hover_to_text() {
                         {
                             let cursor_coords = cursor_coords.peek();
-                            let offset_x = cursor_coords.x  as f32 + gutter_width;
+                            let offset_x = cursor_coords.x as f32 + gutter_width;
                             rsx!(
                                 rect {
                                     width: "0",
@@ -186,7 +195,7 @@ pub fn EditorLine(
                 width: "{longest_width}",
                 height: "fill",
                 main_align: "center",
-                cursor_index: "{character_index}",
+                cursor_index,
                 cursor_color: "white",
                 max_lines: "1",
                 cursor_mode: "editable",
@@ -197,12 +206,13 @@ pub fn EditorLine(
                 font_size: "{font_size}",
                 font_family: "Jetbrains Mono",
                 {line.iter().enumerate().map(|(i, (syntax_type, text))| {
-                    let text = match text {
+                    let rope =  rope.borrow();
+                    let text: Cow<str> = match text {
                         TextNode::Range(word_pos) => {
-                            rope.borrow().slice(word_pos.clone()).to_string()
+                            rope.slice(word_pos.clone()).into()
                         },
                         TextNode::LineOfChars { len, char } => {
-                            format!("{char}").repeat(*len)
+                            Cow::Owned(char.to_string().repeat(*len))
                         }
                     };
 
