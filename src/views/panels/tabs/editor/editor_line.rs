@@ -1,6 +1,6 @@
 use std::rc::Rc;
 
-use dioxus_radio::hooks::use_radio;
+use dioxus_radio::prelude::{use_radio, ChannelSelection};
 use dioxus_sdk::utils::timing::UseDebounce;
 use freya::prelude::*;
 use lsp_types::Hover;
@@ -86,15 +86,15 @@ pub fn EditorLine(
             let coords = e.get_element_coordinates();
             let data = e.data;
 
-            radio_app_state.write_with_map_optional_channel(|app_state| {
+            radio_app_state.write_with_channel_selection(|app_state| {
                 let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
                 let processed =
                     editable.process_event(&EditableEvent::MouseMove(data, line_index), editor_tab);
 
                 if processed {
-                    None
+                    ChannelSelection::Current
                 } else {
-                    Some(Channel::Void)
+                    ChannelSelection::Silence
                 }
             });
 
@@ -206,7 +206,7 @@ pub fn EditorLine(
                 font_size: "{font_size}",
                 font_family: "Jetbrains Mono",
                 {line.iter().enumerate().map(|(i, (syntax_type, text))| {
-                    let rope =  rope.borrow();
+                    let rope = rope.borrow();
                     let text: Cow<str> = match text {
                         TextNode::Range(word_pos) => {
                             rope.slice(word_pos.clone()).into()
@@ -220,7 +220,7 @@ pub fn EditorLine(
                         text {
                             key: "{i}",
                             color: "{syntax_type.color()}",
-                            "{text}"
+                            {text}
                         }
                     )
                 })}

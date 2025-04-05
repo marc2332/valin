@@ -8,7 +8,7 @@ use crate::views::panels::tabs::editor::BuilderArgs;
 use crate::views::panels::tabs::editor::EditorLine;
 use crate::{components::*, state::Channel};
 
-use dioxus_radio::prelude::use_radio;
+use dioxus_radio::prelude::{use_radio, ChannelSelection};
 use dioxus_sdk::utils::timing::use_debounce;
 use freya::events::KeyboardEvent;
 use freya::prelude::keyboard::Modifiers;
@@ -28,8 +28,7 @@ pub fn EditorUi(
     }: TabProps,
 ) -> Element {
     // Subscribe to the changes of this Tab.
-    let tab_channel = Channel::follow_tab(panel_index, tab_index);
-    let mut radio_app_state = use_radio(tab_channel);
+    let mut radio_app_state = use_radio(Channel::follow_tab(panel_index, tab_index));
 
     let app_state = radio_app_state.read();
     let editor_tab = app_state.editor_tab(panel_index, tab_index);
@@ -92,8 +91,8 @@ pub fn EditorUi(
     let onclick = move |e: MouseEvent| {
         e.stop_propagation();
         focus.focus();
-        radio_app_state.write_with_map_channel(|app_state| {
-            let mut channel = tab_channel;
+        radio_app_state.write_with_channel_selection(|app_state| {
+            let mut channel = ChannelSelection::Silence;
 
             let panel = app_state.panel(panel_index);
             let is_panels_view_focused = *app_state.focused_view() == EditorView::Panels;
@@ -105,13 +104,13 @@ pub fn EditorUi(
 
             if !is_panels_view_focused {
                 app_state.set_focused_view(EditorView::Panels);
-                channel = Channel::Global;
+                channel.select(Channel::Global)
             }
 
             if !is_editor_focused {
                 app_state.set_focused_panel(panel_index);
                 app_state.panel_mut(panel_index).set_active_tab(tab_index);
-                channel = Channel::Global;
+                channel.select(Channel::Global);
             }
 
             channel
@@ -136,7 +135,7 @@ pub fn EditorUi(
             _ => {}
         };
 
-        radio_app_state.write_with_map_channel(|app_state| {
+        radio_app_state.write_with_channel_selection(|app_state| {
             let panel = app_state.panel(panel_index);
             let is_panel_focused = app_state.focused_panel() == panel_index;
             let is_editor_focused = *app_state.focused_view() == EditorView::Panels
@@ -146,9 +145,9 @@ pub fn EditorUi(
                 let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
                 editable.process_event(&EditableEvent::KeyUp(e.data), editor_tab);
 
-                tab_channel
+                ChannelSelection::Current
             } else {
-                Channel::Void
+                ChannelSelection::Silence
             }
         });
     };
@@ -167,7 +166,7 @@ pub fn EditorUi(
             _ => {}
         };
 
-        radio_app_state.write_with_map_channel(|app_state| {
+        radio_app_state.write_with_channel_selection(|app_state| {
             let panel = app_state.panel(panel_index);
             let is_panel_focused = app_state.focused_panel() == panel_index;
             let is_editor_focused = *app_state.focused_view() == EditorView::Panels
@@ -217,12 +216,12 @@ pub fn EditorUi(
                 }
 
                 if no_changes {
-                    Channel::Void
+                    ChannelSelection::Silence
                 } else {
-                    tab_channel
+                    ChannelSelection::Current
                 }
             } else {
-                Channel::Void
+                ChannelSelection::Silence
             }
         });
     };

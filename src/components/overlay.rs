@@ -15,7 +15,7 @@ pub fn Overlay(children: Element) -> Element {
         rect {
             width: "100%",
             height: "0",
-            layer: "-100",
+            layer: "-9999",
             onglobalmousedown,
             rect {
                 width: "100%",

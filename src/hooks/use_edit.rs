@@ -1,4 +1,5 @@
 use dioxus::dioxus_core::AttributeValue;
+use dioxus_radio::prelude::ChannelSelection;
 
 use crate::views::panels::tabs::editor::{AppStateEditorUtils, EditorTab};
 use freya::{
@@ -11,7 +12,7 @@ use freya::{
 use tokio::sync::mpsc::unbounded_channel;
 use uuid::Uuid;
 
-use crate::state::{Channel, RadioAppState};
+use crate::state::RadioAppState;
 
 /// Manage an editable content.
 #[derive(Clone, Copy, PartialEq)]
@@ -154,7 +155,6 @@ pub fn use_edit(mut radio: RadioAppState, panel_index: usize, tab_index: usize) 
     let dragging = use_signal(|| TextDragging::None);
     let platform = use_platform();
     let mut cursor_receiver_task = use_signal::<Option<Task>>(|| None);
-    let tab_channel = Channel::follow_tab(panel_index, tab_index);
 
     let cursor_reference = use_memo(use_reactive(&(panel_index, tab_index), {
         move |(panel_index, tab_index)| {
@@ -175,7 +175,7 @@ pub fn use_edit(mut radio: RadioAppState, panel_index: usize, tab_index: usize) 
                     match message {
                         // Update the cursor position calculated by the layout
                         CursorLayoutResponse::CursorPosition { position, id } => {
-                            radio.write_with_map_channel(|app_state| {
+                            radio.write_with_channel_selection(|app_state| {
                                 let editor_tab = app_state.editor_tab(panel_index, tab_index);
 
                                 let new_cursor = editor_tab.editor.measure_new_cursor(
@@ -197,16 +197,16 @@ pub fn use_edit(mut radio: RadioAppState, panel_index: usize, tab_index: usize) 
                                     } else {
                                         editor_tab.editor.clear_selection();
                                     }
-                                    tab_channel
+                                    ChannelSelection::Current
                                 } else {
-                                    Channel::Void
+                                    ChannelSelection::Silence
                                 }
                             });
                         }
                         // Update the text selections calculated by the layout
                         CursorLayoutResponse::TextSelection { from, to, id } => {
-                            radio.write_with_map_channel(|app_state| {
-                                let mut channel = Channel::Void;
+                            radio.write_with_channel_selection(|app_state| {
+                                let mut channel = ChannelSelection::Silence;
 
                                 let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
 
@@ -221,17 +221,17 @@ pub fn use_edit(mut radio: RadioAppState, panel_index: usize, tab_index: usize) 
                                 if let Some(current_selection) = current_selection {
                                     if current_selection != maybe_new_selection {
                                         editor_tab.editor.set_selection(maybe_new_selection);
-                                        channel = tab_channel;
+                                        channel.current();
                                     }
                                 } else {
                                     editor_tab.editor.set_selection(maybe_new_selection);
-                                    channel = tab_channel;
+                                    channel.current();
                                 }
 
                                 // Update the cursor if it has changed
                                 if current_cursor != maybe_new_cursor {
                                     *editor_tab.editor.cursor_mut() = maybe_new_cursor;
-                                    channel = tab_channel;
+                                    channel.current();
                                 }
 
                                 channel

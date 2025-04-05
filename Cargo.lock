@@ -1445,12 +1445,14 @@ dependencies = [
 
 [[package]]
 name = "dioxus-radio"
-version = "0.3.1"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20be50737ae4d15bb73c0dbda847f2e78cc5fe1491f7a127c3dc841c0e450f2c"
+checksum = "f78b1df46c4ddca26421dc1f0f8672318e16b23aaf5c681935a52c35c57ffb73"
 dependencies = [
  "dioxus-lib",
  "generational-box",
+ "itertools 0.14.0",
+ "tracing",
  "warnings",
 ]
 
@@ -2945,6 +2947,15 @@ name = "itertools"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "413ee7dfc52ee1a4949ceeb7dbc8a33f2d6c088194d9f922fb8318faf1f01186"
+dependencies = [
+ "either",
+]
+
+[[package]]
+name = "itertools"
+version = "0.14.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b192c782037fadd9cfa75548310488aabdbf3d2da73885b31bd0abd03351285"
 dependencies = [
  "either",
 ]

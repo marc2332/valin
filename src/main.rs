@@ -63,7 +63,8 @@ fn main() {
             EnvFilter::builder()
                 .with_default_directive("valin=debug".parse().unwrap())
                 .from_env()
-                .unwrap(),
+                .unwrap()
+                .add_directive("dioxus_radio=debug".parse().unwrap()),
         )
         .finish();
 

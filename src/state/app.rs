@@ -32,7 +32,7 @@ impl AppStateUtils for RadioAppState {
     }
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord)]
 pub enum Channel {
     /// Affects global components
     Global,
@@ -49,8 +49,6 @@ pub enum Channel {
     Settings,
     // Only affects the file explorer
     FileExplorer,
-    // Affects nothing
-    Void,
 }
 
 impl RadioChannel<AppState> for Channel {

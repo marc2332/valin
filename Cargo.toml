@@ -17,7 +17,7 @@ edition = "2021"
 freya = { version = "0.3.0-rc.1" }
 freya-hooks = { version = "0.3.0-rc.1" }
 
-dioxus-radio = "0.3.1"
+dioxus-radio = { version = "0.5.1", features = ["tracing"] }
 dioxus = { version = "0.6", default-features = false }
 dioxus-clipboard = "*"
 dioxus-sdk = { version = "*", features = ["timing"] }
