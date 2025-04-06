@@ -35,7 +35,7 @@ pub fn EditorUi(
     let editor = &editor_tab.editor;
     let paths = editor.editor_type().paths();
 
-    let mut focus = use_focus_from_id(editor_tab.focus_id);
+    let mut focus = use_focus_for_id(editor_tab.focus_id);
 
     // What position in the text the user is hovering
     let hover_location = use_signal(|| None);
@@ -90,7 +90,7 @@ pub fn EditorUi(
 
     let onclick = move |e: MouseEvent| {
         e.stop_propagation();
-        focus.focus();
+        focus.request_focus();
         radio_app_state.write_with_channel_selection(|app_state| {
             let mut channel = ChannelSelection::Silence;
 
@@ -117,7 +117,6 @@ pub fn EditorUi(
         });
     };
 
-    let cursor_reference = editable.cursor_attr();
     let line_height = app_state.line_height();
     let font_size = app_state.font_size();
 
@@ -242,7 +241,6 @@ pub fn EditorUi(
                 onkeydown,
                 onkeyup,
                 onclick,
-                cursor_reference,
                 EditorScrollView {
                     offset_x: scroll_offsets.read().0,
                     offset_y: scroll_offsets.read().1,

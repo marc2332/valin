@@ -1889,9 +1889,9 @@ dependencies = [
 
 [[package]]
 name = "freya"
-version = "0.3.0-rc.1"
+version = "0.3.0-rc.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e70bb0496a05dbb418c6523465755a76363dee6a990d6dd53c2a8406f57626f9"
+checksum = "c98c141aaa7c5d4e73224f0fd877a1bb2d656d28024f44e367a2afb2655376f9"
 dependencies = [
  "dioxus",
  "dioxus-core",
@@ -1910,9 +1910,9 @@ dependencies = [
 
 [[package]]
 name = "freya-components"
-version = "0.3.0-rc.1"
+version = "0.3.0-rc.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "827ec3ea9b1187615602eaf1b68f99e58e921036feb3f676b5a42a4799729ff1"
+checksum = "3010035518ef0258284bc91d7e34b0f7645e3ba336a977d1a61d042da372f8b8"
 dependencies = [
  "bytes",
  "dioxus",
@@ -1932,9 +1932,9 @@ dependencies = [
 
 [[package]]
 name = "freya-core"
-version = "0.3.0-rc.1"
+version = "0.3.0-rc.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3346dc1bee13c5e1f7210d62f95f68cef8f68fff18ce3c4f8baa1640025368e6"
+checksum = "edf1289fc6ee3735f13b3a3704a7a8a1e86de56ef990f1f83350784cf856add8"
 dependencies = [
  "accesskit",
  "accesskit_winit",
@@ -1959,9 +1959,9 @@ dependencies = [
 
 [[package]]
 name = "freya-elements"
-version = "0.3.0-rc.1"
+version = "0.3.0-rc.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d2e83e624a44abbe6cdcabddb1cb072c25ee31989dcbbfd84b7f29c3de239b9e"
+checksum = "0c1d285f5f9bfd0fbeb442ac9f2dab8aeebd413f30c840203d77a6f74ccaedc0"
 dependencies = [
  "dioxus-core",
  "dioxus-rsx",
@@ -1973,9 +1973,9 @@ dependencies = [
 
 [[package]]
 name = "freya-engine"
-version = "0.3.0-rc.1"
+version = "0.3.0-rc.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32c62468222734921ab05d2d9e6f4e61a3853a06d8ebd26ce7ba6488e1c3095c"
+checksum = "0d1e9c449a4c95b61a03f26dd7135503f467c4dc02217442cd70d0129559cd69"
 dependencies = [
  "bitflags 2.8.0",
  "glutin",
@@ -1984,9 +1984,9 @@ dependencies = [
 
 [[package]]
 name = "freya-hooks"
-version = "0.3.0-rc.1"
+version = "0.3.0-rc.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a8b974e3c6c303dec3e09c4b3a8baca313df11d13bd846fc03af1142ade5234a"
+checksum = "00c6189de7070ac7a21fccebc2aded4a93f267a0d0ee5122a06ade42ef8b59ac"
 dependencies = [
  "bitflags 2.8.0",
  "bytes",
@@ -2008,9 +2008,9 @@ dependencies = [
 
 [[package]]
 name = "freya-native-core"
-version = "0.3.0-rc.1"
+version = "0.3.0-rc.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca01e45118936a08efffc11c0eefb4288acef1c20ed8382c0d50045da4f8dc18"
+checksum = "79da8a8e3a696b7ec774a5937e66fec6a5e20ab7c1cda7a8ba4483910ba5f3cb"
 dependencies = [
  "dioxus-core",
  "parking_lot",
@@ -2021,9 +2021,9 @@ dependencies = [
 
 [[package]]
 name = "freya-native-core-macro"
-version = "0.3.0-rc.1"
+version = "0.3.0-rc.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8bce81145288cf029ad36865609cccb8280d95dd8b0bb015c0807c85dd475b7f"
+checksum = "6cedb708878301d2d0883f7c3d4128995dd9f4fa966bd3c6d1ba5ea1235ae653"
 dependencies = [
  "quote",
  "syn 2.0.98",
@@ -2031,9 +2031,9 @@ dependencies = [
 
 [[package]]
 name = "freya-winit"
-version = "0.3.0-rc.1"
+version = "0.3.0-rc.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d59460f2567fdaa9bbc90454be49eab3a24a34357e55d39b39dd99f9bd880295"
+checksum = "fedcdd9bc2d79837840b7913b822f040c61b764a0162a80ad50e7cbe12beb0a6"
 dependencies = [
  "accesskit",
  "accesskit_winit",
@@ -5199,9 +5199,9 @@ dependencies = [
 
 [[package]]
 name = "torin"
-version = "0.3.0-rc.1"
+version = "0.3.0-rc.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1cc86a5825ef5b902b76d58965b2a75a0b1f8992722d35821386a32a0d2f4738"
+checksum = "8cb1d54393a8a64657fab4b38eaee70fa2d111c8ac523310eaabba7c19f5ead8"
 dependencies = [
  "euclid",
  "freya-native-core",
@@ -5457,7 +5457,7 @@ dependencies = [
 
 [[package]]
 name = "valin"
-version = "0.0.19"
+version = "0.0.20"
 dependencies = [
  "async-lsp",
  "async-trait",

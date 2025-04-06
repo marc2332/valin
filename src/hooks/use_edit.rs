@@ -108,7 +108,10 @@ impl UseEdit {
                     }
                 }
 
-                let event = editor_tab.editor.process_key(&e.key, &e.code, &e.modifiers);
+                let event =
+                    editor_tab
+                        .editor
+                        .process_key(&e.key, &e.code, &e.modifiers, true, true, true);
                 if event.contains(TextEvent::TEXT_CHANGED) {
                     editor_tab.editor.run_parser();
                     *self.dragging.write() = TextDragging::None;
@@ -134,7 +137,9 @@ impl UseEdit {
         };
 
         if let Some((cursor_id, cursor_position, cursor_selection)) = res {
+            println!("{res:?}");
             if self.dragging.peek().has_cursor_coords() {
+                println!("..-");
                 self.platform
                     .send(EventLoopMessage::RemeasureTextGroup(TextGroupMeasurement {
                         text_id: self.cursor_reference.peek().text_id,

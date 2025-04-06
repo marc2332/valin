@@ -138,7 +138,7 @@ enum TreeTask {
 pub fn FileExplorer() -> Element {
     let mut radio_app_state = use_radio::<AppState, Channel>(Channel::FileExplorer);
     let app_state = radio_app_state.read();
-    let mut focus = use_focus_from_id(app_state.file_explorer.focus_id);
+    let mut focus = use_focus_for_id(app_state.file_explorer.focus_id);
     let mut focused_item_index = use_signal(|| 0);
 
     let items = app_state
@@ -289,7 +289,7 @@ pub fn FileExplorer() -> Element {
 
     let onclick = move |e: MouseEvent| {
         e.stop_propagation();
-        focus.focus();
+        focus.request_focus();
     };
 
     if items.is_empty() {

@@ -2,8 +2,7 @@ use std::{collections::HashMap, vec};
 
 use dioxus_clipboard::prelude::UseClipboard;
 use dioxus_radio::prelude::{Radio, RadioChannel};
-use freya::core::accessibility::AccessibilityFocusStrategy;
-use freya_hooks::UsePlatform;
+use freya::{core::accessibility::AccessibilityFocusStrategy, hooks::UsePlatform};
 use skia_safe::{textlayout::FontCollection, FontMgr};
 use tracing::info;
 
@@ -314,7 +313,7 @@ impl AppState {
     pub fn focus_tab(&mut self, panel_i: usize, tab: Option<usize>) {
         self.panels[panel_i].active_tab = tab;
         if let Some(tab) = tab {
-            let platform = UsePlatform::new();
+            let platform = UsePlatform::current();
             let tab = self.panels[panel_i].tab(tab);
             platform.focus(AccessibilityFocusStrategy::Node(tab.get_data().focus_id));
         }

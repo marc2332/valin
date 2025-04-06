@@ -4,9 +4,8 @@ use std::rc::Rc;
 use std::{cmp::Ordering, fmt::Display, ops::Range, path::PathBuf};
 
 use dioxus_clipboard::prelude::UseClipboard;
-use freya::hooks::{EditorHistory, HistoryChange, Line, TextCursor, TextEditor};
+use freya::hooks::{EditorHistory, HistoryChange, Line, LinesIterator, TextCursor, TextEditor};
 use freya::prelude::Rope;
-use freya_hooks::LinesIterator;
 use lsp_types::Url;
 use skia_safe::textlayout::FontCollection;
 

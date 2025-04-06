@@ -125,6 +125,7 @@ pub fn EditorLine(
     let line = editor.metrics.syntax_blocks.get_line(line_index);
     let highlights = editable.highlights_attr(line_index, editor_tab);
     let gutter_width = font_size * 5.0;
+    let cursor_reference = editable.cursor_attr();
 
     let is_line_selected = editor.cursor_row() == line_index;
 
@@ -198,6 +199,7 @@ pub fn EditorLine(
                 cursor_index,
                 cursor_color: "white",
                 max_lines: "1",
+                cursor_reference,
                 cursor_mode: "editable",
                 cursor_id: "{line_index}",
                 highlights,
