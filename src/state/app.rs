@@ -92,12 +92,12 @@ impl RadioChannel<AppState> for Channel {
             }
             Self::Settings => {
                 let mut channels = vec![self];
-                channels.extend(Channel::AllTabs.derive_channel(app_state));
+                channels.extend(Channel::Global.derive_channel(app_state));
                 channels
             }
             Self::Global => {
                 let mut channels = vec![self];
-                channels.push(Self::ActiveTab);
+                channels.extend(Channel::AllTabs.derive_channel(app_state));
                 channels
             }
             _ => vec![self],
@@ -301,10 +301,7 @@ impl AppState {
             }
         }
 
-        info!(
-            "Closed tab [panel={panel}] [tab={}]",
-            self.panels[panel].tabs.len()
-        );
+        info!("Closed tab [panel={panel}] [tab={tab}]",);
 
         let mut panel_tab = self.panels[panel].tabs.remove(tab);
         panel_tab.on_close(self);
