@@ -1445,9 +1445,9 @@ dependencies = [
 
 [[package]]
 name = "dioxus-radio"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f78b1df46c4ddca26421dc1f0f8672318e16b23aaf5c681935a52c35c57ffb73"
+checksum = "3bfcb17395e422e7ffe7c755906264af314336c591efadaf2393563d3fe0b713"
 dependencies = [
  "dioxus-lib",
  "generational-box",
@@ -5457,7 +5457,7 @@ dependencies = [
 
 [[package]]
 name = "valin"
-version = "0.21.0"
+version = "0.22.0"
 dependencies = [
  "async-lsp",
  "async-trait",

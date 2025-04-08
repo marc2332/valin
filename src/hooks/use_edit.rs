@@ -56,12 +56,14 @@ impl UseEdit {
         edit_event: &EditableEvent,
         editor_tab: &mut EditorTab,
     ) -> bool {
+        let mut processed = false;
         let res = match edit_event {
             EditableEvent::MouseDown(e, id) => {
                 let coords = e.get_element_coordinates();
 
                 self.dragging.write().set_cursor_coords(coords);
                 editor_tab.editor.clear_selection();
+                processed = true;
 
                 Some((*id, Some(coords), None))
             }
@@ -115,8 +117,10 @@ impl UseEdit {
                 if event.contains(TextEvent::TEXT_CHANGED) {
                     editor_tab.editor.run_parser();
                     *self.dragging.write() = TextDragging::None;
-                } else if event.contains(TextEvent::SELECTION_CHANGED) {
-                    self.dragging.write();
+                }
+
+                if !event.is_empty() {
+                    processed = true;
                 }
 
                 None
@@ -137,9 +141,7 @@ impl UseEdit {
         };
 
         if let Some((cursor_id, cursor_position, cursor_selection)) = res {
-            println!("{res:?}");
             if self.dragging.peek().has_cursor_coords() {
-                println!("..-");
                 self.platform
                     .send(EventLoopMessage::RemeasureTextGroup(TextGroupMeasurement {
                         text_id: self.cursor_reference.peek().text_id,
@@ -147,12 +149,11 @@ impl UseEdit {
                         cursor_position,
                         cursor_selection,
                     }))
-                    .unwrap()
+                    .unwrap();
             }
-            true
-        } else {
-            false
         }
+
+        processed
     }
 }
 
