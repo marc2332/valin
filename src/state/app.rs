@@ -13,21 +13,18 @@ use crate::{
     LspStatusSender,
 };
 
-use super::{AppSettings, EditorView, Panel, PanelTab};
+use super::{AppSettings, EditorView, Panel, PanelTab, TabId};
 
 pub type RadioAppState = Radio<AppState, Channel>;
 
 pub trait AppStateUtils {
-    fn get_focused_data(&self) -> (usize, Option<usize>);
+    fn get_active_tab(&self) -> Option<TabId>;
 }
 
 impl AppStateUtils for RadioAppState {
-    fn get_focused_data(&self) -> (usize, Option<usize>) {
+    fn get_active_tab(&self) -> Option<TabId> {
         let app_state = self.read();
-        (
-            app_state.focused_panel,
-            app_state.panel(app_state.focused_panel).active_tab,
-        )
+        app_state.panel(app_state.focused_panel).active_tab
     }
 }
 
@@ -39,8 +36,7 @@ pub enum Channel {
     AllTabs,
     /// Affects individual tab
     Tab {
-        panel_index: usize,
-        tab_index: usize,
+        tab_id: TabId,
     },
     /// Only affects the active tab
     ActiveTab,
@@ -57,37 +53,26 @@ impl RadioChannel<AppState> for Channel {
                 let mut channels = vec![self, Self::ActiveTab];
                 channels.extend(
                     app_state
-                        .panels
-                        .iter()
-                        .enumerate()
-                        .flat_map(|(panel_index, panel)| {
-                            panel
-                                .tabs()
-                                .iter()
-                                .enumerate()
-                                .map(move |(tab_index, _)| Self::Tab {
-                                    panel_index,
-                                    tab_index,
-                                })
-                        })
+                        .tabs
+                        .keys()
+                        .map(move |tab_id| Self::Tab { tab_id: *tab_id })
                         .collect::<Vec<Self>>(),
                 );
 
                 channels
             }
-            Self::Tab {
-                panel_index,
-                tab_index,
-            } => {
+            Self::Tab { tab_id } => {
                 let mut channels = vec![self];
-                if app_state.focused_panel == panel_index {
-                    let panel = app_state.panel(panel_index);
-                    if let Some(active_tab) = panel.active_tab {
-                        if active_tab == tab_index {
-                            channels.push(Self::ActiveTab);
+                for (panel_index, panel) in app_state.panels.iter().enumerate() {
+                    if app_state.focused_panel == panel_index {
+                        if let Some(active_tab) = panel.active_tab {
+                            if active_tab == tab_id {
+                                channels.push(Self::ActiveTab);
+                            }
                         }
                     }
                 }
+
                 channels
             }
             Self::Settings => {
@@ -106,11 +91,8 @@ impl RadioChannel<AppState> for Channel {
 }
 
 impl Channel {
-    pub fn follow_tab(panel: usize, editor: usize) -> Self {
-        Self::Tab {
-            panel_index: panel,
-            tab_index: editor,
-        }
+    pub fn follow_tab(tab_id: TabId) -> Self {
+        Self::Tab { tab_id }
     }
 }
 
@@ -126,6 +108,7 @@ pub struct AppState {
 
     pub focused_panel: usize,
     pub panels: Vec<Panel>,
+    pub tabs: HashMap<TabId, Box<dyn PanelTab>>,
     pub settings: AppSettings,
     pub language_servers: HashMap<String, LSPClient>,
     pub lsp_sender: LspStatusSender,
@@ -150,6 +133,7 @@ impl AppState {
             previous_focused_view: None,
             focused_view: EditorView::default(),
             focused_panel: 0,
+            tabs: HashMap::new(),
             panels: vec![Panel::new()],
             settings: AppSettings::load(),
             language_servers: HashMap::default(),
@@ -186,10 +170,8 @@ impl AppState {
 
     /// There are a few things that need to revaluated when the settings are changed
     pub fn apply_settings(&mut self) {
-        for panel in &mut self.panels {
-            for tab in &mut panel.tabs {
-                tab.on_settings_changed(&self.settings, &self.font_collection)
-            }
+        for tab in self.tabs.values_mut() {
+            tab.on_settings_changed(&self.settings, &self.font_collection)
         }
     }
 
@@ -250,24 +232,29 @@ impl AppState {
         self.focused_panel
     }
 
-    pub fn push_tab(&mut self, tab: impl PanelTab + 'static, panel: usize, focus: bool) {
-        let opened_tab = self.panels[panel]
+    #[allow(clippy::borrowed_box)]
+    pub fn tab(&self, tab_id: &TabId) -> &Box<dyn PanelTab> {
+        self.tabs.get(tab_id).unwrap()
+    }
+
+    pub fn push_tab(&mut self, tab: impl PanelTab + 'static, panel_index: usize, focus: bool) {
+        let opened_tab = self.panels[panel_index]
             .tabs
             .iter()
-            .enumerate()
-            .find(|(_, t)| t.get_data().id == tab.get_data().id);
+            .find(|tab_id| *tab_id == &tab.get_data().id);
 
-        if let Some((tab_index, _)) = opened_tab {
+        if let Some(tab_id) = opened_tab {
             if focus {
-                self.focused_panel = panel;
-                self.focus_tab(panel, Some(tab_index));
+                self.focused_panel = panel_index;
+                self.focus_tab(panel_index, Some(*tab_id));
             }
         } else {
-            self.panels[panel].tabs.push(Box::new(tab));
+            self.panels[panel_index].tabs.push(tab.get_data().id);
+            self.tabs.insert(tab.get_data().id, Box::new(tab));
 
             if focus {
-                self.focused_panel = panel;
-                self.focus_tab(panel, Some(self.panels[panel].tabs.len() - 1));
+                self.focused_panel = panel_index;
+                self.focus_tab(panel_index, self.panels[panel_index].tabs.last().cloned());
             }
         }
 
@@ -276,42 +263,52 @@ impl AppState {
         }
 
         info!(
-            "Opened tab [panel={panel}] [tab={}]",
-            self.panels[panel].tabs.len()
+            "Opened tab [panel={panel_index}] [tab={}]",
+            self.panels[panel_index].tabs.len()
         );
     }
 
-    pub fn close_tab(&mut self, panel: usize, tab: usize) {
-        if let Some(active_tab) = self.panels[panel].active_tab {
-            let prev_tab = tab > 0;
-            let next_tab = self.panels[panel].tabs.get(tab + 1).is_some();
-            if active_tab == tab {
+    pub fn close_tab(&mut self, tab_id: TabId) {
+        let (panel_index, panel) = self
+            .panels
+            .iter()
+            .enumerate()
+            .find(|(_, panel)| panel.tabs.contains(&tab_id))
+            .unwrap();
+        if let Some(active_tab) = panel.active_tab {
+            if active_tab == tab_id {
+                let tab_index = panel.tabs.iter().position(|tab| *tab == tab_id).unwrap();
                 self.focus_tab(
-                    panel,
-                    if next_tab {
-                        Some(tab)
-                    } else if prev_tab {
-                        Some(tab - 1)
+                    panel_index,
+                    if let Some(next_tab) = panel.tabs.get(tab_index + 1) {
+                        Some(*next_tab)
+                    } else if tab_index > 0 {
+                        panel.tabs.get(tab_index - 1).copied()
                     } else {
                         None
                     },
                 );
-            } else if active_tab >= tab {
-                self.focus_tab(panel, Some(active_tab - 1));
             }
         }
 
-        info!("Closed tab [panel={panel}] [tab={tab}]",);
-
-        let mut panel_tab = self.panels[panel].tabs.remove(tab);
+        let mut panel_tab = self.tabs.remove(&tab_id).unwrap();
         panel_tab.on_close(self);
+
+        let panel = self
+            .panels
+            .iter_mut()
+            .find(|panel| panel.tabs.contains(&tab_id))
+            .unwrap();
+        panel.tabs.retain(|tab| *tab != tab_id);
+
+        info!("Closed tab [panel={panel_index}] [tab={tab_id:?}]",);
     }
 
-    pub fn focus_tab(&mut self, panel_i: usize, tab: Option<usize>) {
-        self.panels[panel_i].active_tab = tab;
-        if let Some(tab) = tab {
+    pub fn focus_tab(&mut self, panel_index: usize, tab_id: Option<TabId>) {
+        self.panels[panel_index].active_tab = tab_id;
+        if let Some(tab_id) = tab_id {
             let platform = UsePlatform::current();
-            let tab = self.panels[panel_i].tab(tab);
+            let tab = self.tab(&tab_id);
             platform.focus(AccessibilityFocusStrategy::Node(tab.get_data().focus_id));
         }
     }
@@ -319,7 +316,7 @@ impl AppState {
     pub fn close_active_tab(&mut self) {
         let panel = self.focused_panel;
         if let Some(active_tab) = self.panels[panel].active_tab {
-            self.close_tab(panel, active_tab);
+            self.close_tab(active_tab);
         }
     }
 

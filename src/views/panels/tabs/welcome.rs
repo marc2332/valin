@@ -1,6 +1,6 @@
 use freya::prelude::*;
 
-use crate::state::{AppState, PanelTab, PanelTabData, TabProps};
+use crate::state::{AppState, PanelTab, PanelTabData, TabId, TabProps};
 
 pub struct WelcomeTab {
     focus_id: AccessibilityId,
@@ -9,7 +9,7 @@ pub struct WelcomeTab {
 impl PanelTab for WelcomeTab {
     fn get_data(&self) -> PanelTabData {
         PanelTabData {
-            id: "welcome".to_string(),
+            id: TabId::new(),
             title: "welcome".to_string(),
             edited: false,
             focus_id: self.focus_id,

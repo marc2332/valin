@@ -1,12 +1,14 @@
 use std::rc::Rc;
 
-use dioxus_radio::prelude::{use_radio, ChannelSelection};
+use dioxus_radio::hooks::RadioReducer;
+use dioxus_radio::prelude::use_radio;
 use dioxus_sdk::utils::timing::UseDebounce;
 use freya::prelude::*;
 use lsp_types::Hover;
 use skia_safe::textlayout::Paragraph;
 
 use crate::parser::TextNode;
+use crate::state::{EditorAction, EditorActionData, TabId};
 use crate::views::panels::tabs::editor::hover_box::HoverBox;
 use crate::views::panels::tabs::editor::AppStateEditorUtils;
 use crate::{hooks::UseEdit, utils::create_paragraph};
@@ -19,8 +21,7 @@ use super::SharedRope;
 
 #[derive(Props, Clone)]
 pub struct BuilderArgs {
-    pub(crate) panel_index: usize,
-    pub(crate) tab_index: usize,
+    pub(crate) tab_id: TabId,
     pub(crate) font_size: f32,
     pub(crate) rope: SharedRope,
     pub(crate) line_height: f32,
@@ -28,8 +29,7 @@ pub struct BuilderArgs {
 
 impl PartialEq for BuilderArgs {
     fn eq(&self, other: &Self) -> bool {
-        self.panel_index == other.panel_index
-            && self.tab_index == other.tab_index
+        self.tab_id == other.tab_id
             && self.font_size == other.font_size
             && self.line_height == other.line_height
             && Rc::ptr_eq(&self.rope, &other.rope)
@@ -52,26 +52,29 @@ pub fn EditorLine(
     EditorLineProps {
         builder_args:
             BuilderArgs {
-                panel_index,
-                tab_index,
+                tab_id,
                 font_size,
                 rope,
                 line_height,
             },
         line_index,
-        mut editable,
+        editable,
         lsp,
         hover_location,
         mut cursor_coords,
         mut debouncer,
     }: EditorLineProps,
 ) -> Element {
-    let mut radio_app_state = use_radio(Channel::follow_tab(panel_index, tab_index));
+    let mut radio_app_state = use_radio(Channel::follow_tab(tab_id));
 
     let onmousedown = move |e: MouseEvent| {
-        let mut app_state = radio_app_state.write();
-        let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
-        editable.process_event(&EditableEvent::MouseDown(e.data, line_index), editor_tab);
+        radio_app_state.apply(EditorAction {
+            tab_id,
+            data: EditorActionData::MouseDown {
+                data: e.data,
+                line_index,
+            },
+        });
     };
 
     let onmouseleave = move |_| {
@@ -84,18 +87,13 @@ pub fn EditorLine(
         to_owned![rope];
         move |e: MouseEvent| {
             let coords = e.get_element_coordinates();
-            let data = e.data;
 
-            radio_app_state.write_with_channel_selection(|app_state| {
-                let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
-                let processed =
-                    editable.process_event(&EditableEvent::MouseMove(data, line_index), editor_tab);
-
-                if processed {
-                    ChannelSelection::Current
-                } else {
-                    ChannelSelection::Silence
-                }
+            radio_app_state.apply(EditorAction {
+                tab_id,
+                data: EditorActionData::MouseMove {
+                    data: e.data,
+                    line_index,
+                },
             });
 
             if !lsp.is_supported() {
@@ -119,14 +117,13 @@ pub fn EditorLine(
     };
 
     let app_state = radio_app_state.read();
-    let editor_tab = app_state.editor_tab(panel_index, tab_index);
+    let editor_tab = app_state.editor_tab(tab_id);
     let editor = &editor_tab.editor;
     let longest_width = editor.metrics.longest_width;
     let line = editor.metrics.syntax_blocks.get_line(line_index);
     let highlights = editable.highlights_attr(line_index, editor_tab);
     let gutter_width = font_size * 5.0;
     let cursor_reference = editable.cursor_attr();
-
     let is_line_selected = editor.cursor_row() == line_index;
 
     // Only show the cursor in the active line
@@ -154,7 +151,7 @@ pub fn EditorLine(
         rect {
             height: "{line_height}",
             direction: "horizontal",
-            background: "{line_background}",
+            background: line_background,
             cross_align: "center",
             if let Some((line, hover)) = hover_location.read().as_ref() {
                 if *line == line_index as u32 {
@@ -164,10 +161,9 @@ pub fn EditorLine(
                             let offset_x = cursor_coords.x as f32 + gutter_width;
                             rsx!(
                                 rect {
-                                    width: "0",
-                                    height: "0",
-                                    offset_y: "{line_height}",
-                                    offset_x: "{offset_x}",
+                                    position: "absolute",
+                                    position_top: "{line_height}",
+                                    position_left: "{offset_x}",
                                     HoverBox {
                                         content
                                     }
@@ -184,7 +180,7 @@ pub fn EditorLine(
                 label {
                     margin: "0 20 0 0",
                     font_size: "{font_size}",
-                    color: "{gutter_color}",
+                    color: gutter_color,
                     "{line_index + 1} "
                 }
             }
@@ -221,7 +217,7 @@ pub fn EditorLine(
                     rsx!(
                         text {
                             key: "{i}",
-                            color: "{syntax_type.color()}",
+                            color: syntax_type.color(),
                             {text}
                         }
                     )

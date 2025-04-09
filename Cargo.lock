@@ -1531,16 +1531,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dioxus-use-computed"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1162bb68e178d8575227c7aac5e804210e963b2f88d7fe2ed7eef0461307dc30"
-dependencies = [
- "dioxus-lib",
- "warnings",
-]
-
-[[package]]
 name = "dioxus-web"
 version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5466,7 +5456,6 @@ dependencies = [
  "dioxus-clipboard",
  "dioxus-radio",
  "dioxus-sdk",
- "dioxus-use-computed",
  "freya",
  "freya-hooks",
  "futures",

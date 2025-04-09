@@ -1,32 +1,30 @@
 use dioxus::dioxus_core::AttributeValue;
 use dioxus_radio::prelude::ChannelSelection;
+use uuid::Uuid;
 
-use crate::views::panels::tabs::editor::{AppStateEditorUtils, EditorTab};
+use crate::{
+    state::TabId,
+    views::panels::tabs::editor::{AppStateEditorUtils, EditorTab},
+};
 use freya::{
-    core::{
-        custom_attributes::{CursorLayoutResponse, CursorReference},
-        event_loop_messages::{EventLoopMessage, TextGroupMeasurement},
-    },
+    core::custom_attributes::{CursorLayoutResponse, CursorReference},
     prelude::*,
 };
 use tokio::sync::mpsc::unbounded_channel;
-use uuid::Uuid;
 
 use crate::state::RadioAppState;
 
 /// Manage an editable content.
 #[derive(Clone, Copy, PartialEq)]
 pub struct UseEdit {
-    pub(crate) cursor_reference: Memo<CursorReference>,
-    pub(crate) dragging: Signal<TextDragging>,
-    pub(crate) platform: UsePlatform,
+    pub(crate) cursor_reference: CopyValue<CursorReference>,
 }
 
 impl UseEdit {
     /// Create a cursor attribute.
     pub fn cursor_attr(&self) -> AttributeValue {
         AttributeValue::any_value(CustomAttributeValues::CursorReference(
-            self.cursor_reference.peek().clone(),
+            self.cursor_reference.read().clone(),
         ))
     }
 
@@ -49,213 +47,86 @@ impl UseEdit {
                 .unwrap_or_default(),
         ))
     }
-
-    /// Process a [`EditableEvent`] event.
-    pub fn process_event(
-        &mut self,
-        edit_event: &EditableEvent,
-        editor_tab: &mut EditorTab,
-    ) -> bool {
-        let mut processed = false;
-        let res = match edit_event {
-            EditableEvent::MouseDown(e, id) => {
-                let coords = e.get_element_coordinates();
-
-                self.dragging.write().set_cursor_coords(coords);
-                editor_tab.editor.clear_selection();
-                processed = true;
-
-                Some((*id, Some(coords), None))
-            }
-            EditableEvent::MouseMove(e, id) => {
-                if let Some(src) = self.dragging.peek().get_cursor_coords() {
-                    let new_dist = e.get_element_coordinates();
-
-                    Some((*id, None, Some((src, new_dist))))
-                } else {
-                    None
-                }
-            }
-            EditableEvent::Click => {
-                let selection = &mut *self.dragging.write();
-                match selection {
-                    TextDragging::FromCursorToPoint { shift, clicked, .. } if *shift => {
-                        *clicked = false;
-                    }
-                    _ => {
-                        *selection = TextDragging::None;
-                    }
-                }
-                None
-            }
-            EditableEvent::KeyDown(e) => {
-                if e.code == Code::ShiftLeft {
-                    let dragging = &mut *self.dragging.write();
-                    match dragging {
-                        TextDragging::FromCursorToPoint {
-                            shift: shift_pressed,
-                            ..
-                        } => {
-                            *shift_pressed = true;
-                        }
-                        TextDragging::None => {
-                            *dragging = TextDragging::FromCursorToPoint {
-                                shift: true,
-                                clicked: false,
-                                cursor: editor_tab.editor.cursor_pos(),
-                                dist: None,
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-
-                let event =
-                    editor_tab
-                        .editor
-                        .process_key(&e.key, &e.code, &e.modifiers, true, true, true);
-                if event.contains(TextEvent::TEXT_CHANGED) {
-                    editor_tab.editor.run_parser();
-                    *self.dragging.write() = TextDragging::None;
-                }
-
-                if !event.is_empty() {
-                    processed = true;
-                }
-
-                None
-            }
-            EditableEvent::KeyUp(e) => {
-                if e.code == Code::ShiftLeft {
-                    if let TextDragging::FromCursorToPoint { shift, .. } =
-                        &mut *self.dragging.write()
-                    {
-                        *shift = false;
-                    }
-                } else {
-                    *self.dragging.write() = TextDragging::None;
-                }
-
-                None
-            }
-        };
-
-        if let Some((cursor_id, cursor_position, cursor_selection)) = res {
-            if self.dragging.peek().has_cursor_coords() {
-                self.platform
-                    .send(EventLoopMessage::RemeasureTextGroup(TextGroupMeasurement {
-                        text_id: self.cursor_reference.peek().text_id,
-                        cursor_id,
-                        cursor_position,
-                        cursor_selection,
-                    }))
-                    .unwrap();
-            }
-        }
-
-        processed
-    }
 }
 
-pub fn use_edit(mut radio: RadioAppState, panel_index: usize, tab_index: usize) -> UseEdit {
-    let dragging = use_signal(|| TextDragging::None);
-    let platform = use_platform();
-    let mut cursor_receiver_task = use_signal::<Option<Task>>(|| None);
+pub fn use_edit(mut radio: RadioAppState, tab_id: TabId, text_id: Uuid) -> UseEdit {
+    use_hook(|| {
+        let (cursor_sender, mut cursor_receiver) = unbounded_channel::<CursorLayoutResponse>();
 
-    let cursor_reference = use_memo(use_reactive(&(panel_index, tab_index), {
-        move |(panel_index, tab_index)| {
-            if let Some(cursor_receiver_task) = cursor_receiver_task.write_unchecked().take() {
-                cursor_receiver_task.cancel();
-            }
+        let cursor_reference = CopyValue::new(CursorReference {
+            text_id,
+            cursor_sender,
+        });
 
-            let text_id = Uuid::new_v4();
-            let (cursor_sender, mut cursor_receiver) = unbounded_channel::<CursorLayoutResponse>();
+        spawn(async move {
+            while let Some(message) = cursor_receiver.recv().await {
+                match message {
+                    // Update the cursor position calculated by the layout
+                    CursorLayoutResponse::CursorPosition { position, id } => {
+                        radio.write_with_channel_selection(|app_state| {
+                            let editor_tab = app_state.editor_tab(tab_id);
 
-            let cursor_reference = CursorReference {
-                text_id,
-                cursor_sender,
-            };
+                            let new_cursor = editor_tab.editor.measure_new_cursor(
+                                editor_tab.editor.utf16_cu_to_char(position),
+                                id,
+                            );
 
-            let task = spawn(async move {
-                while let Some(message) = cursor_receiver.recv().await {
-                    match message {
-                        // Update the cursor position calculated by the layout
-                        CursorLayoutResponse::CursorPosition { position, id } => {
-                            radio.write_with_channel_selection(|app_state| {
-                                let editor_tab = app_state.editor_tab(panel_index, tab_index);
-
-                                let new_cursor = editor_tab.editor.measure_new_cursor(
-                                    editor_tab.editor.utf16_cu_to_char(position),
-                                    id,
-                                );
-
-                                // Only update and clear the selection if the cursor has changed
-                                if editor_tab.editor.cursor() != new_cursor {
-                                    let editor_tab =
-                                        app_state.editor_tab_mut(panel_index, tab_index);
-                                    *editor_tab.editor.cursor_mut() = new_cursor;
-                                    if let TextDragging::FromCursorToPoint {
-                                        cursor: from, ..
-                                    } = &*dragging.read()
-                                    {
-                                        let to = editor_tab.editor.cursor_pos();
-                                        editor_tab.editor.set_selection((*from, to));
-                                    } else {
-                                        editor_tab.editor.clear_selection();
-                                    }
-                                    ChannelSelection::Current
+                            // Only update and clear the selection if the cursor has changed
+                            if editor_tab.editor.cursor() != new_cursor {
+                                let editor_tab = app_state.editor_tab_mut(tab_id);
+                                *editor_tab.editor.cursor_mut() = new_cursor;
+                                if let TextDragging::FromCursorToPoint { cursor: from, .. } =
+                                    &editor_tab.editor.dragging
+                                {
+                                    let to = editor_tab.editor.cursor_pos();
+                                    editor_tab.editor.set_selection((*from, to));
                                 } else {
-                                    ChannelSelection::Silence
+                                    editor_tab.editor.clear_selection();
                                 }
-                            });
-                        }
-                        // Update the text selections calculated by the layout
-                        CursorLayoutResponse::TextSelection { from, to, id } => {
-                            radio.write_with_channel_selection(|app_state| {
-                                let mut channel = ChannelSelection::Silence;
+                                ChannelSelection::Current
+                            } else {
+                                ChannelSelection::Silence
+                            }
+                        });
+                    }
+                    // Update the text selections calculated by the layout
+                    CursorLayoutResponse::TextSelection { from, to, id } => {
+                        radio.write_with_channel_selection(|app_state| {
+                            let mut channel = ChannelSelection::Silence;
 
-                                let editor_tab = app_state.editor_tab_mut(panel_index, tab_index);
+                            let editor_tab = app_state.editor_tab_mut(tab_id);
 
-                                let current_cursor = editor_tab.editor.cursor().clone();
-                                let current_selection = editor_tab.editor.get_selection();
+                            let current_cursor = editor_tab.editor.cursor();
+                            let current_selection = editor_tab.editor.get_selection();
 
-                                let maybe_new_cursor = editor_tab.editor.measure_new_cursor(to, id);
-                                let maybe_new_selection =
-                                    editor_tab.editor.measure_new_selection(from, to, id);
+                            let maybe_new_cursor = editor_tab.editor.measure_new_cursor(to, id);
+                            let maybe_new_selection =
+                                editor_tab.editor.measure_new_selection(from, to, id);
 
-                                // Update the text selection if it has changed
-                                if let Some(current_selection) = current_selection {
-                                    if current_selection != maybe_new_selection {
-                                        editor_tab.editor.set_selection(maybe_new_selection);
-                                        channel.current();
-                                    }
-                                } else {
+                            // Update the text selection if it has changed
+                            if let Some(current_selection) = current_selection {
+                                if current_selection != maybe_new_selection {
                                     editor_tab.editor.set_selection(maybe_new_selection);
                                     channel.current();
                                 }
+                            } else {
+                                editor_tab.editor.set_selection(maybe_new_selection);
+                                channel.current();
+                            }
 
-                                // Update the cursor if it has changed
-                                if current_cursor != maybe_new_cursor {
-                                    *editor_tab.editor.cursor_mut() = maybe_new_cursor;
-                                    channel.current();
-                                }
+                            // Update the cursor if it has changed
+                            if current_cursor != maybe_new_cursor {
+                                *editor_tab.editor.cursor_mut() = maybe_new_cursor;
+                                channel.current();
+                            }
 
-                                channel
-                            });
-                        }
+                            channel
+                        });
                     }
                 }
-            });
+            }
+        });
 
-            cursor_receiver_task.set(Some(task));
-
-            cursor_reference
-        }
-    }));
-
-    UseEdit {
-        cursor_reference,
-        dragging,
-        platform,
-    }
+        UseEdit { cursor_reference }
+    })
 }

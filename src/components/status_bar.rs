@@ -29,17 +29,18 @@ pub fn StatusBar(props: StatusBarProps) -> Element {
 
     let app_state = radio_app_state.read();
     let panel = app_state.panel(app_state.focused_panel);
-    let tab_data = {
-        if let Some(active_tab) = panel.active_tab() {
-            panel.tab(active_tab).as_text_editor().map(|editor_tab| {
+    let tab_data = if let Some(active_tab) = panel.active_tab() {
+        app_state
+            .tab(&active_tab)
+            .as_text_editor()
+            .map(|editor_tab| {
                 (
                     editor_tab.editor.cursor_row_and_col(),
                     editor_tab.editor.editor_type(),
                 )
             })
-        } else {
-            None
-        }
+    } else {
+        None
     };
 
     rsx!(

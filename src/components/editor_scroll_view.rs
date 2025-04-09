@@ -1,6 +1,7 @@
+use std::cell::RefCell;
 use std::ops::Range;
+use std::rc::Rc;
 
-use dioxus_use_computed::hooks::use_computed;
 use freya::prelude::*;
 use freya::prelude::{dioxus_elements, use_applied_theme};
 
@@ -267,6 +268,8 @@ pub fn EditorScrollView<
     let children = use_computed((render_range.clone(), builder_args.clone()), move || {
         rsx!({ render_range.map(|i| (builder)(i, &builder_args)) })
     });
+    let children = &children.borrow();
+    let children = children.value.as_ref();
 
     let is_scrolling_x = clicking_scrollbar
         .read()
@@ -338,4 +341,30 @@ pub fn EditorScrollView<
             }
         }
     )
+}
+
+struct Memoized<T, D> {
+    value: Option<T>,
+    deps: Option<D>,
+}
+
+fn use_computed<T: 'static, D: PartialEq + 'static>(
+    deps: D,
+    init: impl FnOnce() -> T,
+) -> Rc<RefCell<Memoized<T, D>>> {
+    let memo = use_hook(move || {
+        Rc::new(RefCell::new(Memoized {
+            value: None,
+            deps: None::<D>,
+        }))
+    });
+
+    let deps_have_changed = memo.borrow().deps.as_ref() != Some(&deps);
+
+    if deps_have_changed {
+        memo.borrow_mut().value = Some(init());
+        memo.borrow_mut().deps = Some(deps);
+    }
+
+    memo
 }

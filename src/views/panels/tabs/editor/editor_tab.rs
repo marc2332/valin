@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::state::{
     AppSettings, AppState, EditorCommands, KeyboardShortcuts, PanelTab, PanelTabData,
-    RadioAppState, TabProps,
+    RadioAppState, TabId, TabProps,
 };
 
 use freya::prelude::keyboard::Modifiers;
@@ -19,6 +19,7 @@ use super::{
 /// A tab with an embedded Editor.
 pub struct EditorTab {
     pub editor: EditorData,
+    pub id: TabId,
     pub focus_id: AccessibilityId,
 }
 
@@ -52,9 +53,9 @@ impl PanelTab for EditorTab {
     }
 
     fn get_data(&self) -> PanelTabData {
-        let (title, id) = self.editor.editor_type.title_and_id();
+        let title = self.editor.editor_type.title();
         PanelTabData {
-            id,
+            id: self.id,
             title,
             edited: self.editor.is_edited(),
             focus_id: self.focus_id,
@@ -77,6 +78,7 @@ impl EditorTab {
     pub fn new(editor: EditorData) -> Self {
         Self {
             editor,
+            id: TabId::new(),
             focus_id: UseFocus::new_id(),
         }
     }

@@ -2,57 +2,39 @@ use std::path::PathBuf;
 
 use crate::{
     fs::FSTransport,
-    state::{AppState, Panel, PanelTab},
+    state::{AppState, PanelTab, TabId},
 };
 
 use super::{EditorTab, SharedRope};
 
 pub trait AppStateEditorUtils {
-    fn editor_tab(&self, panel: usize, editor_id: usize) -> &EditorTab;
+    fn editor_tab(&self, tab_id: TabId) -> &EditorTab;
 
-    fn editor_tab_mut(&mut self, panel: usize, editor_id: usize) -> &mut EditorTab;
+    fn editor_tab_mut(&mut self, tab_id: TabId) -> &mut EditorTab;
 
-    fn try_editor_tab_mut(&mut self, panel: usize, editor_id: usize) -> Option<&mut EditorTab>;
-
-    fn editor_tab_data(
-        &self,
-        panel: usize,
-        editor_id: usize,
-    ) -> Option<(Option<PathBuf>, SharedRope, FSTransport)>;
+    fn editor_tab_data(&self, tab_id: TabId) -> Option<(Option<PathBuf>, SharedRope, FSTransport)>;
 }
 
 impl AppStateEditorUtils for AppState {
-    fn editor_tab(&self, panel: usize, editor_id: usize) -> &EditorTab {
-        self.panel(panel).tab(editor_id).as_text_editor().unwrap()
+    fn editor_tab(&self, tab_id: TabId) -> &EditorTab {
+        self.tabs.get(&tab_id).unwrap().as_text_editor().unwrap()
     }
 
-    fn editor_tab_mut(&mut self, panel: usize, editor_id: usize) -> &mut EditorTab {
-        self.panel_mut(panel)
-            .tab_mut(editor_id)
+    fn editor_tab_mut(&mut self, tab_id: TabId) -> &mut EditorTab {
+        self.tabs
+            .get_mut(&tab_id)
+            .unwrap()
             .as_text_editor_mut()
             .unwrap()
     }
 
-    fn try_editor_tab_mut(&mut self, panel: usize, editor_id: usize) -> Option<&mut EditorTab> {
-        self.panel_mut(panel)
-            .tab_mut(editor_id)
-            .as_text_editor_mut()
-    }
-
-    fn editor_tab_data(
-        &self,
-        panel: usize,
-        editor_id: usize,
-    ) -> Option<(Option<PathBuf>, SharedRope, FSTransport)> {
-        let panel: &Panel = self.panel(panel);
-        let editor = panel.tab(editor_id).as_text_editor();
-        editor.map(|EditorTab { editor: data, .. }| {
-            (
-                data.path().cloned(),
-                data.rope.clone(),
-                data.transport.clone(),
-            )
-        })
+    fn editor_tab_data(&self, tab_id: TabId) -> Option<(Option<PathBuf>, SharedRope, FSTransport)> {
+        let tab = self.tabs.get(&tab_id)?.as_text_editor()?;
+        Some((
+            tab.editor.path().cloned(),
+            tab.editor.rope.clone(),
+            tab.editor.transport.clone(),
+        ))
     }
 }
 

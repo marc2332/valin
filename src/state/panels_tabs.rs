@@ -1,4 +1,7 @@
-use std::any::Any;
+use std::{
+    any::Any,
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 use freya::prelude::*;
 use skia_safe::textlayout::FontCollection;
@@ -26,22 +29,33 @@ pub trait PanelTab {
 
 #[derive(Props, Clone, PartialEq)]
 pub struct TabProps {
-    pub panel_index: usize,
-    pub tab_index: usize,
+    pub tab_id: TabId,
+}
+
+static TAB_IDS: AtomicU64 = AtomicU64::new(0);
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord)]
+pub struct TabId(u64);
+
+impl TabId {
+    pub fn new() -> Self {
+        let n = TAB_IDS.fetch_add(1, Ordering::Relaxed);
+        Self(n)
+    }
 }
 
 #[derive(PartialEq, Eq)]
 pub struct PanelTabData {
     pub edited: bool,
     pub title: String,
-    pub id: String,
+    pub id: TabId,
     pub focus_id: AccessibilityId,
 }
 
 #[derive(Default)]
 pub struct Panel {
-    pub active_tab: Option<usize>,
-    pub tabs: Vec<Box<dyn PanelTab>>,
+    pub active_tab: Option<TabId>,
+    pub tabs: Vec<TabId>,
 }
 
 impl Panel {
@@ -49,24 +63,11 @@ impl Panel {
         Self::default()
     }
 
-    pub fn active_tab(&self) -> Option<usize> {
+    pub fn active_tab(&self) -> Option<TabId> {
         self.active_tab
     }
 
-    #[allow(clippy::borrowed_box)]
-    pub fn tab(&self, editor: usize) -> &Box<dyn PanelTab> {
-        &self.tabs[editor]
-    }
-
-    pub fn tab_mut(&mut self, editor: usize) -> &mut Box<dyn PanelTab> {
-        &mut self.tabs[editor]
-    }
-
-    pub fn tabs(&self) -> &[Box<dyn PanelTab>] {
-        &self.tabs
-    }
-
-    pub fn set_active_tab(&mut self, active_tab: usize) {
+    pub fn set_active_tab(&mut self, active_tab: TabId) {
         self.active_tab = Some(active_tab);
     }
 }

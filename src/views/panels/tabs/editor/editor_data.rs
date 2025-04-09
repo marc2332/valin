@@ -4,10 +4,14 @@ use std::rc::Rc;
 use std::{cmp::Ordering, fmt::Display, ops::Range, path::PathBuf};
 
 use dioxus_clipboard::prelude::UseClipboard;
+use freya::core::event_loop_messages::{EventLoopMessage, TextGroupMeasurement};
+use freya::events::Code;
 use freya::hooks::{EditorHistory, HistoryChange, Line, LinesIterator, TextCursor, TextEditor};
 use freya::prelude::Rope;
+use freya_hooks::{EditableEvent, TextDragging, TextEvent, UsePlatform};
 use lsp_types::Url;
 use skia_safe::textlayout::FontCollection;
+use uuid::Uuid;
 
 use crate::{fs::FSTransport, lsp::LanguageId, metrics::EditorMetrics};
 
@@ -18,7 +22,6 @@ pub enum EditorType {
     #[allow(dead_code)]
     Memory {
         title: String,
-        id: String,
     },
     FS {
         path: PathBuf,
@@ -27,20 +30,17 @@ pub enum EditorType {
 }
 
 impl EditorType {
-    pub fn title_and_id(&self) -> (String, String) {
+    pub fn title(&self) -> String {
         match self {
-            Self::Memory { title, id } => (title.clone(), id.clone()),
-            Self::FS { path, .. } => (
-                path.file_name().unwrap().to_str().unwrap().to_owned(),
-                path.to_str().unwrap().to_owned(),
-            ),
+            Self::Memory { title } => title.clone(),
+            Self::FS { path, .. } => path.file_name().unwrap().to_str().unwrap().to_owned(),
         }
     }
 
     pub fn paths(&self) -> Option<(&PathBuf, &PathBuf)> {
         match self {
             #[allow(unused_variables)]
-            Self::Memory { title, id } => None,
+            Self::Memory { title } => None,
             Self::FS { path, root_path } => Some((path, root_path)),
         }
     }
@@ -64,6 +64,8 @@ pub struct EditorData {
     pub(crate) last_saved_history_change: usize,
     pub(crate) transport: FSTransport,
     pub(crate) metrics: EditorMetrics,
+    pub(crate) dragging: TextDragging,
+    pub(crate) text_id: Uuid,
 }
 
 impl EditorData {
@@ -90,6 +92,8 @@ impl EditorData {
             clipboard,
             transport,
             metrics,
+            dragging: TextDragging::None,
+            text_id: Uuid::new_v4(),
         }
     }
 
@@ -134,6 +138,103 @@ impl EditorData {
 
     pub fn editor_type(&self) -> &EditorType {
         &self.editor_type
+    }
+
+    pub fn process_event(&mut self, edit_event: &EditableEvent) -> bool {
+        let mut processed = false;
+        let res = match edit_event {
+            EditableEvent::MouseDown(e, id) => {
+                let coords = e.get_element_coordinates();
+
+                self.dragging.set_cursor_coords(coords);
+                self.clear_selection();
+                processed = true;
+
+                Some((*id, Some(coords), None))
+            }
+            EditableEvent::MouseMove(e, id) => {
+                if let Some(src) = self.dragging.get_cursor_coords() {
+                    let new_dist = e.get_element_coordinates();
+
+                    Some((*id, None, Some((src, new_dist))))
+                } else {
+                    None
+                }
+            }
+            EditableEvent::Click => {
+                let selection = &mut self.dragging;
+                match selection {
+                    TextDragging::FromCursorToPoint { shift, clicked, .. } if *shift => {
+                        *clicked = false;
+                    }
+                    _ => {
+                        *selection = TextDragging::None;
+                    }
+                }
+                None
+            }
+            EditableEvent::KeyDown(e) => {
+                if e.code == Code::ShiftLeft {
+                    let cursor = self.cursor_pos();
+                    let dragging = &mut self.dragging;
+                    match dragging {
+                        TextDragging::FromCursorToPoint {
+                            shift: shift_pressed,
+                            ..
+                        } => {
+                            *shift_pressed = true;
+                        }
+                        TextDragging::None => {
+                            *dragging = TextDragging::FromCursorToPoint {
+                                shift: true,
+                                clicked: false,
+                                cursor,
+                                dist: None,
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
+                let event = self.process_key(&e.key, &e.code, &e.modifiers, true, true, true);
+                if event.contains(TextEvent::TEXT_CHANGED) {
+                    self.run_parser();
+                    self.dragging = TextDragging::None;
+                }
+
+                if !event.is_empty() {
+                    processed = true;
+                }
+
+                None
+            }
+            EditableEvent::KeyUp(e) => {
+                if e.code == Code::ShiftLeft {
+                    if let TextDragging::FromCursorToPoint { shift, .. } = &mut self.dragging {
+                        *shift = false;
+                    }
+                } else {
+                    self.dragging = TextDragging::None;
+                }
+
+                None
+            }
+        };
+
+        if let Some((cursor_id, cursor_position, cursor_selection)) = res {
+            if self.dragging.has_cursor_coords() {
+                UsePlatform::current()
+                    .send(EventLoopMessage::RemeasureTextGroup(TextGroupMeasurement {
+                        text_id: self.text_id,
+                        cursor_id,
+                        cursor_position,
+                        cursor_selection,
+                    }))
+                    .unwrap();
+            }
+        }
+
+        processed
     }
 }
 

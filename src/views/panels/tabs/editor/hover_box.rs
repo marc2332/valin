@@ -23,7 +23,7 @@ pub fn HoverBox(content: String) -> Element {
             label {
                 width: "100%",
                 color: "rgb(245, 245, 245)",
-                "{content}"
+                {content}
             }
         }
     })

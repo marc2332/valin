@@ -166,8 +166,8 @@ pub fn App() -> Element {
                         rsx!(
                             EditorPanel {
                                 key: "{panel_index}",
-                                panel_index: panel_index,
-                                width: format!("{panes_width}%")
+                                panel_index,
+                                width: "{panes_width}%"
                             }
                         )
                     })}

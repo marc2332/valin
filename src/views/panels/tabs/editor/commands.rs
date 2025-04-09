@@ -92,13 +92,10 @@ impl EditorCommand for SaveFileCommand {
 
     fn run(&self, _ctx: &mut CommandRunContext) {
         let mut radio_app_state = self.0;
-        let (panel, active_tab) = radio_app_state.get_focused_data();
+        let active_tab = radio_app_state.get_active_tab();
 
         if let Some(active_tab) = active_tab {
-            let editor_data = {
-                let app_state = radio_app_state.read();
-                app_state.editor_tab_data(panel, active_tab)
-            };
+            let editor_data = radio_app_state.read().editor_tab_data(active_tab);
 
             if let Some((Some(file_path), rope, transport)) = editor_data {
                 spawn(async move {
@@ -109,11 +106,9 @@ impl EditorCommand for SaveFileCommand {
                     let std_writer = writer.into_std().await;
                     rope.borrow_mut().write_to(std_writer).unwrap();
                     let mut app_state =
-                        radio_app_state.write_channel(Channel::follow_tab(panel, active_tab));
-                    let editor_tab = app_state.try_editor_tab_mut(panel, active_tab);
-                    if let Some(editor_tab) = editor_tab {
-                        editor_tab.editor.mark_as_saved()
-                    }
+                        radio_app_state.write_channel(Channel::follow_tab(active_tab));
+                    let editor_tab = app_state.editor_tab_mut(active_tab);
+                    editor_tab.editor.mark_as_saved()
                 });
             }
         }

@@ -1,5 +1,6 @@
 use super::icons::*;
 use super::tab::*;
+use crate::state::TabId;
 use crate::state::{AppState, Channel, Panel};
 use crate::utils::*;
 use dioxus_radio::prelude::use_radio;
@@ -21,7 +22,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
     let is_last_panel = app_state.panels().len() - 1 == panel_index;
     let is_focused = app_state.focused_panel() == panel_index;
     let panel = app_state.panel(panel_index);
-    let active_tab_index = panel.active_tab();
+    let active_tab = panel.active_tab();
 
     let close_panel = move |_| {
         radio_app_state
@@ -66,12 +67,12 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                         direction: "horizontal",
                         width: "calc(100% - {tabsbar_tools_width})",
                         show_scrollbar: false,
-                        {panel.tabs().iter().enumerate().map(|(tab_index, _)| {
-                            let is_selected = active_tab_index == Some(tab_index);
+                        {panel.tabs.iter().map(|tab_id| {
+                            let is_selected = active_tab == Some(*tab_id);
                             rsx!(
                                 PanelTab {
                                     panel_index,
-                                    tab_index,
+                                    tab_id: *tab_id,
                                     is_selected,
                                 }
                             )
@@ -113,16 +114,14 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                     height: "fill",
                     width: "100%",
                     onclick: onclickpanel,
-                    if let Some(active_tab_index) = active_tab_index {
+                    if let Some(tab_id) = active_tab {
                         {
-                            let active_tab = panel.tab(active_tab_index);
-                            let tab_data = active_tab.get_data();
+                            let active_tab = app_state.tab(&tab_id);
                             let Render = active_tab.as_ref().render();
                             rsx!(
                                 Render {
-                                    key: "{tab_data.id}",
-                                    panel_index,
-                                    tab_index: active_tab_index,
+                                    key: "{tab_id:?}",
+                                    tab_id,
                                 }
                             )
                         }
@@ -154,7 +153,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
 #[derive(Props, Clone, PartialEq)]
 pub struct PanelTabProps {
     panel_index: usize,
-    tab_index: usize,
+    tab_id: TabId,
     is_selected: bool,
 }
 
@@ -162,25 +161,20 @@ pub struct PanelTabProps {
 fn PanelTab(
     PanelTabProps {
         panel_index,
-        tab_index,
+        tab_id,
         is_selected,
     }: PanelTabProps,
 ) -> Element {
-    let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Tab {
-        panel_index,
-        tab_index,
-    });
+    let mut radio_app_state = use_radio::<AppState, Channel>(Channel::follow_tab(tab_id));
 
     let app_state = radio_app_state.read();
-    let tab = app_state.panel(panel_index).tab(tab_index);
+    let tab = app_state.tab(&tab_id);
     let tab_data = tab.get_data();
 
-    let onclick = {
-        move |_| {
-            let mut app_state = radio_app_state.write_channel(Channel::Global);
-            app_state.set_focused_panel(panel_index);
-            app_state.panel_mut(panel_index).set_active_tab(tab_index);
-        }
+    let onclick = move |_| {
+        let mut app_state = radio_app_state.write_channel(Channel::Global);
+        app_state.set_focused_panel(panel_index);
+        app_state.panel_mut(panel_index).set_active_tab(tab_id);
     };
 
     let onclickaction = move |_| {
@@ -189,15 +183,14 @@ fn PanelTab(
         } else {
             radio_app_state
                 .write_channel(Channel::Global)
-                .close_tab(panel_index, tab_index);
+                .close_tab(tab_id);
         }
     };
 
     rsx!(EditorTab {
-        key: "{tab_data.id}",
         onclick,
         onclickaction,
-        value: "{tab_data.title}",
+        value: tab_data.title,
         is_edited: tab_data.edited,
         is_selected
     })
