@@ -32,8 +32,8 @@ uuid = { version =  "1.2.2", features = ["v4"]}
 rfd = "0.14.1"
 tokio-stream = { version = "0.1.14", features = ["fs"] }
 tower = "0.4.13"
-lsp-types = "0.94.0"
-async-lsp = { git = "https://github.com/marc2332/async-lsp", rev="f885653777e61b97202949120c2b60c318492252" }
+lsp-types = "0.95.0"
+async-lsp = "0.2.2"
 futures = "0.3.28"
 tokio-util = { version = "0.7.11", features = ["compat"] }
 clap = { version = "4.5.4", features = ["derive"]}

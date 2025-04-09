@@ -7,6 +7,7 @@ use async_lsp::panic::CatchUnwindLayer;
 use async_lsp::router::Router;
 use async_lsp::tracing::TracingLayer;
 use async_lsp::{LanguageServer, ServerSocket};
+use freya::prelude::spawn_forever;
 use lsp_types::{
     notification::{Progress, PublishDiagnostics, ShowMessage},
     DidCloseTextDocumentParams, DidOpenTextDocumentParams, HoverParams, TextDocumentIdentifier,
@@ -14,7 +15,7 @@ use lsp_types::{
 };
 use lsp_types::{
     ClientCapabilities, InitializeParams, InitializedParams, NumberOrString, ProgressParamsValue,
-    Url, WindowClientCapabilities, WorkDoneProgress,
+    Url, WindowClientCapabilities, WorkDoneProgress, WorkspaceFolder,
 };
 use tokio::process::Command;
 use tower::ServiceBuilder;
@@ -168,15 +169,18 @@ pub async fn create_lsp_client(config: LspConfig, lsp_sender: LspStatusSender) -
     let stdout = tokio_util::compat::TokioAsyncReadCompatExt::compat(child.stdout.unwrap());
     let stdin = tokio_util::compat::TokioAsyncWriteCompatExt::compat_write(child.stdin.unwrap());
 
-    let _mainloop_fut = tokio::spawn(async move {
-        mainloop.run_bufferred(stdout, stdin).await.ok();
+    let _mainloop_fut = spawn_forever(async move {
+        mainloop.run_buffered(stdout, stdin).await.ok();
     });
 
     // Initialize.
     let root_uri = Url::from_file_path(root_path).unwrap();
     let _init_ret = server
         .initialize(InitializeParams {
-            root_uri: Some(root_uri),
+            workspace_folders: Some(vec![WorkspaceFolder {
+                uri: root_uri,
+                name: root_path.display().to_string(),
+            }]),
             capabilities: ClientCapabilities {
                 window: Some(WindowClientCapabilities {
                     work_done_progress: Some(true),
