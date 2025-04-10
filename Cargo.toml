@@ -20,7 +20,6 @@ freya-hooks = { version = "0.3.0-rc.4" }
 dioxus-radio = { version = "0.5.2", features = ["tracing"] }
 dioxus = { version = "0.6", default-features = false }
 dioxus-clipboard = "*"
-dioxus-sdk = { version = "*", features = ["timing"] }
 
 tokio = { version = "1.33.0", features = ["fs", "process"]}
 winit = "0.30.1"

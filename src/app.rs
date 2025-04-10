@@ -62,7 +62,13 @@ pub fn App() -> Element {
                     if let Ok(content) = content {
                         let mut app_state = radio_app_state.write();
 
-                        EditorTab::open_with(&mut app_state, path.clone(), root_path, content);
+                        EditorTab::open_with(
+                            radio_app_state,
+                            &mut app_state,
+                            path.clone(),
+                            root_path,
+                            content,
+                        );
                     }
                 }
                 // Folders

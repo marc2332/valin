@@ -1,7 +1,7 @@
 use std::{ffi::OsStr, path::PathBuf, time::Duration};
 
 use crate::hooks::*;
-use crate::lsp::{use_lsp, LspAction};
+use crate::lsp::{LspAction, LspActionData};
 use crate::state::{EditorAction, EditorActionData, TabProps};
 use crate::views::panels::tabs::editor::AppStateEditorUtils;
 use crate::views::panels::tabs::editor::BuilderArgs;
@@ -10,7 +10,6 @@ use crate::{components::*, state::Channel};
 
 use dioxus_radio::hooks::RadioReducer;
 use dioxus_radio::prelude::use_radio;
-use dioxus_sdk::utils::timing::use_debounce;
 use freya::events::KeyboardEvent;
 use freya::prelude::*;
 use lsp_types::Position;
@@ -26,23 +25,15 @@ pub fn EditorUi(TabProps { tab_id }: TabProps) -> Element {
     let editor_tab = app_state.editor_tab(tab_id);
     let editor = &editor_tab.editor;
     let paths = editor.editor_type().paths();
+    let rope = editor.rope().clone();
 
     let mut focus = use_focus_for_id(editor_tab.focus_id);
-
-    // What position in the text the user is hovering
-    let hover_location = use_signal(|| None);
-
-    // What location is the user hovering with the mouse
-    let cursor_coords = use_signal(CursorPoint::default);
 
     // Initialize the editable text
     let editable = use_edit(radio_app_state, tab_id, editor_tab.editor.text_id);
 
     // The scroll positions of the editor
     let mut scroll_offsets = use_signal(|| (0, 0));
-
-    // Initialize the language server integration
-    let lsp = use_lsp(&editor.editor_type, tab_id, radio_app_state, hover_location);
 
     let mut pressing_shift = use_signal(|| false);
     let mut pressing_alt = use_signal(|| false);
@@ -51,13 +42,17 @@ pub fn EditorUi(TabProps { tab_id }: TabProps) -> Element {
     let debouncer = use_debounce(
         Duration::from_millis(300),
         move |(coords, line_index, paragraph): (CursorPoint, u32, Paragraph)| {
-            let glyph =
-                paragraph.get_glyph_position_at_coordinate((coords.x as i32, coords.y as i32));
-
-            lsp.send(LspAction::Hover(Position::new(
-                line_index,
-                glyph.position as u32,
-            )));
+            let app_state = radio_app_state.read();
+            if let Some(lsp) = app_state.editor_tab_lsp(tab_id) {
+                let glyph =
+                    paragraph.get_glyph_position_at_coordinate((coords.x as i32, coords.y as i32));
+                lsp.send(LspAction {
+                    tab_id,
+                    action: LspActionData::Hover {
+                        position: Position::new(line_index, glyph.position as u32),
+                    },
+                });
+            }
         },
     );
 
@@ -157,7 +152,6 @@ pub fn EditorUi(TabProps { tab_id }: TabProps) -> Element {
                         tab_id,
                         font_size,
                         line_height,
-                        rope: editor.rope().clone(),
                     },
                     pressing_alt,
                     pressing_shift,
@@ -167,10 +161,8 @@ pub fn EditorUi(TabProps { tab_id }: TabProps) -> Element {
                             line_index: i,
                             builder_args: builder_args.clone(),
                             editable,
-                            hover_location,
                             debouncer,
-                            lsp,
-                            cursor_coords,
+                            rope: rope.clone()
                         }
                     )
                 }

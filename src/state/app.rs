@@ -8,7 +8,7 @@ use tracing::info;
 
 use crate::{
     fs::FSTransport,
-    lsp::{create_lsp_client, LSPClient, LspConfig},
+    lsp::{LSPClient, LspConfig},
     views::file_explorer::file_explorer_state::FileExplorerState,
     LspStatusSender,
 };
@@ -237,6 +237,11 @@ impl AppState {
         self.tabs.get(tab_id).unwrap()
     }
 
+    #[allow(clippy::borrowed_box)]
+    pub fn tab_mut(&mut self, tab_id: &TabId) -> &mut Box<dyn PanelTab> {
+        self.tabs.get_mut(tab_id).unwrap()
+    }
+
     pub fn push_tab(&mut self, tab: impl PanelTab + 'static, panel_index: usize, focus: bool) {
         let opened_tab = self.panels[panel_index]
             .tabs
@@ -370,24 +375,7 @@ impl AppState {
     }
 
     pub fn insert_lsp_client(&mut self, language_server: String, client: LSPClient) {
+        info!("Registered language server '{language_server}'");
         self.language_servers.insert(language_server, client);
-    }
-
-    pub async fn get_or_create_lsp_client(
-        mut radio: RadioAppState,
-        lsp_config: &LspConfig,
-    ) -> LSPClient {
-        let server = radio.read().lsp(lsp_config).cloned();
-        match server {
-            Some(server) => server,
-            None => {
-                let lsp_sender = radio.read().lsp_sender.clone();
-                let client = create_lsp_client(lsp_config.clone(), lsp_sender).await;
-                radio
-                    .write_channel(Channel::Global)
-                    .insert_lsp_client(lsp_config.language_server.clone(), client.clone());
-                client
-            }
-        }
     }
 }

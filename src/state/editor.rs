@@ -64,7 +64,7 @@ impl DataReducer for AppState {
                     .editor
                     .process_event(&EditableEvent::MouseMove(data, line_index));
 
-                ChannelSelection::Select(Channel::follow_tab(tab_id))
+                ChannelSelection::Silence
             }
             EditorActionData::MouseDown { data, line_index }
                 if is_editor_focused && is_panel_focused =>
