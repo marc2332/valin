@@ -16,6 +16,7 @@ pub struct EditorAction {
     pub data: EditorActionData,
 }
 
+#[derive(Debug)]
 pub enum EditorActionData {
     KeyUp {
         data: Rc<KeyboardData>,
@@ -51,9 +52,9 @@ impl DataReducer for AppState {
             .enumerate()
             .find(|(_, panel)| panel.tabs.contains(&tab_id))
             .unwrap();
+        let is_panels_view_focused = *self.focused_view() == EditorView::Panels;
         let is_panel_focused = self.focused_panel() == panel_index;
-        let is_editor_focused =
-            *self.focused_view() == EditorView::Panels && panel.active_tab() == Some(tab_id);
+        let is_editor_focused = is_panel_focused && panel.active_tab() == Some(tab_id);
 
         match data {
             EditorActionData::MouseMove { data, line_index }
@@ -66,34 +67,31 @@ impl DataReducer for AppState {
 
                 ChannelSelection::Silence
             }
-            EditorActionData::MouseDown { data, line_index }
-                if is_editor_focused && is_panel_focused =>
-            {
+            EditorActionData::MouseDown { data, line_index } => {
+                let mut channel = ChannelSelection::Select(Channel::follow_tab(tab_id));
+
                 let editor_tab = self.editor_tab_mut(tab_id);
                 editor_tab
                     .editor
                     .process_event(&EditableEvent::MouseDown(data, line_index));
 
-                ChannelSelection::Select(Channel::follow_tab(tab_id))
+                if !is_panels_view_focused {
+                    self.set_focused_view(EditorView::Panels);
+                    channel.select(Channel::Global)
+                }
+
+                if !is_editor_focused {
+                    self.set_focused_panel(panel_index);
+                    self.panel_mut(panel_index).set_active_tab(tab_id);
+                    channel.select(Channel::AllTabs);
+                }
+
+                channel
             }
             EditorActionData::Click => {
-                let mut channel = ChannelSelection::Silence;
-
-                if !is_editor_focused {
-                    self.set_focused_panel(panel_index);
-                    self.panel_mut(panel_index).set_active_tab(tab_id);
-                    channel.select(Channel::Global);
-                }
-
-                if !is_editor_focused {
-                    self.set_focused_panel(panel_index);
-                    self.panel_mut(panel_index).set_active_tab(tab_id);
-                    channel.select(Channel::Global);
-                }
-
                 let editor_tab = self.editor_tab_mut(tab_id);
                 editor_tab.editor.process_event(&EditableEvent::Click);
-                channel
+                ChannelSelection::Silence
             }
             EditorActionData::KeyUp { data } if is_editor_focused && is_panel_focused => {
                 let editor_tab = self.editor_tab_mut(tab_id);

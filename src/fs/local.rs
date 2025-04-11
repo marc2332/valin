@@ -1,15 +1,23 @@
 use async_trait::async_trait;
 use tokio::fs::OpenOptions;
 
-use super::FSTransportInterface;
+use super::{FSReadTransportInterface, FSTransportInterface};
 
 pub struct FSLocal;
 
 #[async_trait]
-impl FSTransportInterface for FSLocal {
+impl FSReadTransportInterface for FSLocal {
     async fn read_to_string(&self, path: &std::path::Path) -> tokio::io::Result<String> {
         tokio::fs::read_to_string(path).await
     }
+}
+
+#[async_trait]
+impl FSTransportInterface for FSLocal {
+    fn as_read(&self) -> Box<dyn FSReadTransportInterface + 'static> {
+        Box::new(FSLocal)
+    }
+
     async fn open(
         &self,
         path: &std::path::Path,

@@ -242,16 +242,29 @@ impl AppState {
         self.tabs.get_mut(tab_id).unwrap()
     }
 
+    pub fn get_tab_if_exists(&self, tab: &impl PanelTab) -> Option<TabId> {
+        self.tabs.iter().find_map(|(other_tab_id, other_tab)| {
+            if other_tab.get_data().content_id == tab.get_data().content_id {
+                Some(*other_tab_id)
+            } else {
+                None
+            }
+        })
+    }
+
     pub fn push_tab(&mut self, tab: impl PanelTab + 'static, panel_index: usize, focus: bool) {
-        let opened_tab = self.panels[panel_index]
-            .tabs
-            .iter()
-            .find(|tab_id| *tab_id == &tab.get_data().id);
+        let opened_tab = self.tabs.iter().find_map(|(other_tab_id, other_tab)| {
+            if other_tab.get_data().content_id == tab.get_data().content_id {
+                Some(*other_tab_id)
+            } else {
+                None
+            }
+        });
 
         if let Some(tab_id) = opened_tab {
             if focus {
                 self.focused_panel = panel_index;
-                self.focus_tab(panel_index, Some(*tab_id));
+                self.focus_tab(panel_index, Some(tab_id));
             }
         } else {
             self.panels[panel_index].tabs.push(tab.get_data().id);

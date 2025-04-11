@@ -1,11 +1,13 @@
 use std::{path::PathBuf, sync::Arc};
 
 use crate::{
+    fs::FSReadTransportInterface,
     lsp::{LSPClient, LspAction, LspActionData, LspConfig},
     state::{
-        AppSettings, AppState, EditorCommands, KeyboardShortcuts, PanelTab, PanelTabData,
-        RadioAppState, TabId, TabProps,
+        AppSettings, AppState, Channel, EditorCommands, EditorView, KeyboardShortcuts, PanelTab,
+        PanelTabData, RadioAppState, TabId, TabProps,
     },
+    views::panels::tabs::editor::TabEditorUtils,
     Args,
 };
 
@@ -13,11 +15,13 @@ use freya::prelude::keyboard::Modifiers;
 use freya::prelude::*;
 
 use skia_safe::textlayout::FontCollection;
+use tracing::info;
 
 use super::{
     commands::{DecreaseFontSizeCommand, IncreaseFontSizeCommand, SaveFileCommand},
     editor_data::{EditorData, EditorType},
     editor_ui::EditorUi,
+    SharedRope,
 };
 
 /// A tab with an embedded Editor.
@@ -66,6 +70,11 @@ impl PanelTab for EditorTab {
             title,
             edited: self.editor.is_edited(),
             focus_id: self.focus_id,
+            content_id: self
+                .editor
+                .editor_type
+                .content_id()
+                .unwrap_or_else(|| self.id.to_string()),
         }
     }
     fn render(&self) -> fn(TabProps) -> Element {
@@ -82,36 +91,67 @@ impl PanelTab for EditorTab {
 }
 
 impl EditorTab {
-    pub fn new(editor: EditorData) -> Self {
+    pub fn new(id: TabId, editor: EditorData) -> Self {
         Self {
             editor,
-            id: TabId::new(),
+            id,
             focus_id: UseFocus::new_id(),
         }
     }
 
     /// Open an EditorTab in the focused panel.
     pub fn open_with(
-        radio: RadioAppState,
+        mut radio: RadioAppState,
         app_state: &mut AppState,
         path: PathBuf,
         root_path: PathBuf,
-        content: String,
+        read_transport: Box<dyn FSReadTransportInterface + 'static>,
     ) {
+        let rope = SharedRope::default();
+        let tab_id = TabId::new();
+
         let data = EditorData::new(
             EditorType::FS {
                 path: path.clone(),
                 root_path: root_path.clone(),
             },
-            Rope::from(content),
+            rope.clone(),
             0,
             app_state.clipboard,
             app_state.default_transport.clone(),
-            app_state.settings.editor.font_size,
-            &app_state.font_collection.clone(),
         );
 
-        let tab = Self::new(data);
+        let tab = Self::new(tab_id, data);
+
+        // Dont create the same tab twice
+        if let Some(open_tab_id) = app_state.get_tab_if_exists(&tab) {
+            app_state.set_focused_view(EditorView::Panels);
+            app_state.focus_tab(app_state.focused_panel, Some(open_tab_id));
+            return;
+        }
+
+        // Load file content asynchronously
+        spawn({
+            to_owned![path];
+            async move {
+                let content = read_transport.read_to_string(&path).await;
+                if let Ok(content) = content {
+                    rope.borrow_mut().insert(0, &content);
+
+                    let mut app_state = radio.write_channel(Channel::follow_tab(tab_id));
+                    let font_size = app_state.font_size();
+                    let font_collection = app_state.font_collection.clone();
+
+                    let editor_tab = app_state.tab_mut(&tab_id).as_text_editor_mut().unwrap();
+                    editor_tab.editor.run_parser();
+                    editor_tab
+                        .editor
+                        .measure_longest_line(font_size, &font_collection);
+
+                    info!("Loaded file content for {path:?}");
+                }
+            }
+        });
 
         let args = consume_context::<Arc<Args>>();
 
@@ -128,7 +168,7 @@ impl EditorTab {
         if let Some(lsp_config) = lsp_config {
             let (lsp, needs_initialization) = LSPClient::open_with(radio, app_state, &lsp_config);
 
-            // Registry lsp client
+            // Registry the LSP client
             if needs_initialization {
                 app_state.insert_lsp_client(lsp_config.language_server, lsp.clone());
                 lsp.send(LspAction {
@@ -137,7 +177,7 @@ impl EditorTab {
                 });
             }
 
-            // Open File
+            // Open File in LSP Client
             lsp.send(LspAction {
                 tab_id: tab.get_data().id,
                 action: LspActionData::OpenFile,

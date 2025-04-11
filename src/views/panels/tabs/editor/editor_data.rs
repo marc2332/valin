@@ -30,6 +30,13 @@ pub enum EditorType {
 }
 
 impl EditorType {
+    pub fn content_id(&self) -> Option<String> {
+        match self {
+            Self::Memory { .. } => None,
+            Self::FS { path, .. } => Some(path.file_name().unwrap().to_str().unwrap().to_owned()),
+        }
+    }
+
     pub fn title(&self) -> String {
         match self {
             Self::Memory { title } => title.clone(),
@@ -79,27 +86,21 @@ pub struct EditorData {
 impl EditorData {
     pub fn new(
         editor_type: EditorType,
-        rope: Rope,
+        rope: SharedRope,
         pos: usize,
         clipboard: UseClipboard,
         transport: FSTransport,
-        font_size: f32,
-        font_collection: &FontCollection,
     ) -> Self {
-        let mut metrics = EditorMetrics::new();
-        metrics.measure_longest_line(font_size, &rope, font_collection);
-        metrics.run_parser(&rope);
-
         Self {
             editor_type,
-            rope: Rc::new(RefCell::new(rope)),
+            rope,
             cursor: TextCursor::new(pos),
             selected: None,
             history: EditorHistory::new(),
             last_saved_history_change: 0,
             clipboard,
             transport,
-            metrics,
+            metrics: EditorMetrics::new(),
             dragging: TextDragging::None,
             text_id: Uuid::new_v4(),
             diagnostics: None,

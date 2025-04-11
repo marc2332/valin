@@ -1,3 +1,4 @@
+use crate::fs::FSReadTransportInterface;
 use crate::views::commander::commander_ui::Commander;
 use crate::views::file_explorer::file_explorer_ui::{
     read_folder_as_items, ExplorerItem, FileExplorer, FolderState,
@@ -58,18 +59,14 @@ pub fn App() -> Element {
                     let root_path = path.parent().unwrap_or(path).to_path_buf();
                     let transport = radio_app_state.read().default_transport.clone();
 
-                    let content = transport.read_to_string(path).await;
-                    if let Ok(content) = content {
-                        let mut app_state = radio_app_state.write();
-
-                        EditorTab::open_with(
-                            radio_app_state,
-                            &mut app_state,
-                            path.clone(),
-                            root_path,
-                            content,
-                        );
-                    }
+                    let mut app_state = radio_app_state.write();
+                    EditorTab::open_with(
+                        radio_app_state,
+                        &mut app_state,
+                        path.clone(),
+                        root_path,
+                        transport.as_read(),
+                    )
                 }
                 // Folders
                 else if path.is_dir() {

@@ -196,19 +196,14 @@ pub fn FileExplorer() -> Element {
                         root_path,
                     } => {
                         let transport = radio_app_state.read().default_transport.clone();
-                        let content = transport.read_to_string(&file_path).await;
-                        if let Ok(content) = content {
-                            let mut app_state = radio_app_state.write_channel(Channel::Global);
-                            EditorTab::open_with(
-                                radio_app_state,
-                                &mut app_state,
-                                file_path,
-                                root_path,
-                                content,
-                            );
-                        } else if let Err(err) = content {
-                            println!("Error reading file: {err:?}");
-                        }
+                        let mut app_state = radio_app_state.write_channel(Channel::Global);
+                        EditorTab::open_with(
+                            radio_app_state,
+                            &mut app_state,
+                            file_path,
+                            root_path,
+                            transport.as_read(),
+                        );
                     }
                 }
                 focused_item_index.set(item_index);

@@ -13,6 +13,7 @@ impl PanelTab for WelcomeTab {
             title: "welcome".to_string(),
             edited: false,
             focus_id: self.focus_id,
+            content_id: "welcome".to_string(),
         }
     }
     fn render(&self) -> fn(TabProps) -> Element {

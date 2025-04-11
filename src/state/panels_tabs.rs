@@ -1,5 +1,6 @@
 use std::{
     any::Any,
+    fmt::Display,
     sync::atomic::{AtomicU64, Ordering},
 };
 
@@ -44,10 +45,17 @@ impl TabId {
     }
 }
 
+impl Display for TabId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&self.0.to_string())
+    }
+}
+
 #[derive(PartialEq, Eq)]
 pub struct PanelTabData {
     pub edited: bool,
     pub title: String,
+    pub content_id: String,
     pub id: TabId,
     pub focus_id: AccessibilityId,
 }
