@@ -45,7 +45,7 @@ pub mod GlobalDefaults {
                     // Pressing `Alt E`
                     Code::KeyE if is_pressing_alt => {
                         let mut app_state = radio_app_state.write_channel(Channel::Global);
-                        if *app_state.focused_view() == EditorView::FilesExplorer {
+                        if app_state.focused_view() == EditorView::FilesExplorer {
                             app_state.focus_view(EditorView::Panels)
                         } else {
                             app_state.focus_view(EditorView::FilesExplorer)

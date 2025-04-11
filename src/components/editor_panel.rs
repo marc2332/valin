@@ -39,7 +39,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
 
     let onclickpanel = move |_| {
         let is_panel_focused = radio_app_state.read().focused_panel() == panel_index;
-        let is_panels_view_focused = *radio_app_state.read().focused_view() == EditorView::Panels;
+        let is_panels_view_focused = radio_app_state.read().focused_view() == EditorView::Panels;
 
         if !is_panel_focused {
             radio_app_state

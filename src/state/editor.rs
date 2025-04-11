@@ -52,7 +52,7 @@ impl DataReducer for AppState {
             .enumerate()
             .find(|(_, panel)| panel.tabs.contains(&tab_id))
             .unwrap();
-        let is_panels_view_focused = *self.focused_view() == EditorView::Panels;
+        let is_panels_view_focused = self.focused_view() == EditorView::Panels;
         let is_panel_focused = self.focused_panel() == panel_index;
         let is_editor_focused = is_panel_focused && panel.active_tab() == Some(tab_id);
 

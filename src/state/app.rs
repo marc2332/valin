@@ -196,8 +196,8 @@ impl AppState {
         }
     }
 
-    pub fn focused_view(&self) -> &EditorView {
-        &self.focused_view
+    pub fn focused_view(&self) -> EditorView {
+        self.focused_view
     }
 
     pub fn focus_previous_view(&mut self) {
@@ -350,6 +350,8 @@ impl AppState {
 
     pub fn push_panel(&mut self, panel: Panel) {
         self.panels.push(panel);
+
+        self.focused_view = EditorView::Panels;
     }
 
     pub fn panels(&self) -> &[Panel] {
