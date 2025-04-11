@@ -54,6 +54,13 @@ impl EditorType {
     }
 }
 
+#[derive(PartialEq, Clone)]
+pub struct Diagnostics {
+    pub range: lsp_types::Range,
+    pub line: u32,
+    pub content: String,
+}
+
 pub struct EditorData {
     pub(crate) editor_type: EditorType,
     pub(crate) cursor: TextCursor,
@@ -65,6 +72,7 @@ pub struct EditorData {
     pub(crate) transport: FSTransport,
     pub(crate) metrics: EditorMetrics,
     pub(crate) dragging: TextDragging,
+    pub(crate) diagnostics: Option<Diagnostics>,
     pub(crate) text_id: Uuid,
 }
 
@@ -94,6 +102,7 @@ impl EditorData {
             metrics,
             dragging: TextDragging::None,
             text_id: Uuid::new_v4(),
+            diagnostics: None,
         }
     }
 
@@ -103,7 +112,7 @@ impl EditorData {
             .and_then(|(path, _)| Url::from_file_path(path).ok())
     }
 
-    pub fn text(&self) -> String {
+    pub fn content(&self) -> String {
         self.rope.borrow().to_string()
     }
 

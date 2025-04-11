@@ -1,8 +1,12 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
-use crate::state::{
-    AppSettings, AppState, EditorCommands, KeyboardShortcuts, PanelTab, PanelTabData,
-    RadioAppState, TabId, TabProps,
+use crate::{
+    lsp::{LSPClient, LspAction, LspActionData, LspConfig},
+    state::{
+        AppSettings, AppState, EditorCommands, KeyboardShortcuts, PanelTab, PanelTabData,
+        RadioAppState, TabId, TabProps,
+    },
+    Args,
 };
 
 use freya::prelude::keyboard::Modifiers;
@@ -31,13 +35,16 @@ impl PanelTab for EditorTab {
 
         // Only if it ever hard LSP support
         if let Some(language_server_id) = language_server_id {
-            let language_server = app_state.language_servers.get_mut(language_server_id);
+            let lsp = app_state.language_servers.get_mut(language_server_id);
 
             // And there was an actual language server running
-            if let Some(language_server) = language_server {
+            if let Some(lsp) = lsp {
                 let file_uri = self.editor.uri();
                 if let Some(file_uri) = file_uri {
-                    language_server.close_file(file_uri);
+                    lsp.send(LspAction {
+                        tab_id: self.id,
+                        action: LspActionData::CloseFile { file_uri },
+                    });
                 }
             }
         }
@@ -84,9 +91,18 @@ impl EditorTab {
     }
 
     /// Open an EditorTab in the focused panel.
-    pub fn open_with(app_state: &mut AppState, path: PathBuf, root_path: PathBuf, content: String) {
+    pub fn open_with(
+        radio: RadioAppState,
+        app_state: &mut AppState,
+        path: PathBuf,
+        root_path: PathBuf,
+        content: String,
+    ) {
         let data = EditorData::new(
-            EditorType::FS { path, root_path },
+            EditorType::FS {
+                path: path.clone(),
+                root_path: root_path.clone(),
+            },
             Rope::from(content),
             0,
             app_state.clipboard,
@@ -95,7 +111,40 @@ impl EditorTab {
             &app_state.font_collection.clone(),
         );
 
-        app_state.push_tab(Self::new(data), app_state.focused_panel, true);
+        let tab = Self::new(data);
+
+        let args = consume_context::<Arc<Args>>();
+
+        let lsp_config = args
+            .lsp
+            .then(|| {
+                LspConfig::new(EditorType::FS {
+                    path,
+                    root_path: root_path.clone(),
+                })
+            })
+            .flatten();
+
+        if let Some(lsp_config) = lsp_config {
+            let (lsp, needs_initialization) = LSPClient::open_with(radio, app_state, &lsp_config);
+
+            // Registry lsp client
+            if needs_initialization {
+                app_state.insert_lsp_client(lsp_config.language_server, lsp.clone());
+                lsp.send(LspAction {
+                    tab_id: tab.get_data().id,
+                    action: LspActionData::Initialize(root_path),
+                });
+            }
+
+            // Open File
+            lsp.send(LspAction {
+                tab_id: tab.get_data().id,
+                action: LspActionData::OpenFile,
+            });
+        }
+
+        app_state.push_tab(tab, app_state.focused_panel, true);
     }
 
     /// Initialize the EditorTab module.

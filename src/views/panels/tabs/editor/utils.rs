@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use crate::{
     fs::FSTransport,
+    lsp::{LSPClient, LspConfig},
     state::{AppState, PanelTab, TabId},
 };
 
@@ -13,6 +14,8 @@ pub trait AppStateEditorUtils {
     fn editor_tab_mut(&mut self, tab_id: TabId) -> &mut EditorTab;
 
     fn editor_tab_data(&self, tab_id: TabId) -> Option<(Option<PathBuf>, SharedRope, FSTransport)>;
+
+    fn editor_tab_lsp(&self, tab_id: TabId) -> Option<LSPClient>;
 }
 
 impl AppStateEditorUtils for AppState {
@@ -35,6 +38,12 @@ impl AppStateEditorUtils for AppState {
             tab.editor.rope.clone(),
             tab.editor.transport.clone(),
         ))
+    }
+
+    fn editor_tab_lsp(&self, tab_id: TabId) -> Option<LSPClient> {
+        let editor_tab = self.editor_tab(tab_id);
+        let lsp_config = LspConfig::new(editor_tab.editor.editor_type.clone())?;
+        self.lsp(&lsp_config).cloned()
     }
 }
 

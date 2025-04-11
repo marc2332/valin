@@ -199,7 +199,13 @@ pub fn FileExplorer() -> Element {
                         let content = transport.read_to_string(&file_path).await;
                         if let Ok(content) = content {
                             let mut app_state = radio_app_state.write_channel(Channel::Global);
-                            EditorTab::open_with(&mut app_state, file_path, root_path, content);
+                            EditorTab::open_with(
+                                radio_app_state,
+                                &mut app_state,
+                                file_path,
+                                root_path,
+                                content,
+                            );
                         } else if let Err(err) = content {
                             println!("Error reading file: {err:?}");
                         }

@@ -4,7 +4,7 @@ use skia_safe::{
     textlayout::{Paragraph, ParagraphBuilder, ParagraphStyle, TextStyle},
 };
 
-use crate::state::RadioAppState;
+use crate::state::AppState;
 
 #[allow(non_snake_case)]
 pub fn Divider() -> Element {
@@ -24,9 +24,7 @@ pub fn VerticalDivider() -> Element {
     })
 }
 
-pub fn create_paragraph(text: &str, font_size: f32, radio_app_state: RadioAppState) -> Paragraph {
-    let app_state = radio_app_state.read();
-
+pub fn create_paragraph(text: &str, font_size: f32, app_state: &AppState) -> Paragraph {
     let mut style = ParagraphStyle::default();
     let mut text_style = TextStyle::default();
     text_style.set_font_size(font_size);

@@ -14,11 +14,11 @@ pub fn HoverBox(content: String) -> Element {
         width: "300",
         height: "{height}",
         background: "rgb(60, 60, 60)",
-        corner_radius: "8",
+        corner_radius: "6",
         layer: "-50",
-        padding: "10",
-        shadow: "0 5 10 0 rgb(0, 0, 0, 50)",
-        border: "1 solid rgb(50, 50, 50)",
+        padding: "8",
+        shadow: "0 2 10 0 rgb(0, 0, 0, 40)",
+        border: "1 solid rgb(45, 45, 45)",
         ScrollView {
             label {
                 width: "100%",

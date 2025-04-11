@@ -203,7 +203,7 @@ impl EditorCommand for OpenSettingsCommand {
     fn run(&self, _ctx: &mut CommandRunContext) {
         let mut radio_app_state = self.0;
         let mut app_state = radio_app_state.write_channel(Channel::Global);
-        Settings::open_with(&mut app_state);
+        Settings::open_with(radio_app_state, &mut app_state);
     }
 }
 

@@ -19,7 +19,7 @@ pub fn StatusBar(props: StatusBarProps) -> Element {
 
     let open_settings = move |_| {
         let mut app_state = radio_app_state.write_channel(Channel::Global);
-        Settings::open_with(&mut app_state);
+        Settings::open_with(radio_app_state, &mut app_state);
     };
 
     let toggle_file_explorer = move |_| {
