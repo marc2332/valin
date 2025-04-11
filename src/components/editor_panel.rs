@@ -1,5 +1,6 @@
 use super::icons::*;
 use super::tab::*;
+use crate::state::EditorView;
 use crate::state::TabId;
 use crate::state::{AppState, Channel, Panel};
 use crate::utils::*;
@@ -15,7 +16,7 @@ pub struct EditorPanelProps {
 
 #[allow(non_snake_case)]
 pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) -> Element {
-    let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Global);
+    let mut radio_app_state = use_radio::<AppState, Channel>(Channel::AllTabs);
 
     let app_state = radio_app_state.read();
     let panels_len = app_state.panels().len();
@@ -37,11 +38,19 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
     };
 
     let onclickpanel = move |_| {
-        let is_panel_focused = radio_app_state.read().focused_panel == panel_index;
+        let is_panel_focused = radio_app_state.read().focused_panel() == panel_index;
+        let is_panels_view_focused = *radio_app_state.read().focused_view() == EditorView::Panels;
+
         if !is_panel_focused {
             radio_app_state
+                .write_channel(Channel::AllTabs)
+                .focus_panel(panel_index);
+        }
+
+        if !is_panels_view_focused {
+            radio_app_state
                 .write_channel(Channel::Global)
-                .set_focused_panel(panel_index);
+                .focus_view(EditorView::Panels);
         }
     };
 
@@ -117,7 +126,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
                     if let Some(tab_id) = active_tab {
                         {
                             let active_tab = app_state.tab(&tab_id);
-                            let Render = active_tab.as_ref().render();
+                            let Render = active_tab.render();
                             rsx!(
                                 Render {
                                     key: "{tab_id:?}",
@@ -173,7 +182,7 @@ fn PanelTab(
 
     let onclick = move |_| {
         let mut app_state = radio_app_state.write_channel(Channel::Global);
-        app_state.set_focused_panel(panel_index);
+        app_state.focus_panel(panel_index);
         app_state.panel_mut(panel_index).set_active_tab(tab_id);
     };
 

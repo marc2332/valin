@@ -75,15 +75,15 @@ impl DataReducer for AppState {
                     .editor
                     .process_event(&EditableEvent::MouseDown(data, line_index));
 
-                if !is_panels_view_focused {
-                    self.set_focused_view(EditorView::Panels);
-                    channel.select(Channel::Global)
-                }
-
                 if !is_editor_focused {
-                    self.set_focused_panel(panel_index);
+                    self.focus_panel(panel_index);
                     self.panel_mut(panel_index).set_active_tab(tab_id);
                     channel.select(Channel::AllTabs);
+                }
+
+                if !is_panels_view_focused {
+                    self.focus_view(EditorView::Panels);
+                    channel.select(Channel::Global)
                 }
 
                 channel

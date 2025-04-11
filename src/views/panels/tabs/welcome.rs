@@ -37,7 +37,7 @@ impl WelcomeTab {
     }
 
     pub fn open_with(app_state: &mut AppState) {
-        app_state.push_tab(Self::new(), app_state.focused_panel, true);
+        app_state.push_tab(Self::new(), app_state.focused_panel);
     }
 }
 

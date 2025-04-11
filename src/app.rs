@@ -1,4 +1,3 @@
-use crate::fs::FSReadTransportInterface;
 use crate::views::commander::commander_ui::Commander;
 use crate::views::file_explorer::file_explorer_ui::{
     read_folder_as_items, ExplorerItem, FileExplorer, FolderState,

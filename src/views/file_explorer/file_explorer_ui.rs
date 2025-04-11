@@ -158,7 +158,7 @@ pub fn FileExplorer() -> Element {
                 if focused_view != EditorView::FilesExplorer {
                     radio_app_state
                         .write_channel(Channel::Global)
-                        .set_focused_view(EditorView::FilesExplorer);
+                        .focus_view(EditorView::FilesExplorer);
                 }
 
                 match task {
@@ -230,7 +230,7 @@ pub fn FileExplorer() -> Element {
                     state: FolderState::Opened(items),
                 });
 
-                app_state.set_focused_view(EditorView::FilesExplorer);
+                app_state.focus_view(EditorView::FilesExplorer);
             }
         });
     };

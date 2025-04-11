@@ -175,14 +175,14 @@ impl AppState {
         }
     }
 
-    pub fn set_focused_view(&mut self, focused_view: EditorView) {
+    pub fn focus_view(&mut self, view: EditorView) {
         if !self.focused_view.is_popup() {
             self.previous_focused_view = Some(self.focused_view);
         }
 
-        self.focused_view = focused_view;
+        self.focused_view = view;
 
-        match focused_view {
+        match view {
             EditorView::Panels => {
                 self.focus_tab(
                     self.focused_panel,
@@ -200,7 +200,7 @@ impl AppState {
         &self.focused_view
     }
 
-    pub fn set_focused_view_to_previous(&mut self) {
+    pub fn focus_previous_view(&mut self) {
         if let Some(previous_focused_view) = self.previous_focused_view {
             self.focused_view = previous_focused_view;
             self.previous_focused_view = None;
@@ -242,7 +242,7 @@ impl AppState {
         self.tabs.get_mut(tab_id).unwrap()
     }
 
-    pub fn get_tab_if_exists(&self, tab: &impl PanelTab) -> Option<TabId> {
+    fn get_tab_if_exists(&self, tab: &impl PanelTab) -> Option<TabId> {
         self.tabs.iter().find_map(|(other_tab_id, other_tab)| {
             if other_tab.get_data().content_id == tab.get_data().content_id {
                 Some(*other_tab_id)
@@ -252,38 +252,32 @@ impl AppState {
         })
     }
 
-    pub fn push_tab(&mut self, tab: impl PanelTab + 'static, panel_index: usize, focus: bool) {
-        let opened_tab = self.tabs.iter().find_map(|(other_tab_id, other_tab)| {
-            if other_tab.get_data().content_id == tab.get_data().content_id {
-                Some(*other_tab_id)
-            } else {
-                None
-            }
-        });
+    // Push a [PanelTab] to a given panel index, return true if it didnt exist yet.
+    pub fn push_tab(&mut self, tab: impl PanelTab + 'static, panel_index: usize) -> bool {
+        let opened_tab = self.get_tab_if_exists(&tab);
 
         if let Some(tab_id) = opened_tab {
-            if focus {
-                self.focused_panel = panel_index;
-                self.focus_tab(panel_index, Some(tab_id));
-            }
+            // Focus the already open tab with the same content id
+            self.focused_panel = panel_index;
+            self.focus_tab(panel_index, Some(tab_id));
         } else {
+            // Register the new tab
             self.panels[panel_index].tabs.push(tab.get_data().id);
             self.tabs.insert(tab.get_data().id, Box::new(tab));
 
-            if focus {
-                self.focused_panel = panel_index;
-                self.focus_tab(panel_index, self.panels[panel_index].tabs.last().cloned());
-            }
+            // Focus the new tab
+            self.focused_panel = panel_index;
+            self.focus_tab(panel_index, self.panels[panel_index].tabs.last().cloned());
         }
 
-        if focus {
-            self.focused_view = EditorView::Panels;
-        }
+        self.focused_view = EditorView::Panels;
 
         info!(
-            "Opened tab [panel={panel_index}] [tab={}]",
+            "Opened/Focused tab [panel={panel_index}] [tab={}]",
             self.panels[panel_index].tabs.len()
         );
+
+        opened_tab.is_none()
     }
 
     pub fn close_tab(&mut self, tab_id: TabId) {
@@ -344,13 +338,13 @@ impl AppState {
 
     pub fn focus_previous_panel(&mut self) {
         if self.focused_panel > 0 {
-            self.set_focused_panel(self.focused_panel - 1);
+            self.focus_panel(self.focused_panel - 1);
         }
     }
 
     pub fn focus_next_panel(&mut self) {
         if self.focused_panel < self.panels.len() - 1 {
-            self.set_focused_panel(self.focused_panel + 1);
+            self.focus_panel(self.focused_panel + 1);
         }
     }
 
@@ -370,7 +364,7 @@ impl AppState {
         &mut self.panels[panel]
     }
 
-    pub fn set_focused_panel(&mut self, panel: usize) {
+    pub fn focus_panel(&mut self, panel: usize) {
         self.focused_panel = panel;
     }
 

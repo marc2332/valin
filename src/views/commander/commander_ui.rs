@@ -55,7 +55,7 @@ pub fn Commander(CommanderProps { editor_commands }: CommanderProps) -> Element 
 
             if ctx.focus_previous_view {
                 let mut app_state = radio_app_state.write();
-                app_state.set_focused_view_to_previous();
+                app_state.focus_previous_view();
             }
         }
     };

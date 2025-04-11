@@ -4,8 +4,8 @@ use crate::{
     fs::FSReadTransportInterface,
     lsp::{LSPClient, LspAction, LspActionData, LspConfig},
     state::{
-        AppSettings, AppState, Channel, EditorCommands, EditorView, KeyboardShortcuts, PanelTab,
-        PanelTabData, RadioAppState, TabId, TabProps,
+        AppSettings, AppState, Channel, EditorCommands, KeyboardShortcuts, PanelTab, PanelTabData,
+        RadioAppState, TabId, TabProps,
     },
     views::panels::tabs::editor::TabEditorUtils,
     Args,
@@ -124,9 +124,7 @@ impl EditorTab {
         let tab = Self::new(tab_id, data);
 
         // Dont create the same tab twice
-        if let Some(open_tab_id) = app_state.get_tab_if_exists(&tab) {
-            app_state.set_focused_view(EditorView::Panels);
-            app_state.focus_tab(app_state.focused_panel, Some(open_tab_id));
+        if !app_state.push_tab(tab, app_state.focused_panel) {
             return;
         }
 
@@ -142,7 +140,8 @@ impl EditorTab {
                     let font_size = app_state.font_size();
                     let font_collection = app_state.font_collection.clone();
 
-                    let editor_tab = app_state.tab_mut(&tab_id).as_text_editor_mut().unwrap();
+                    let tab = app_state.tab_mut(&tab_id);
+                    let editor_tab = tab.as_text_editor_mut().unwrap();
                     editor_tab.editor.run_parser();
                     editor_tab
                         .editor
@@ -172,19 +171,17 @@ impl EditorTab {
             if needs_initialization {
                 app_state.insert_lsp_client(lsp_config.language_server, lsp.clone());
                 lsp.send(LspAction {
-                    tab_id: tab.get_data().id,
+                    tab_id,
                     action: LspActionData::Initialize(root_path),
                 });
             }
 
             // Open File in LSP Client
             lsp.send(LspAction {
-                tab_id: tab.get_data().id,
+                tab_id,
                 action: LspActionData::OpenFile,
             });
         }
-
-        app_state.push_tab(tab, app_state.focused_panel, true);
     }
 
     /// Initialize the EditorTab module.

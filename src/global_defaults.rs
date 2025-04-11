@@ -46,9 +46,9 @@ pub mod GlobalDefaults {
                     Code::KeyE if is_pressing_alt => {
                         let mut app_state = radio_app_state.write_channel(Channel::Global);
                         if *app_state.focused_view() == EditorView::FilesExplorer {
-                            app_state.set_focused_view(EditorView::Panels)
+                            app_state.focus_view(EditorView::Panels)
                         } else {
-                            app_state.set_focused_view(EditorView::FilesExplorer)
+                            app_state.focus_view(EditorView::FilesExplorer)
                         }
                     }
                     // Pressing `Ctrl W`
@@ -107,7 +107,7 @@ impl EditorCommand for SplitPanelCommand {
         let mut app_state = radio_app_state.write_channel(Channel::Global);
         app_state.push_panel(Panel::new());
         let len_panels = app_state.panels().len();
-        app_state.set_focused_panel(len_panels - 1);
+        app_state.focus_panel(len_panels - 1);
     }
 }
 
@@ -171,9 +171,9 @@ impl EditorCommand for ToggleCommanderCommand {
         let mut radio_app_state = self.0;
         let mut app_state = radio_app_state.write_channel(Channel::Global);
         if app_state.focused_view == EditorView::Commander {
-            app_state.set_focused_view_to_previous();
+            app_state.focus_previous_view();
         } else {
-            app_state.set_focused_view(EditorView::Commander);
+            app_state.focus_view(EditorView::Commander);
         }
     }
 }
@@ -234,7 +234,7 @@ impl EditorCommand for OpenSearchCommand {
 
         let mut radio_app_state = self.0;
         let mut app_state = radio_app_state.write_channel(Channel::Global);
-        app_state.set_focused_view(EditorView::Search);
+        app_state.focus_view(EditorView::Search);
     }
 }
 

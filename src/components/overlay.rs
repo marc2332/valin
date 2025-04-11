@@ -8,7 +8,7 @@ pub fn Overlay(children: Element) -> Element {
 
     let onglobalmousedown = move |_| {
         let mut app_state = radio_app_state.write_channel(Channel::Global);
-        app_state.set_focused_view_to_previous();
+        app_state.focus_previous_view();
     };
 
     rsx!(
