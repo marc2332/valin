@@ -3,13 +3,14 @@ use freya::prelude::*;
 use crate::state::{AppState, PanelTab, PanelTabData, TabId, TabProps};
 
 pub struct WelcomeTab {
+    id: TabId,
     focus_id: AccessibilityId,
 }
 
 impl PanelTab for WelcomeTab {
     fn get_data(&self) -> PanelTabData {
         PanelTabData {
-            id: TabId::new(),
+            id: self.id,
             title: "welcome".to_string(),
             edited: false,
             focus_id: self.focus_id,
@@ -32,6 +33,7 @@ impl PanelTab for WelcomeTab {
 impl WelcomeTab {
     pub fn new() -> Self {
         Self {
+            id: TabId::new(),
             focus_id: UseFocus::new_id(),
         }
     }
