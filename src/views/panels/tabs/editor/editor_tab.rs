@@ -129,7 +129,7 @@ impl EditorTab {
         }
 
         // Load file content asynchronously
-        spawn({
+        spawn_forever({
             to_owned![path];
             async move {
                 let content = read_transport.read_to_string(&path).await;
