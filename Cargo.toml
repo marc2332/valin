@@ -1,6 +1,6 @@
 [package]
 name = "valin"
-version = "0.22.0"
+version = "0.23.0"
 edition = "2021"
 
 [patch.crates-io]
@@ -17,7 +17,7 @@ edition = "2021"
 freya = { version = "0.3.0-rc.4" }
 freya-hooks = { version = "0.3.0-rc.4" }
 
-dioxus-radio = { version = "0.5.2", features = ["tracing"] }
+dioxus-radio = { version = "0.5", features = ["tracing"] }
 dioxus = { version = "0.6", default-features = false }
 dioxus-clipboard = "*"
 
