@@ -321,7 +321,7 @@ impl AppState {
         if let Some(tab_id) = tab_id {
             let platform = UsePlatform::current();
             let tab = self.tab(&tab_id);
-            platform.focus(AccessibilityFocusStrategy::Node(tab.get_data().focus_id));
+            platform.request_focus(AccessibilityFocusStrategy::Node(tab.get_data().focus_id));
         }
     }
 

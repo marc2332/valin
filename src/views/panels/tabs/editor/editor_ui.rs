@@ -102,7 +102,6 @@ pub fn EditorUi(TabProps { tab_id }: TabProps) -> Element {
     };
 
     let onkeydown = move |e: KeyboardEvent| {
-        focus.prevent_navigation();
         e.stop_propagation();
 
         match &e.key {
@@ -115,15 +114,20 @@ pub fn EditorUi(TabProps { tab_id }: TabProps) -> Element {
             _ => {}
         };
 
-        radio_app_state.apply(EditorAction {
+        let channel = radio_app_state.apply(EditorAction {
             tab_id,
             data: EditorActionData::KeyDown {
-                data: e.data,
+                data: e.data.clone(),
                 scroll_offsets,
                 line_height,
                 lines_len,
             },
         });
+
+        // If a change was applied the default behavior will be prevented
+        if channel.is_current() && channel.is_select().is_some() {
+            e.prevent_default();
+        }
     };
 
     rsx!(

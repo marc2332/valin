@@ -1,7 +1,7 @@
 use std::{borrow::Cow, ops::Range};
 
-use fxhash::FxHashMap;
 use ropey::Rope;
+use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
 
 const LARGE_FILE: usize = 45_000_000;

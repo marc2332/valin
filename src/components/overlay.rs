@@ -15,7 +15,7 @@ pub fn Overlay(children: Element) -> Element {
         rect {
             width: "100%",
             height: "0",
-            layer: "-9999",
+            layer: "overlay",
             onglobalmousedown,
             rect {
                 width: "100%",
@@ -28,6 +28,7 @@ pub fn Overlay(children: Element) -> Element {
                     corner_radius: "12",
                     onmousedown: |e| {
                         e.stop_propagation();
+                        e.prevent_default();
                     },
                     width: "500",
                     padding: "5",

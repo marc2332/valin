@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::time::Duration;
 use std::{cmp::Ordering, fmt::Display, ops::Range, path::PathBuf};
 
 use dioxus_clipboard::prelude::UseClipboard;
@@ -8,10 +9,9 @@ use freya::core::event_loop_messages::{EventLoopMessage, TextGroupMeasurement};
 use freya::events::Code;
 use freya::hooks::{EditorHistory, HistoryChange, Line, LinesIterator, TextCursor, TextEditor};
 use freya::prelude::Rope;
-use freya_hooks::{EditableEvent, TextDragging, TextEvent, UsePlatform};
+use freya_hooks::{EditableEvent, TextDragging, TextEvent, UseEditable, UseId, UsePlatform};
 use lsp_types::Url;
 use skia_safe::textlayout::FontCollection;
-use uuid::Uuid;
 
 use crate::{fs::FSTransport, lsp::LanguageId, metrics::EditorMetrics};
 
@@ -80,7 +80,7 @@ pub struct EditorData {
     pub(crate) metrics: EditorMetrics,
     pub(crate) dragging: TextDragging,
     pub(crate) diagnostics: Option<Diagnostics>,
-    pub(crate) text_id: Uuid,
+    pub(crate) text_id: usize,
 }
 
 impl EditorData {
@@ -96,13 +96,13 @@ impl EditorData {
             rope,
             cursor: TextCursor::new(pos),
             selected: None,
-            history: EditorHistory::new(),
+            history: EditorHistory::new(Duration::from_secs(1)),
             last_saved_history_change: 0,
             clipboard,
             transport,
             metrics: EditorMetrics::new(),
             dragging: TextDragging::None,
-            text_id: Uuid::new_v4(),
+            text_id: UseId::<UseEditable>::get_in_hook(),
             diagnostics: None,
         }
     }

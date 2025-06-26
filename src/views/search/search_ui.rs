@@ -9,7 +9,6 @@ use crate::{Overlay, TextArea};
 #[component]
 pub fn Search() -> Element {
     let mut value = use_signal(String::new);
-    let mut focus = use_focus();
 
     let onchange = move |v| {
         if *value.read() != v {
@@ -52,33 +51,25 @@ pub fn Search() -> Element {
         println!("{value}");
     };
 
-    let onkeydown = move |e: KeyboardEvent| {
-        e.stop_propagation();
-        focus.prevent_navigation();
-    };
-
     rsx!(
         Overlay {
-            rect {
-                onkeydown,
-                ScrollView {
-                    height: "400",
-                    width: "100%",
-                    for (line, path) in &*results.read() {
-                        rect {
-                            key: "{line}{path}",
-                            label {
-                                "{line}:{path}"
-                            }
+             ScrollView {
+                height: "400",
+                width: "100%",
+                for (line, path) in &*results.read() {
+                    rect {
+                        key: "{line}{path}",
+                        label {
+                            "{line}:{path}"
                         }
                     }
                 }
-                TextArea {
-                    placeholder: "Search...",
-                    value: "{value}",
-                    onchange,
-                    onsubmit,
-                }
+            }
+            TextArea {
+                placeholder: "Search...",
+                value: "{value}",
+                onchange,
+                onsubmit,
             }
         }
     )

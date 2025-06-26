@@ -5,8 +5,8 @@ use freya::prelude::{dioxus_elements, use_applied_theme};
 
 use crate::hooks::use_computed;
 use crate::{
-    get_container_size, get_corrected_scroll_position, get_scroll_position_from_cursor,
-    get_scrollbar_pos_and_size, is_scrollbar_visible, Axis,
+    get_corrected_scroll_position, get_scroll_position_from_cursor, get_scrollbar_pos_and_size,
+    is_scrollbar_visible, Axis,
 };
 
 pub fn get_scroll_position_from_wheel(
@@ -147,8 +147,8 @@ pub fn EditorScrollView<
     let horizontal_scrollbar_is_visible =
         is_scrollbar_visible(show_scrollbar, size.inner.width, size.area.width());
 
-    let (container_width, content_width) = get_container_size(&width, true, Axis::X);
-    let (container_height, content_height) = get_container_size(&height, true, Axis::Y);
+    let (container_width, content_width) = get_container_sizes(&width);
+    let (container_height, content_height) = get_container_sizes(&height);
 
     let corrected_scrolled_y =
         get_corrected_scroll_position(inner_size, size.area.height(), offset_y as f32);

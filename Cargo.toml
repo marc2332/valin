@@ -1,6 +1,6 @@
 [package]
 name = "valin"
-version = "0.23.0"
+version = "0.24.0"
 edition = "2021"
 
 [patch.crates-io]
@@ -10,20 +10,18 @@ edition = "2021"
 # dioxus-hooks = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
 # dioxus-signals = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
 # dioxus-core = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
-# dioxus-router = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
 # generational-box  = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
 
 [dependencies]
-freya = { version = "0.3.0-rc.4" }
-freya-hooks = { version = "0.3.0-rc.4" }
+freya = { git = "https://github.com/marc2332/freya", branch = "feat/dynamic-resizable-container" }
+freya-hooks = { git = "https://github.com/marc2332/freya", branch = "feat/dynamic-resizable-container" }
 
-dioxus-radio = { version = "0.5", features = ["tracing"] }
+dioxus-radio = { version = "0.6", features = ["tracing"] }
 dioxus = { version = "0.6", default-features = false }
-dioxus-clipboard = "*"
+dioxus-clipboard = "0.2"
 
-tokio = { version = "1.33.0", features = ["fs", "process"]}
-winit = "0.30.1"
-skia-safe = { version = "0.81.0", features = ["gl", "textlayout", "svg"] }
+tokio = { version = "1", features = ["fs", "process"] }
+skia-safe = { version = "0.86.0", features = ["gl", "textlayout", "svg"] }
 
 ropey = "1.6.0"
 smallvec = "1.10.0"
@@ -44,9 +42,8 @@ home = "0.5.9"
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 notify = "6.1.1"
-fxhash = "0.2.1"
+rustc-hash = "2.1.1"
 grep = "0.3.2"
-
 
 [profile.release]
 panic = "abort" 

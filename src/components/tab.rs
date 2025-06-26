@@ -1,5 +1,4 @@
 use freya::prelude::*;
-use winit::window::CursorIcon;
 
 #[allow(non_snake_case)]
 #[component]
