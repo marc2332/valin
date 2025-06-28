@@ -13,8 +13,8 @@ edition = "2021"
 # generational-box  = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
 
 [dependencies]
-freya = { git = "https://github.com/marc2332/freya", branch = "feat/dynamic-resizable-container" }
-freya-hooks = { git = "https://github.com/marc2332/freya", branch = "feat/dynamic-resizable-container" }
+freya = { git = "https://github.com/marc2332/freya", rev = "cb85031eb1be0781408d6009f56d9b3a4198a3b4" }
+freya-hooks = { git = "https://github.com/marc2332/freya", rev = "cb85031eb1be0781408d6009f56d9b3a4198a3b4" }
 
 dioxus-radio = { version = "0.6", features = ["tracing"] }
 dioxus = { version = "0.6", default-features = false }

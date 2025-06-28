@@ -125,7 +125,7 @@ pub fn EditorUi(TabProps { tab_id }: TabProps) -> Element {
         });
 
         // If a change was applied the default behavior will be prevented
-        if channel.is_current() && channel.is_select().is_some() {
+        if channel.is_current() || channel.is_select().is_some() {
             e.prevent_default();
         }
     };
