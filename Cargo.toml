@@ -1,6 +1,6 @@
 [package]
 name = "valin"
-version = "0.24.0"
+version = "0.25.0"
 edition = "2021"
 
 [patch.crates-io]
@@ -13,8 +13,11 @@ edition = "2021"
 # generational-box  = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
 
 [dependencies]
-freya = { git = "https://github.com/marc2332/freya", rev = "cb85031eb1be0781408d6009f56d9b3a4198a3b4" }
-freya-hooks = { git = "https://github.com/marc2332/freya", rev = "cb85031eb1be0781408d6009f56d9b3a4198a3b4" }
+# freya = { path = "../freya/crates/freya" }
+# freya-hooks = { path = "../freya/crates/hooks"  }
+
+freya = { git = "https://github.com/marc2332/freya", rev = "0120ed3fea0a2714b4ef3c72fcf400288862ccfa" }
+freya-hooks = { git = "https://github.com/marc2332/freya", rev = "0120ed3fea0a2714b4ef3c72fcf400288862ccfa" }
 
 dioxus-radio = { version = "0.6", features = ["tracing"] }
 dioxus = { version = "0.6", default-features = false }

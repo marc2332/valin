@@ -339,12 +339,24 @@ impl AppState {
     pub fn focus_previous_panel(&mut self) {
         if self.focused_panel > 0 {
             self.focus_panel(self.focused_panel - 1);
+            let platform = UsePlatform::current();
+            let panel = self.panel(self.focused_panel);
+            if let Some(active_tab) = panel.active_tab {
+                let tab = self.tab(&active_tab);
+                platform.request_focus(AccessibilityFocusStrategy::Node(tab.get_data().focus_id));
+            }
         }
     }
 
     pub fn focus_next_panel(&mut self) {
         if self.focused_panel < self.panels.len() - 1 {
             self.focus_panel(self.focused_panel + 1);
+            let platform = UsePlatform::current();
+            let panel = self.panel(self.focused_panel);
+            if let Some(active_tab) = panel.active_tab {
+                let tab = self.tab(&active_tab);
+                platform.request_focus(AccessibilityFocusStrategy::Node(tab.get_data().focus_id));
+            }
         }
     }
 
