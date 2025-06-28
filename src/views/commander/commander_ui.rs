@@ -15,7 +15,6 @@ pub fn Commander(CommanderProps { editor_commands }: CommanderProps) -> Element 
     let mut radio_app_state = use_radio(Channel::Global);
     let mut value = use_signal(String::new);
     let mut selected = use_signal(|| 0);
-    let mut focus = use_focus();
 
     let commands = editor_commands.read();
     let filtered_commands = commands
@@ -62,7 +61,6 @@ pub fn Commander(CommanderProps { editor_commands }: CommanderProps) -> Element 
 
     let onkeydown = move |e: KeyboardEvent| {
         e.stop_propagation();
-        focus.prevent_navigation();
         match e.code {
             Code::ArrowDown => {
                 if filtered_commands_len > 0 {

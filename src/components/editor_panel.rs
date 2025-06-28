@@ -10,12 +10,10 @@ use freya::prelude::*;
 #[derive(Props, Clone, PartialEq)]
 pub struct EditorPanelProps {
     panel_index: usize,
-    #[props(into)]
-    width: String,
 }
 
 #[allow(non_snake_case)]
-pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) -> Element {
+pub fn EditorPanel(EditorPanelProps { panel_index }: EditorPanelProps) -> Element {
     let mut radio_app_state = use_radio::<AppState, Channel>(Channel::AllTabs);
 
     let app_state = radio_app_state.read();
@@ -62,7 +60,7 @@ pub fn EditorPanel(EditorPanelProps { panel_index, width }: EditorPanelProps) ->
         rect {
             direction: "horizontal",
             height: "100%",
-            width: "{width}",
+            width: "fill",
             rect {
                 width: "calc(100% - {extra_container_width})",
                 height: "100%",

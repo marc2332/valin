@@ -1,6 +1,5 @@
 use dioxus::dioxus_core::AttributeValue;
 use dioxus_radio::prelude::ChannelSelection;
-use uuid::Uuid;
 
 use crate::{
     state::TabId,
@@ -49,7 +48,7 @@ impl UseEdit {
     }
 }
 
-pub fn use_edit(mut radio: RadioAppState, tab_id: TabId, text_id: Uuid) -> UseEdit {
+pub fn use_edit(mut radio: RadioAppState, tab_id: TabId, text_id: usize) -> UseEdit {
     use_hook(|| {
         let (cursor_sender, mut cursor_receiver) = unbounded_channel::<CursorLayoutResponse>();
 

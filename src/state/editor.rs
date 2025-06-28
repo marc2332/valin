@@ -1,11 +1,7 @@
 use std::rc::Rc;
 
 use dioxus_radio::hooks::{ChannelSelection, DataReducer};
-use freya::{
-    events::{Code, Key, KeyboardData, Modifiers, MouseData},
-    prelude::{Readable, Signal, Writable},
-};
-use freya_hooks::EditableEvent;
+use freya::prelude::*;
 
 use crate::views::panels::tabs::editor::AppStateEditorUtils;
 

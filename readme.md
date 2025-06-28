@@ -28,6 +28,7 @@ You can download it from the [Releases](https://github.com/marc2332/valin/releas
 - [x] Redo
 - [x] Files explorer
 - [x] Settings
+- [x] Resizable panels
 - [ ] Intellisense (Enable with `--lsp`)
   - [x] Hover (exprimental, only rust-analyzer atm)
   - [ ] Autocomplete

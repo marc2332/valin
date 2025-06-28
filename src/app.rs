@@ -127,8 +127,6 @@ pub fn App() -> Element {
     };
 
     let focused_view = radio_app_state.read().focused_view;
-    let panels_len = radio_app_state.read().panels().len();
-    let panes_width = 100.0 / panels_len as f32;
 
     rsx!(
         rect {
@@ -147,32 +145,43 @@ pub fn App() -> Element {
             }
             rect {
                 height: "calc(100% - 35)",
-                direction: "horizontal",
-                if let Some(side_panel) = radio_app_state.read().side_panel {
-                    Sidepanel {
-                        match side_panel {
-                            EditorSidePanel::FileExplorer => {
-                                rsx!(
-                                    FileExplorer {  }
-                                )
+                ResizableContainer {
+                    direction: "horizontal",
+                    if let Some(side_panel) = radio_app_state.read().side_panel {
+                        ResizablePanel {
+                            order: 0,
+                            initial_size: 20.,
+                            Sidepanel {
+                                match side_panel {
+                                    EditorSidePanel::FileExplorer => {
+                                        rsx!(
+                                            FileExplorer {  }
+                                        )
+                                    }
+                                }
                             }
+                            Divider {}
                         }
                     }
-                    Divider {}
-                }
-                rect {
-                    width: "fill",
-                    height: "fill",
-                    direction: "horizontal",
-                    {radio_app_state.read().panels().iter().enumerate().map(|(panel_index, _)| {
-                        rsx!(
-                            EditorPanel {
-                                key: "{panel_index}",
-                                panel_index,
-                                width: "{panes_width}%"
-                            }
-                        )
-                    })}
+                    ResizablePanel {
+                        order: 1,
+                        initial_size: 85.,
+                        ResizableContainer {
+                            direction: "horizontal",
+                            {radio_app_state.read().panels().iter().enumerate().map(|(panel_index, _)| {
+                                rsx!(
+                                    ResizablePanel {
+                                        key: "{panel_index}",
+                                        order: panel_index,
+                                        initial_size: 20.,
+                                        EditorPanel {
+                                            panel_index,
+                                        }
+                                    }
+                                )
+                            })}
+                        }
+                    }
                 }
             }
             VerticalDivider {}
