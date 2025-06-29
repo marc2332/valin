@@ -257,6 +257,19 @@ impl AppState {
         let opened_tab = self.get_tab_if_exists(&tab);
 
         if let Some(tab_id) = opened_tab {
+            // Retrieve the panel index of the existing tab
+            let panel_index = self
+                .panels
+                .iter()
+                .enumerate()
+                .find_map(|(panel_index, panel)| {
+                    if panel.tabs.contains(&tab_id) {
+                        Some(panel_index)
+                    } else {
+                        None
+                    }
+                })
+                .unwrap();
             // Focus the already open tab with the same content id
             self.focused_panel = panel_index;
             self.focus_tab(panel_index, Some(tab_id));
