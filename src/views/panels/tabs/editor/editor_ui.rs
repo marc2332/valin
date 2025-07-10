@@ -32,9 +32,6 @@ pub fn EditorUi(TabProps { tab_id }: TabProps) -> Element {
     // Initialize the editable text
     let editable = use_edit(radio_app_state, tab_id, editor_tab.editor.text_id);
 
-    // The scroll positions of the editor
-    let mut scroll_offsets = use_signal(|| (0, 0));
-
     let mut pressing_shift = use_signal(|| false);
     let mut pressing_alt = use_signal(|| false);
 
@@ -62,17 +59,11 @@ pub fn EditorUi(TabProps { tab_id }: TabProps) -> Element {
     let line_height = (font_size * line_height).floor();
     let lines_len = editor.metrics.syntax_blocks.len();
 
-    let onscroll = move |(axis, scroll): (Axis, i32)| match axis {
-        Axis::X => {
-            if scroll_offsets.read().0 != scroll {
-                scroll_offsets.write().0 = scroll
-            }
-        }
-        Axis::Y => {
-            if scroll_offsets.read().1 != scroll {
-                scroll_offsets.write().1 = scroll
-            }
-        }
+    let onscroll = move |(axis, scroll): (Axis, i32)| {
+        radio_app_state.apply(EditorAction {
+            tab_id,
+            data: EditorActionData::Scroll { axis, scroll },
+        });
     };
 
     let onclick = move |e: MouseEvent| {
@@ -118,7 +109,6 @@ pub fn EditorUi(TabProps { tab_id }: TabProps) -> Element {
             tab_id,
             data: EditorActionData::KeyDown {
                 data: e.data.clone(),
-                scroll_offsets,
                 line_height,
                 lines_len,
             },
@@ -147,8 +137,8 @@ pub fn EditorUi(TabProps { tab_id }: TabProps) -> Element {
                 onkeyup,
                 onclick,
                 EditorScrollView {
-                    offset_x: scroll_offsets.read().0,
-                    offset_y: scroll_offsets.read().1,
+                    offset_x: editor.scrolls.0,
+                    offset_y: editor.scrolls.1,
                     onscroll,
                     length: lines_len,
                     item_size: line_height,

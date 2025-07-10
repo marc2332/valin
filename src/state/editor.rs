@@ -19,7 +19,6 @@ pub enum EditorActionData {
     },
     KeyDown {
         data: Rc<KeyboardData>,
-        scroll_offsets: Signal<(i32, i32)>,
         line_height: f32,
         lines_len: usize,
     },
@@ -31,6 +30,10 @@ pub enum EditorActionData {
     MouseMove {
         data: Rc<MouseData>,
         line_index: usize,
+    },
+    Scroll {
+        axis: Axis,
+        scroll: i32,
     },
 }
 
@@ -96,29 +99,30 @@ impl DataReducer for AppState {
             }
             EditorActionData::KeyDown {
                 data,
-                mut scroll_offsets,
                 line_height,
                 lines_len,
             } if is_editor_focused && is_panel_focused => {
+                let editor_tab = self.editor_tab_mut(tab_id);
+
                 const LINES_JUMP_ALT: usize = 5;
                 const LINES_JUMP_CONTROL: usize = 3;
 
                 let lines_jump = (line_height * LINES_JUMP_ALT as f32).ceil() as i32;
                 let min_height = -(lines_len as f32 * line_height) as i32;
                 let max_height = 0; // TODO, this should be the height of the viewport
-                let current_scroll = scroll_offsets.read().1;
+                let current_scroll = editor_tab.editor.scrolls.1;
 
                 let events = match &data.key {
                     Key::ArrowUp if data.modifiers.contains(Modifiers::ALT) => {
                         let jump = (current_scroll + lines_jump).clamp(min_height, max_height);
-                        scroll_offsets.write().1 = jump;
+                        editor_tab.editor.scrolls.1 = jump;
                         (0..LINES_JUMP_ALT)
                             .map(|_| EditableEvent::KeyDown(data.clone()))
                             .collect::<Vec<EditableEvent>>()
                     }
                     Key::ArrowDown if data.modifiers.contains(Modifiers::ALT) => {
                         let jump = (current_scroll - lines_jump).clamp(min_height, max_height);
-                        scroll_offsets.write().1 = jump;
+                        editor_tab.editor.scrolls.1 = jump;
                         (0..LINES_JUMP_ALT)
                             .map(|_| EditableEvent::KeyDown(data.clone()))
                             .collect::<Vec<EditableEvent>>()
@@ -144,7 +148,6 @@ impl DataReducer for AppState {
 
                 let no_changes = events.is_empty();
 
-                let editor_tab = self.editor_tab_mut(tab_id);
                 for event in events {
                     editor_tab.editor.process_event(&event);
                 }
@@ -153,6 +156,20 @@ impl DataReducer for AppState {
                     ChannelSelection::Silence
                 } else {
                     ChannelSelection::Select(Channel::follow_tab(tab_id))
+                }
+            }
+            EditorActionData::Scroll { axis, scroll } => {
+                let editor_tab = self.editor_tab_mut(tab_id);
+                match axis {
+                    Axis::X if editor_tab.editor.scrolls.0 != scroll => {
+                        editor_tab.editor.scrolls.0 = scroll;
+                        ChannelSelection::Select(Channel::follow_tab(tab_id))
+                    }
+                    Axis::Y if editor_tab.editor.scrolls.1 != scroll => {
+                        editor_tab.editor.scrolls.1 = scroll;
+                        ChannelSelection::Select(Channel::follow_tab(tab_id))
+                    }
+                    _ => ChannelSelection::Silence,
                 }
             }
             _ => ChannelSelection::Silence,
