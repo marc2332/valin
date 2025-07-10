@@ -78,6 +78,7 @@ pub struct EditorData {
     pub(crate) dragging: TextDragging,
     pub(crate) diagnostics: Option<Diagnostics>,
     pub(crate) text_id: usize,
+    pub(crate) scrolls: (i32, i32),
 }
 
 impl EditorData {
@@ -101,6 +102,7 @@ impl EditorData {
             dragging: TextDragging::None,
             text_id: UseId::<UseEditable>::get_in_hook(),
             diagnostics: None,
+            scrolls: (0, 0),
         }
     }
 
