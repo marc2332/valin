@@ -5,7 +5,7 @@ use crate::{
 
 #[allow(non_snake_case)]
 pub mod GlobalDefaults {
-    use freya::events::{Code, Key, KeyboardData, Modifiers};
+    use freya::prelude::{Code, Key, KeyboardEventData, Modifiers, NamedKey};
 
     use crate::state::{Channel, EditorCommands, EditorView, KeyboardShortcuts, RadioAppState};
 
@@ -31,7 +31,7 @@ pub mod GlobalDefaults {
 
         // Register Shortcuts
         keyboard_shorcuts.register(
-            |data: &KeyboardData,
+            |data: &KeyboardEventData,
              commands: &mut EditorCommands,
              mut radio_app_state: RadioAppState| {
                 let is_pressing_alt = data.modifiers == Modifiers::ALT;
@@ -64,11 +64,11 @@ pub mod GlobalDefaults {
                         commands.trigger(ClosePanelCommand::id());
                     }
                     // Pressing `Alt ArrowRight`
-                    _ if is_pressing_alt && data.key == Key::ArrowRight => {
+                    _ if is_pressing_alt && data.key == Key::Named(NamedKey::ArrowRight) => {
                         commands.trigger(FocusNextPanelCommand::id());
                     }
                     // Pressing `Alt ArrowLeft`
-                    _ if is_pressing_alt && data.key == Key::ArrowLeft => {
+                    _ if is_pressing_alt && data.key == Key::Named(NamedKey::ArrowLeft) => {
                         commands.trigger(FocusPreviousPanelCommand::id());
                     }
                     _ => return false,

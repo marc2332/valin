@@ -1,20 +1,23 @@
-use std::borrow::Cow;
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::time::Duration;
-use std::{cmp::Ordering, fmt::Display, ops::Range, path::PathBuf};
+use std::{
+    borrow::Cow,
+    cell::RefCell,
+    cmp::Ordering,
+    fmt::Display,
+    ops::{Mul, Range},
+    path::PathBuf,
+    rc::Rc,
+    time::Duration,
+};
 
-use dioxus_clipboard::prelude::UseClipboard;
-use freya::core::event_loop_messages::{EventLoopMessage, TextGroupMeasurement};
-use freya::prelude::*;
-use lsp_types::Url;
+use freya::{elements::paragraph::ParagraphHolderInner, prelude::*, text_edit::*};
+use ropey::Rope;
 use skia_safe::textlayout::FontCollection;
 
-use crate::{fs::FSTransport, lsp::LanguageId, metrics::EditorMetrics};
+use crate::{fs::FSTransport, languages::LanguageId, metrics::EditorMetrics};
 
 pub type SharedRope = Rc<RefCell<Rope>>;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum EditorType {
     #[allow(dead_code)]
     Memory {
@@ -58,62 +61,31 @@ impl EditorType {
     }
 }
 
-#[derive(PartialEq, Clone)]
-pub struct Diagnostics {
-    pub range: lsp_types::Range,
-    pub line: u32,
-    pub content: String,
-}
-
 pub struct EditorData {
     pub(crate) editor_type: EditorType,
-    pub(crate) cursor: TextCursor,
     pub(crate) history: EditorHistory,
     pub(crate) rope: SharedRope,
-    pub(crate) selected: Option<(usize, usize)>,
-    pub(crate) clipboard: UseClipboard,
+    pub(crate) selection: TextSelection,
     pub(crate) last_saved_history_change: usize,
     pub(crate) transport: FSTransport,
     pub(crate) metrics: EditorMetrics,
     pub(crate) dragging: TextDragging,
-    pub(crate) diagnostics: Option<Diagnostics>,
-    pub(crate) text_id: usize,
     pub(crate) scrolls: (i32, i32),
 }
 
 impl EditorData {
-    pub fn new(
-        editor_type: EditorType,
-        rope: SharedRope,
-        pos: usize,
-        clipboard: UseClipboard,
-        transport: FSTransport,
-    ) -> Self {
+    pub fn new(editor_type: EditorType, rope: SharedRope, transport: FSTransport) -> Self {
         Self {
             editor_type,
             rope,
-            cursor: TextCursor::new(pos),
-            selected: None,
+            selection: TextSelection::new_cursor(0),
             history: EditorHistory::new(Duration::from_secs(1)),
             last_saved_history_change: 0,
-            clipboard,
             transport,
             metrics: EditorMetrics::new(),
-            dragging: TextDragging::None,
-            text_id: UseId::<UseEditable>::get_in_hook(),
-            diagnostics: None,
+            dragging: TextDragging::default(),
             scrolls: (0, 0),
         }
-    }
-
-    pub fn uri(&self) -> Option<Url> {
-        self.editor_type
-            .paths()
-            .and_then(|(path, _)| Url::from_file_path(path).ok())
-    }
-
-    pub fn content(&self) -> String {
-        self.rope.borrow().to_string()
     }
 
     pub fn is_edited(&self) -> bool {
@@ -126,14 +98,6 @@ impl EditorData {
 
     pub fn path(&self) -> Option<&PathBuf> {
         self.editor_type.paths().map(|(path, _)| path)
-    }
-
-    pub fn cursor(&self) -> TextCursor {
-        self.cursor.clone()
-    }
-
-    pub fn rope(&self) -> &SharedRope {
-        &self.rope
     }
 
     pub fn run_parser(&mut self) {
@@ -149,100 +113,122 @@ impl EditorData {
         &self.editor_type
     }
 
-    pub fn process_event(&mut self, edit_event: &EditableEvent) -> bool {
+    pub fn process(&mut self, edit_event: EditableEvent) -> bool {
         let mut processed = false;
-        let res = match edit_event {
-            EditableEvent::MouseDown(e, id) => {
-                let coords = e.get_element_coordinates();
+        match edit_event {
+            EditableEvent::Down {
+                location,
+                editor_line,
+                holder,
+            } => {
+                let holder = holder.0.borrow();
+                let ParagraphHolderInner {
+                    paragraph,
+                    scale_factor,
+                } = holder.as_ref().unwrap();
 
-                self.dragging.set_cursor_coords(coords);
-                self.clear_selection();
-                processed = true;
+                let current_selection = self.selection().clone();
 
-                Some((*id, Some(coords), None))
-            }
-            EditableEvent::MouseMove(e, id) => {
-                if let Some(src) = self.dragging.get_cursor_coords() {
-                    let new_dist = e.get_element_coordinates();
-
-                    Some((*id, None, Some((src, new_dist))))
+                if self.dragging.shift || self.dragging.clicked {
+                    self.selection_mut().set_as_range();
                 } else {
-                    None
-                }
-            }
-            EditableEvent::Click => {
-                let selection = &mut self.dragging;
-                match selection {
-                    TextDragging::FromCursorToPoint { shift, clicked, .. } if *shift => {
-                        *clicked = false;
-                    }
-                    _ => {
-                        *selection = TextDragging::None;
-                    }
-                }
-                None
-            }
-            EditableEvent::KeyDown(e) => {
-                if e.code == Code::ShiftLeft {
-                    let cursor = self.cursor_pos();
-                    let dragging = &mut self.dragging;
-                    match dragging {
-                        TextDragging::FromCursorToPoint {
-                            shift: shift_pressed,
-                            ..
-                        } => {
-                            *shift_pressed = true;
-                        }
-                        TextDragging::None => {
-                            *dragging = TextDragging::FromCursorToPoint {
-                                shift: true,
-                                clicked: false,
-                                cursor,
-                                dist: None,
-                            }
-                        }
-                        _ => {}
-                    }
+                    self.clear_selection();
                 }
 
-                let event = self.process_key(&e.key, &e.code, &e.modifiers, true, true, true);
-                if event.contains(TextEvent::TEXT_CHANGED) {
-                    self.run_parser();
-                    self.dragging = TextDragging::None;
-                }
-
-                if !event.is_empty() {
+                if &current_selection != self.selection() {
                     processed = true;
                 }
 
-                None
-            }
-            EditableEvent::KeyUp(e) => {
-                if e.code == Code::ShiftLeft {
-                    if let TextDragging::FromCursorToPoint { shift, .. } = &mut self.dragging {
-                        *shift = false;
-                    }
-                } else {
-                    self.dragging = TextDragging::None;
-                }
+                self.dragging.clicked = true;
 
-                None
+                let char_position = paragraph.get_glyph_position_at_coordinate(
+                    location.mul(*scale_factor).to_i32().to_tuple(),
+                );
+                let press_selection =
+                    self.measure_selection(char_position.position as usize, editor_line);
+
+                let new_selection = match EventsCombos::pressed(location) {
+                    PressEventType::Triple => {
+                        let line = self.char_to_line(press_selection.pos());
+                        let line_char = self.line_to_char(line);
+                        let line_len = self.line(line).unwrap().utf16_len();
+                        TextSelection::new_range((line_char, line_char + line_len))
+                    }
+                    PressEventType::Double => {
+                        let range = self.find_word_boundaries(press_selection.pos());
+                        TextSelection::new_range(range)
+                    }
+                    PressEventType::Single => press_selection,
+                };
+
+                if *self.selection() != new_selection {
+                    *self.selection_mut() = new_selection;
+                    processed = true;
+                }
+            }
+            EditableEvent::Move {
+                location,
+                editor_line,
+                holder,
+            } => {
+                if self.dragging.clicked {
+                    let paragraph = holder.0.borrow();
+                    let ParagraphHolderInner {
+                        paragraph,
+                        scale_factor,
+                    } = paragraph.as_ref().unwrap();
+
+                    let dist_position = location.mul(*scale_factor);
+
+                    // Calculate the end of the highlighting
+                    let dist_char = paragraph
+                        .get_glyph_position_at_coordinate(dist_position.to_i32().to_tuple());
+                    let to = dist_char.position as usize;
+
+                    if self.get_selection().is_none() {
+                        self.selection_mut().set_as_range();
+                        processed = true;
+                    }
+
+                    let current_selection = self.selection().clone();
+
+                    let new_selection = self.measure_selection(to, editor_line);
+
+                    // Update the cursor if it has changed
+                    if current_selection != new_selection {
+                        *self.selection_mut() = new_selection;
+                        processed = true;
+                    }
+                }
+            }
+            EditableEvent::Release => {
+                self.dragging.clicked = false;
+            }
+            EditableEvent::KeyDown { key, modifiers } => {
+                match key {
+                    // Handle dragging
+                    Key::Named(NamedKey::Shift) => {
+                        self.dragging.shift = true;
+                    }
+                    // Handle editing
+                    _ => {
+                        let event = self.process_key(key, &modifiers, true, true, true);
+                        if event.contains(TextEvent::TEXT_CHANGED) {
+                            self.run_parser();
+                            self.dragging = TextDragging::default();
+                        }
+                        if !event.is_empty() {
+                            processed = true;
+                        }
+                    }
+                }
+            }
+            EditableEvent::KeyUp { key, .. } => {
+                if *key == Key::Named(NamedKey::Shift) {
+                    self.dragging.shift = false;
+                }
             }
         };
-
-        if let Some((cursor_id, cursor_position, cursor_selection)) = res {
-            if self.dragging.has_cursor_coords() {
-                UsePlatform::current()
-                    .send(EventLoopMessage::RemeasureTextGroup(TextGroupMeasurement {
-                        text_id: self.text_id,
-                        cursor_id,
-                        cursor_position,
-                        cursor_selection,
-                    }))
-                    .unwrap();
-            }
-        }
-
         processed
     }
 }
@@ -265,6 +251,7 @@ impl TextEditor for EditorData {
 
     fn insert_char(&mut self, ch: char, idx: usize) -> usize {
         let idx_utf8 = self.utf16_cu_to_char(idx);
+        let selection = self.selection.clone();
 
         let len_before_insert = self.len_utf16_cu();
         self.rope.borrow_mut().insert_char(idx_utf8, ch);
@@ -276,6 +263,7 @@ impl TextEditor for EditorData {
             idx,
             ch,
             len: inserted_text_len,
+            selection,
         });
 
         inserted_text_len
@@ -283,6 +271,7 @@ impl TextEditor for EditorData {
 
     fn insert(&mut self, text: &str, idx: usize) -> usize {
         let idx_utf8 = self.utf16_cu_to_char(idx);
+        let selection = self.selection.clone();
 
         let len_before_insert = self.len_utf16_cu();
         self.rope.borrow_mut().insert(idx_utf8, text);
@@ -294,6 +283,7 @@ impl TextEditor for EditorData {
             idx,
             text: text.to_owned(),
             len: inserted_text_len,
+            selection,
         });
 
         inserted_text_len
@@ -303,6 +293,7 @@ impl TextEditor for EditorData {
         let range =
             self.utf16_cu_to_char(range_utf16.start)..self.utf16_cu_to_char(range_utf16.end);
         let text = self.rope.borrow().slice(range.clone()).to_string();
+        let selection = self.selection.clone();
 
         let len_before_remove = self.len_utf16_cu();
         self.rope.borrow_mut().remove(range);
@@ -314,6 +305,7 @@ impl TextEditor for EditorData {
             idx: range_utf16.end - removed_text_len,
             text,
             len: removed_text_len,
+            selection,
         });
 
         removed_text_len
@@ -357,33 +349,23 @@ impl TextEditor for EditorData {
         self.rope.borrow().len_utf16_cu()
     }
 
-    fn cursor(&self) -> &TextCursor {
-        &self.cursor
-    }
-
-    fn cursor_mut(&mut self) -> &mut TextCursor {
-        &mut self.cursor
-    }
-
-    fn expand_selection_to_cursor(&mut self) {
-        let pos = self.cursor_pos();
-        if let Some(selected) = self.selected.as_mut() {
-            selected.1 = pos;
-        } else {
-            self.selected = Some((self.cursor_pos(), self.cursor_pos()))
-        }
-    }
-
     fn has_any_selection(&self) -> bool {
-        self.selected.is_some()
+        self.selection.is_range()
     }
 
     fn get_selection(&self) -> Option<(usize, usize)> {
-        self.selected
+        match self.selection {
+            TextSelection::Cursor(_) => None,
+            TextSelection::Range { from, to } => Some((from, to)),
+        }
     }
 
-    fn get_visible_selection(&self, editor_id: usize) -> Option<(usize, usize)> {
-        let (selected_from, selected_to) = self.selected?;
+    fn get_visible_selection(&self, editor_id: EditorLine) -> Option<(usize, usize)> {
+        let editor_id = match editor_id {
+            EditorLine::Paragraph(editor_id) => editor_id,
+            _ => unreachable!(),
+        };
+        let (selected_from, selected_to) = self.get_selection()?;
         let selected_from_row = self.char_to_line(self.utf16_cu_to_char(selected_from));
         let selected_to_row = self.char_to_line(self.utf16_cu_to_char(selected_to));
 
@@ -402,7 +384,7 @@ impl TextEditor for EditorData {
             return Some((0, len));
         }
 
-        let highlights = match selected_from_row.cmp(&selected_to_row) {
+        match selected_from_row.cmp(&selected_to_row) {
             // Selection direction is from bottom -> top
             Ordering::Greater => {
                 if selected_from_row == editor_id {
@@ -434,9 +416,7 @@ impl TextEditor for EditorData {
                 Some((selected_from - editor_row_idx, selected_to - editor_row_idx))
             }
             _ => None,
-        };
-
-        highlights
+        }
     }
 
     fn set(&mut self, text: &str) {
@@ -445,31 +425,13 @@ impl TextEditor for EditorData {
     }
 
     fn clear_selection(&mut self) {
-        self.selected = None;
+        let end = self.selection().end();
+        self.selection_mut().set_as_cursor();
+        self.selection_mut().move_to(end);
     }
 
-    fn measure_new_selection(&self, from: usize, to: usize, editor_id: usize) -> (usize, usize) {
-        let row_idx = self.line_to_char(editor_id);
-        let row_idx = self.char_to_utf16_cu(row_idx);
-        if let Some((start, _)) = self.selected {
-            (start, row_idx + to)
-        } else {
-            (row_idx + from, row_idx + to)
-        }
-    }
-
-    fn measure_new_cursor(&self, to: usize, editor_id: usize) -> TextCursor {
-        let row_char = self.line_to_char(editor_id);
-        let pos = self.char_to_utf16_cu(row_char) + to;
-        TextCursor::new(pos)
-    }
-
-    fn get_clipboard(&mut self) -> &mut UseClipboard {
-        &mut self.clipboard
-    }
-
-    fn set_selection(&mut self, selected: (usize, usize)) {
-        self.selected = Some(selected);
+    fn set_selection(&mut self, (from, to): (usize, usize)) {
+        self.selection = TextSelection::Range { from, to };
     }
 
     fn get_selected_text(&self) -> Option<String> {
@@ -479,7 +441,10 @@ impl TextEditor for EditorData {
     }
 
     fn get_selection_range(&self) -> Option<(usize, usize)> {
-        let (start, end) = self.selected?;
+        let (start, end) = match self.selection {
+            TextSelection::Cursor(_) => return None,
+            TextSelection::Range { from, to } => (from, to),
+        };
 
         // Use left-to-right selection
         let (start, end) = if start < end {
@@ -491,27 +456,27 @@ impl TextEditor for EditorData {
         Some((start, end))
     }
 
-    fn redo(&mut self) -> Option<usize> {
-        if self.history.can_redo() {
-            self.history.redo(&mut self.rope.borrow_mut())
-        } else {
-            None
-        }
+    fn undo(&mut self) -> Option<TextSelection> {
+        self.history.undo(&mut self.rope.borrow_mut())
     }
 
-    fn undo(&mut self) -> Option<usize> {
-        if self.history.can_undo() {
-            self.history.undo(&mut self.rope.borrow_mut())
-        } else {
-            None
-        }
+    fn redo(&mut self) -> Option<TextSelection> {
+        self.history.redo(&mut self.rope.borrow_mut())
     }
 
     fn editor_history(&mut self) -> &mut EditorHistory {
         &mut self.history
     }
 
-    fn get_identation(&self) -> u8 {
+    fn selection(&self) -> &TextSelection {
+        &self.selection
+    }
+
+    fn selection_mut(&mut self) -> &mut TextSelection {
+        &mut self.selection
+    }
+
+    fn get_indentation(&self) -> u8 {
         4
     }
 }

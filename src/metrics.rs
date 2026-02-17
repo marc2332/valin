@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 use std::cmp::Ordering;
 
-use freya::prelude::*;
+use ropey::Rope;
 use skia_safe::scalar;
 use skia_safe::textlayout::FontCollection;
 use skia_safe::textlayout::ParagraphBuilder;
@@ -32,6 +32,7 @@ impl EditorMetrics {
         let mut paragraph_style = ParagraphStyle::default();
         let mut text_style = TextStyle::default();
         text_style.set_font_size(font_size);
+        text_style.set_font_families(&["Jetbrains Mono"]);
         paragraph_style.set_text_style(&text_style);
         let mut paragraph_builder = ParagraphBuilder::new(&paragraph_style, font_collection);
 

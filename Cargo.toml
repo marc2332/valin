@@ -1,42 +1,30 @@
 [package]
 name = "valin"
-version = "0.25.0"
-edition = "2021"
+version = "0.26.0"
+edition = "2024"
 
-[patch.crates-io]
-# dioxus = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
-# dioxus-rsx = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
-# dioxus-core-macro = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
-# dioxus-hooks = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
-# dioxus-signals = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
-# dioxus-core = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
-# generational-box  = { git = "https://github.com/marc2332/dioxus", rev = "17b8b22d9b6c31a9ad5a8e291627776fa3c1ec49" }
+[features]
+devtools = ["freya/devtools"]
 
 [dependencies]
-# freya = { path = "../freya/crates/freya" }
-# freya-hooks = { path = "../freya/crates/hooks"  }
+freya = { path = "../freya/main/crates/freya", features = [
+  "markdown",
+  "radio",
+] }
+freya-clipboard = { path = "../freya/main/crates/freya-clipboard" }
+freya-performance-plugin = { path = "../freya/main/crates/freya-performance-plugin" }
 
-freya = { git = "https://github.com/marc2332/freya", rev = "0120ed3fea0a2714b4ef3c72fcf400288862ccfa" }
-freya-hooks = { git = "https://github.com/marc2332/freya", rev = "0120ed3fea0a2714b4ef3c72fcf400288862ccfa" }
-
-dioxus-radio = { version = "0.6", features = ["tracing"] }
-dioxus = { version = "0.6", default-features = false }
-dioxus-clipboard = "0.2"
-
-tokio = { version = "1", features = ["fs", "process"] }
-skia-safe = { version = "0.86.0", features = ["gl", "textlayout", "svg"] }
+skia-safe = { version = "0.91.0", features = ["gl", "textlayout", "svg"] }
+async-io = "2.5.0"
 
 ropey = "1.6.0"
 smallvec = "1.10.0"
-uuid = { version =  "1.2.2", features = ["v4"]}
-rfd = "0.14.1"
-tokio-stream = { version = "0.1.14", features = ["fs"] }
-tower = "0.4.13"
-lsp-types = "0.95.0"
-async-lsp = "0.2.2"
+uuid = { version = "1.2.2", features = ["v4"] }
+rfd = "0.17.2"
+futures-channel = "0.3.31"
 futures = "0.3.28"
-tokio-util = { version = "0.7.11", features = ["compat"] }
-clap = { version = "4.5.4", features = ["derive"]}
+smol = "2.0.2"
+clap = { version = "4.5.4", features = ["derive"] }
 async-trait = "0.1.80"
 toml = "0.8.12"
 serde = "1.0.200"
@@ -49,7 +37,7 @@ rustc-hash = "2.1.1"
 grep = "0.3.2"
 
 [profile.release]
-panic = "abort" 
+panic = "abort"
 lto = true
 codegen-units = 1
 strip = true

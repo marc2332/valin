@@ -1,213 +1,197 @@
-use std::{ffi::OsStr, path::PathBuf, time::Duration};
+use crate::views::panels::tabs::editor::{EditorLineUI, EditorTab};
 
-use crate::hooks::*;
-use crate::lsp::{LspAction, LspActionData};
-use crate::state::{EditorAction, EditorActionData, TabProps};
-use crate::views::panels::tabs::editor::AppStateEditorUtils;
-use crate::views::panels::tabs::editor::BuilderArgs;
-use crate::views::panels::tabs::editor::EditorLine;
-use crate::{components::*, state::Channel};
-
-use dioxus_radio::hooks::RadioReducer;
-use dioxus_radio::prelude::use_radio;
-use freya::events::KeyboardEvent;
 use freya::prelude::*;
-use lsp_types::Position;
+use freya::text_edit::EditableEvent;
 
-use skia_safe::textlayout::Paragraph;
+#[derive(PartialEq, Clone)]
+pub struct EditorUi {
+    pub editor: Writable<EditorTab>,
+    pub font_size: f32,
+    pub line_height: f32,
+}
+impl Component for EditorUi {
+    fn render(&self) -> impl IntoElement {
+        let EditorUi {
+            editor,
+            font_size,
+            line_height,
+        } = self.clone();
+        let editor_tab = editor.read();
 
-#[allow(non_snake_case)]
-pub fn EditorUi(TabProps { tab_id }: TabProps) -> Element {
-    // Subscribe to the changes of this Tab.
-    let mut radio_app_state = use_radio(Channel::follow_tab(tab_id));
+        let editor_data = &editor_tab.editor;
 
-    let app_state = radio_app_state.read();
-    let editor_tab = app_state.editor_tab(tab_id);
-    let editor = &editor_tab.editor;
-    let paths = editor.editor_type().paths();
-    let rope = editor.rope().clone();
+        let focus = Focus::new_for_id(editor_tab.focus_id);
 
-    let mut focus = use_focus_for_id(editor_tab.focus_id);
+        let mut pressing_shift = use_state(|| false);
+        let mut pressing_alt = use_state(|| false);
 
-    // Initialize the editable text
-    let editable = use_edit(radio_app_state, tab_id, editor_tab.editor.text_id);
+        let scroll_controller = use_hook(|| {
+            let notifier = State::create(());
+            let requests = State::create(vec![]);
+            ScrollController::managed(
+                notifier,
+                requests,
+                State::create(Callback::new({
+                    let mut editor = editor.clone();
+                    move |ev| {
+                        editor.write_if(|mut editor| {
+                            let editor = &mut editor.editor;
 
-    let mut pressing_shift = use_signal(|| false);
-    let mut pressing_alt = use_signal(|| false);
+                            let current = editor.scrolls;
+                            match ev {
+                                ScrollEvent::X(x) => {
+                                    editor.scrolls.0 = x;
+                                }
+                                ScrollEvent::Y(y) => {
+                                    editor.scrolls.1 = y;
+                                }
+                            }
+                            current != editor.scrolls
+                        })
+                    }
+                })),
+                State::create(Callback::new({
+                    let editor = editor.clone();
+                    move |_| {
+                        let editor_editor = editor.read();
+                        let editor = &editor_editor.editor;
+                        editor.scrolls
+                    }
+                })),
+            )
+        });
 
-    // Send hover notifications to the LSP only every 300ms and when hovering
-    let debouncer = use_debounce(
-        Duration::from_millis(300),
-        move |(coords, line_index, paragraph): (CursorPoint, u32, Paragraph)| {
-            let app_state = radio_app_state.read();
-            if let Some(lsp) = app_state.editor_tab_lsp(tab_id) {
-                let glyph =
-                    paragraph.get_glyph_position_at_coordinate((coords.x as i32, coords.y as i32));
-                lsp.send(LspAction {
-                    tab_id,
-                    action: LspActionData::Hover {
-                        position: Position::new(line_index, glyph.position as u32),
-                    },
+        let line_height = (font_size * line_height).floor();
+        let lines_len = editor_data.metrics.syntax_blocks.len();
+
+        let on_mouse_down = move |_| {
+            focus.request_focus();
+        };
+
+        let on_key_up = {
+            let mut editor = editor.clone();
+            move |e: Event<KeyboardEventData>| {
+                match &e.key {
+                    Key::Named(NamedKey::Shift) => {
+                        pressing_shift.set(false);
+                    }
+                    Key::Named(NamedKey::Alt) => {
+                        pressing_alt.set(false);
+                    }
+                    _ => {}
+                };
+
+                editor.write_if(|mut editor_editor| {
+                    editor_editor
+                        .editor
+                        .process(EditableEvent::KeyUp { key: &e.key })
                 });
             }
-        },
-    );
-
-    let line_height = app_state.line_height();
-    let font_size = app_state.font_size();
-
-    let line_height = (font_size * line_height).floor();
-    let lines_len = editor.metrics.syntax_blocks.len();
-
-    let onscroll = move |(axis, scroll): (Axis, i32)| {
-        radio_app_state.apply(EditorAction {
-            tab_id,
-            data: EditorActionData::Scroll { axis, scroll },
-        });
-    };
-
-    let onclick = move |e: MouseEvent| {
-        e.stop_propagation();
-        focus.request_focus();
-        radio_app_state.apply(EditorAction {
-            tab_id,
-            data: EditorActionData::Click,
-        });
-    };
-
-    let onkeyup = move |e: KeyboardEvent| {
-        match &e.key {
-            Key::Shift => {
-                pressing_shift.set(false);
-            }
-            Key::Alt => {
-                pressing_alt.set(false);
-            }
-            _ => {}
         };
 
-        radio_app_state.apply(EditorAction {
-            tab_id,
-            data: EditorActionData::KeyUp { data: e.data },
-        });
-    };
+        let on_key_down = {
+            let mut editor = editor.clone();
+            move |e: Event<KeyboardEventData>| {
+                e.stop_propagation();
 
-    let onkeydown = move |e: KeyboardEvent| {
-        e.stop_propagation();
-
-        match &e.key {
-            Key::Shift => {
-                pressing_shift.set(true);
-            }
-            Key::Alt => {
-                pressing_alt.set(true);
-            }
-            _ => {}
-        };
-
-        let channel = radio_app_state.apply(EditorAction {
-            tab_id,
-            data: EditorActionData::KeyDown {
-                data: e.data.clone(),
-                line_height,
-                lines_len,
-            },
-        });
-
-        // If a change was applied the default behavior will be prevented
-        if channel.is_current() || channel.is_select().is_some() {
-            e.prevent_default();
-        }
-    };
-
-    rsx!(
-        rect {
-            width: "100%",
-            height: "100%",
-            background: "rgb(29, 32, 33)",
-            if let Some((path, root_path)) = paths {
-                FilePath {
-                    path: path.clone(),
-                    root_path: root_path.clone(),
-                }
-            }
-            rect {
-                a11y_id: focus.attribute(),
-                onkeydown,
-                onkeyup,
-                onclick,
-                EditorScrollView {
-                    offset_x: editor.scrolls.0,
-                    offset_y: editor.scrolls.1,
-                    onscroll,
-                    length: lines_len,
-                    item_size: line_height,
-                    builder_args: BuilderArgs {
-                        tab_id,
-                        font_size,
-                        line_height,
-                    },
-                    pressing_alt,
-                    pressing_shift,
-                    builder: move |i: usize, builder_args: &BuilderArgs| rsx!(
-                        EditorLine {
-                            key: "{i}",
-                            line_index: i,
-                            builder_args: builder_args.clone(),
-                            editable,
-                            debouncer,
-                            rope: rope.clone()
-                        }
-                    )
-                }
-            }
-        }
-    )
-}
-
-#[allow(non_snake_case)]
-#[component]
-fn FilePath(path: PathBuf, root_path: PathBuf) -> Element {
-    let relative_path = if path == root_path {
-        path
-    } else {
-        path.strip_prefix(&root_path).unwrap().to_path_buf()
-    };
-
-    let mut components = relative_path.components().enumerate().peekable();
-
-    let mut children = Vec::new();
-
-    while let Some((i, component)) = components.next() {
-        let is_last = components.peek().is_none();
-        let text: &OsStr = component.as_ref();
-
-        children.push(rsx!(
-            rect {
-                key: "{i}",
-                direction: "horizontal",
-                label {
-                    "{text.to_str().unwrap()}"
-                }
-                if !is_last {
-                    label {
-                        margin: "0 6",
-                        ">"
+                match &e.key {
+                    Key::Named(NamedKey::Shift) => {
+                        pressing_shift.set(true);
                     }
-                }
-            }
-        ))
-    }
+                    Key::Named(NamedKey::Alt) => {
+                        pressing_alt.set(true);
+                    }
+                    _ => {}
+                };
 
-    rsx!(
-        rect {
-            width: "100%",
-            direction: "horizontal",
-            color: "rgb(215, 215, 215)",
-            padding: "0 10",
-            height: "28",
-            cross_align: "center",
-            {children.into_iter()}
-        }
-    )
+                const LINES_JUMP_ALT: usize = 5;
+                const LINES_JUMP_CONTROL: usize = 3;
+
+                editor.write_if(|mut editor| {
+                    let lines_jump = (line_height * LINES_JUMP_ALT as f32).ceil() as i32;
+                    let min_height = -(lines_len as f32 * line_height) as i32;
+                    let max_height = 0; // TODO, this should be the height of the viewport
+                    let current_scroll = editor.editor.scrolls.1;
+
+                    let events = match &e.key {
+                        Key::Named(NamedKey::ArrowUp) if e.modifiers.contains(Modifiers::ALT) => {
+                            let jump = (current_scroll + lines_jump).clamp(min_height, max_height);
+                            editor.editor.scrolls.1 = jump;
+                            (0..LINES_JUMP_ALT)
+                                .map(|_| EditableEvent::KeyDown {
+                                    key: &e.key,
+                                    modifiers: e.modifiers,
+                                })
+                                .collect::<Vec<EditableEvent>>()
+                        }
+                        Key::Named(NamedKey::ArrowDown) if e.modifiers.contains(Modifiers::ALT) => {
+                            let jump = (current_scroll - lines_jump).clamp(min_height, max_height);
+                            editor.editor.scrolls.1 = jump;
+                            (0..LINES_JUMP_ALT)
+                                .map(|_| EditableEvent::KeyDown {
+                                    key: &e.key,
+                                    modifiers: e.modifiers,
+                                })
+                                .collect::<Vec<EditableEvent>>()
+                        }
+                        Key::Named(NamedKey::ArrowDown) | Key::Named(NamedKey::ArrowUp)
+                            if e.modifiers.contains(Modifiers::CONTROL) =>
+                        {
+                            (0..LINES_JUMP_CONTROL)
+                                .map(|_| EditableEvent::KeyDown {
+                                    key: &e.key,
+                                    modifiers: e.modifiers,
+                                })
+                                .collect::<Vec<EditableEvent>>()
+                        }
+                        _ if e.code == Code::Escape
+                            || e.modifiers.contains(Modifiers::ALT)
+                            || (e.modifiers.contains(Modifiers::CONTROL)
+                                && e.code == Code::KeyS) =>
+                        {
+                            Vec::new()
+                        }
+                        _ => {
+                            vec![EditableEvent::KeyDown {
+                                key: &e.key,
+                                modifiers: e.modifiers,
+                            }]
+                        }
+                    };
+
+                    let mut changed = false;
+
+                    for event in events {
+                        changed |= editor.editor.process(event);
+                    }
+
+                    changed
+                });
+            }
+        };
+
+        rect().expanded().background((29, 32, 33)).child(
+            rect()
+                .a11y_auto_focus(true)
+                .a11y_focusable(true)
+                .a11y_id(focus.a11y_id())
+                .on_key_down(on_key_down)
+                .on_key_up(on_key_up)
+                .on_mouse_down(on_mouse_down)
+                .child(
+                    VirtualScrollView::new(move |line_index, _| {
+                        EditorLineUI {
+                            editor: editor.clone(),
+                            font_size: font_size,
+                            line_height: line_height,
+                            line_index,
+                        }
+                        .into()
+                    })
+                    .scroll_controller(scroll_controller)
+                    .length(lines_len as i32)
+                    .item_size(line_height),
+                ),
+        )
+    }
 }

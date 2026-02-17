@@ -1,8 +1,9 @@
-use freya::events::KeyboardData;
+use freya::prelude::KeyboardEventData;
 
 use super::{EditorCommands, RadioAppState};
 
-type KeyboardShortcutHandler = dyn Fn(&KeyboardData, &mut EditorCommands, RadioAppState) -> bool;
+type KeyboardShortcutHandler =
+    dyn Fn(&KeyboardEventData, &mut EditorCommands, RadioAppState) -> bool;
 
 #[derive(Default)]
 pub struct KeyboardShortcuts {
@@ -12,14 +13,14 @@ pub struct KeyboardShortcuts {
 impl KeyboardShortcuts {
     pub fn register(
         &mut self,
-        handler: impl Fn(&KeyboardData, &mut EditorCommands, RadioAppState) -> bool + 'static,
+        handler: impl Fn(&KeyboardEventData, &mut EditorCommands, RadioAppState) -> bool + 'static,
     ) {
         self.handlers.push(Box::new(handler))
     }
 
     pub fn run(
         &self,
-        data: &KeyboardData,
+        data: &KeyboardEventData,
         editor_commands: &mut EditorCommands,
         radio_app_state: RadioAppState,
     ) {

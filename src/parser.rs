@@ -1,5 +1,6 @@
 use std::{borrow::Cow, ops::Range};
 
+use freya::prelude::Color;
 use ropey::Rope;
 use rustc_hash::FxHashMap;
 use smallvec::SmallVec;
@@ -21,18 +22,18 @@ pub enum SyntaxType {
 }
 
 impl SyntaxType {
-    pub fn color(&self) -> &str {
+    pub fn color(&self) -> Color {
         match self {
-            SyntaxType::Keyword => "rgb(251, 60, 44)",
-            SyntaxType::String => "rgb(151, 151, 26)",
-            SyntaxType::Punctuation => "rgb(104, 157, 96)",
-            SyntaxType::Punctuation2 => "rgb(252, 188, 61)",
-            SyntaxType::Unknown => "rgb(223, 191, 142)",
-            SyntaxType::Property => "rgb(152, 192, 124)",
-            SyntaxType::Module => "rgb(250, 189, 40)",
-            SyntaxType::SpecialKeyword => "rgb(211, 134, 155)",
-            SyntaxType::Comment => "gray",
-            SyntaxType::SpaceMark => "rgb(223, 191, 142, 0.2)",
+            SyntaxType::Keyword => (251, 60, 44).into(),
+            SyntaxType::String => (151, 151, 26).into(),
+            SyntaxType::Punctuation => (104, 157, 96).into(),
+            SyntaxType::Punctuation2 => (252, 188, 61).into(),
+            SyntaxType::Unknown => (223, 191, 142).into(),
+            SyntaxType::Property => (152, 192, 124).into(),
+            SyntaxType::Module => (250, 189, 40).into(),
+            SyntaxType::SpecialKeyword => (211, 134, 155).into(),
+            SyntaxType::Comment => Color::GRAY,
+            SyntaxType::SpaceMark => Color::from_af32rgb(0.2, 223, 191, 142),
         }
     }
 }
@@ -284,19 +285,20 @@ pub fn parse(rope: &Rope, syntax_blocks: &mut SyntaxBlocks) {
         // Unknown (for now at least) characters
         else {
             // Start tracking a comment (both one line and multine)
-            if tracking_comment == CommentTracking::None && (ch == '*' || ch == '/') {
-                if let Some(us) = generic_stack.as_mut() {
-                    let generic_stack_text: Cow<str> = rope.slice(us.clone()).into();
-                    if generic_stack_text == "/" {
-                        comment_stack = generic_stack.take();
+            if tracking_comment == CommentTracking::None
+                && (ch == '*' || ch == '/')
+                && let Some(us) = generic_stack.as_mut()
+            {
+                let generic_stack_text: Cow<str> = rope.slice(us.clone()).into();
+                if generic_stack_text == "/" {
+                    comment_stack = generic_stack.take();
 
-                        push_to_stack(&mut comment_stack, i);
+                    push_to_stack(&mut comment_stack, i);
 
-                        if ch == '*' {
-                            tracking_comment = CommentTracking::MultiLine
-                        } else if ch == '/' {
-                            tracking_comment = CommentTracking::OneLine
-                        }
+                    if ch == '*' {
+                        tracking_comment = CommentTracking::MultiLine
+                    } else if ch == '/' {
+                        tracking_comment = CommentTracking::OneLine
                     }
                 }
             }

@@ -21,14 +21,14 @@ pub trait PanelTab {
 
     fn get_data(&self) -> PanelTabData;
 
-    fn render(&self) -> fn(TabProps) -> Element;
+    fn render(&self) -> fn(&TabProps) -> Element;
 
     fn as_any(&self) -> &dyn Any;
 
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
-#[derive(Props, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct TabProps {
     pub tab_id: TabId,
 }

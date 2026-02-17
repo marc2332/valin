@@ -47,7 +47,7 @@ pub fn Search() -> Element {
         results
     });
 
-    let onsubmit = move |_: String| {
+    let on_submit = move |_: String| {
         println!("{value}");
     };
 
@@ -69,7 +69,7 @@ pub fn Search() -> Element {
                 placeholder: "Search...",
                 value: "{value}",
                 onchange,
-                onsubmit,
+                on_submit,
             }
         }
     )

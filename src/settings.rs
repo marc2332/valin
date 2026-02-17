@@ -4,7 +4,6 @@ use std::{
 };
 
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
-use tokio::sync::mpsc::channel;
 use tracing::info;
 
 use crate::state::{AppSettings, Channel, RadioAppState};
@@ -35,16 +34,16 @@ pub fn load_settings() -> Option<AppSettings> {
 }
 
 pub async fn watch_settings(mut radio_app_state: RadioAppState) -> Option<()> {
-    let (tx, mut rx) = channel::<()>(1);
+    let (tx, mut rx) = futures_channel::mpsc::unbounded::<()>();
 
     let settings_path = settings_path()?;
 
     let mut watcher = RecommendedWatcher::new(
         move |ev: notify::Result<Event>| {
-            if let Ok(ev) = ev {
-                if ev.kind.is_modify() {
-                    tx.blocking_send(()).unwrap();
-                }
+            if let Ok(ev) = ev
+                && ev.kind.is_modify()
+            {
+                let _ = tx.unbounded_send(());
             }
         },
         Config::default(),
@@ -55,7 +54,7 @@ pub async fn watch_settings(mut radio_app_state: RadioAppState) -> Option<()> {
         .watch(&settings_path, RecursiveMode::Recursive)
         .ok()?;
 
-    while rx.recv().await.is_some() {
+    while rx.recv().await.is_ok() {
         let settings = load_settings();
         if let Some(settings) = settings {
             let mut app_state = radio_app_state.write_channel(Channel::Settings);

@@ -1,194 +1,191 @@
-use crate::views::commander::commander_ui::Commander;
-use crate::views::file_explorer::file_explorer_ui::{
-    read_folder_as_items, ExplorerItem, FileExplorer, FolderState,
-};
-use crate::views::search::search_ui::Search;
 use crate::Args;
+use crate::components::{EditorPanel, StatusBar};
+use crate::settings::watch_settings;
+use crate::state::{EditorSidePanel, EditorView};
+use crate::views;
+use crate::views::commander::commander_ui::Commander;
+use crate::views::file_explorer::FileExplorer;
+use crate::views::file_explorer::file_explorer_ui::{
+    ExplorerItem, FolderState, read_folder_as_items,
+};
+use crate::views::panels::tabs::editor::EditorTab;
+use crate::views::panels::tabs::welcome::WelcomeTab;
 use crate::{
-    components::*,
     fs::{FSLocal, FSTransport},
     state::EditorCommands,
-    views::panels::tabs::welcome::WelcomeTab,
 };
 use crate::{global_defaults::GlobalDefaults, state::KeyboardShortcuts};
-use crate::{hooks::*, settings::watch_settings};
-use crate::{utils::*, views::panels::tabs::editor::EditorTab};
-use dioxus_clipboard::prelude::use_clipboard;
-use dioxus_radio::prelude::*;
 use freya::prelude::*;
+use freya::radio::*;
+use std::rc::Rc;
 use std::sync::Arc;
 use tracing::info;
 
 use crate::state::{AppState, Channel};
-use crate::state::{EditorSidePanel, EditorView};
 
-#[allow(non_snake_case)]
-pub fn App() -> Element {
-    // Initialize the Language Server Status reporters
-    let (lsp_statuses, lsp_sender) = use_lsp_status();
+#[derive(PartialEq)]
+pub struct AppView(pub Args);
+impl App for AppView {
+    fn render(&self) -> impl IntoElement {
+        use_init_theme(|| DARK_THEME);
+        use_provide_context(|| Rc::new(self.0.clone()));
 
-    // Initilize the clipboard context
-    let clipboard = use_clipboard();
+        // Initialize the State Manager
+        use_init_radio_station::<AppState, Channel>(move || {
+            let default_transport: FSTransport = Arc::new(Box::new(FSLocal));
 
-    // Initialize the State Manager
-    use_init_radio_station::<AppState, Channel>(move || {
-        let args = consume_context::<Arc<Args>>();
-        let default_transport: FSTransport = Arc::new(Box::new(FSLocal));
+            let mut app_state = AppState::new(default_transport);
 
-        let mut app_state = AppState::new(lsp_sender, default_transport, clipboard);
-
-        if args.paths.is_empty() {
-            // Default tab
-            WelcomeTab::open_with(&mut app_state);
-        }
-
-        app_state
-    });
-
-    // Subscribe to the State Manager
-    let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Global);
-
-    // Load specified files and folders asynchronously
-    use_hook(move || {
-        let args = consume_context::<Arc<Args>>();
-        spawn(async move {
-            for path in &args.paths {
-                // Files
-                if path.is_file() {
-                    let root_path = path.parent().unwrap_or(path).to_path_buf();
-                    let transport = radio_app_state.read().default_transport.clone();
-
-                    let mut app_state = radio_app_state.write();
-                    EditorTab::open_with(
-                        radio_app_state,
-                        &mut app_state,
-                        path.clone(),
-                        root_path,
-                        transport.as_read(),
-                    )
-                }
-                // Folders
-                else if path.is_dir() {
-                    let mut app_state = radio_app_state.write_channel(Channel::FileExplorer);
-                    let folder_path = app_state
-                        .default_transport
-                        .canonicalize(path)
-                        .await
-                        .unwrap();
-
-                    let items =
-                        read_folder_as_items(&folder_path, &app_state.default_transport).await;
-                    if let Ok(items) = items {
-                        app_state.file_explorer.open_folder(ExplorerItem::Folder {
-                            path: folder_path,
-                            state: FolderState::Opened(items),
-                        });
-                    }
-                }
+            if self.0.paths.is_empty() {
+                // Default tab
+                WelcomeTab::open_with(&mut app_state);
             }
+
+            app_state
         });
-    });
 
-    use_hook(|| {
-        spawn(async move {
-            let res = watch_settings(radio_app_state).await;
-            if res.is_none() {
-                info!("Failed to watch the settings in background.");
-            }
-        })
-    });
+        // Subscribe to the State Manager
+        let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Global);
 
-    // Initialize the Commands
-    let mut editor_commands = use_hook(|| Signal::new(EditorCommands::default()));
+        // Load specified files and folders asynchronously
+        use_hook(move || {
+            let args = self.0.clone();
+            // let args = consume_context::<Arc<Args>>();
+            // spawn(async move {
+            //     for path in &args.paths {
+            spawn(async move {
+                for path in args.paths {
+                    // Files
+                    if path.is_file() {
+                        let root_path = path.parent().unwrap_or(&path).to_path_buf();
+                        let transport = radio_app_state.read().default_transport.clone();
 
-    // Initialize the Shorcuts
-    let mut keyboard_shorcuts = use_hook(|| Signal::new(KeyboardShortcuts::default()));
-
-    // Register Commands and Shortcuts
-    #[allow(clippy::explicit_auto_deref)]
-    use_hook(|| {
-        GlobalDefaults::init(
-            &mut *keyboard_shorcuts.write(),
-            &mut *editor_commands.write(),
-            radio_app_state,
-        );
-        EditorTab::init(
-            &mut *keyboard_shorcuts.write(),
-            &mut *editor_commands.write(),
-            radio_app_state,
-        );
-    });
-
-    // Trigger Shortcuts
-    let onglobalkeydown = move |e: KeyboardEvent| {
-        keyboard_shorcuts
-            .write()
-            .run(&e.data, &mut editor_commands.write(), radio_app_state);
-    };
-
-    let focused_view = radio_app_state.read().focused_view;
-
-    rsx!(
-        rect {
-            font_size: "14",
-            color: "white",
-            background: "rgb(17, 20, 21)",
-            width: "100%",
-            height: "100%",
-            onglobalkeydown,
-            if focused_view == EditorView::Commander {
-                Commander {
-                    editor_commands
-                }
-            } else if focused_view == EditorView::Search {
-                Search { }
-            }
-            rect {
-                height: "calc(100% - 35)",
-                ResizableContainer {
-                    direction: "horizontal",
-                    if let Some(side_panel) = radio_app_state.read().side_panel {
-                        ResizablePanel {
-                            order: 0,
-                            initial_size: 20.,
-                            Sidepanel {
-                                match side_panel {
-                                    EditorSidePanel::FileExplorer => {
-                                        rsx!(
-                                            FileExplorer {  }
-                                        )
-                                    }
-                                }
-                            }
-                            Divider {}
-                        }
+                        let mut app_state = radio_app_state.write();
+                        views::panels::tabs::editor::EditorTab::open_with(
+                            radio_app_state,
+                            &mut app_state,
+                            path.clone(),
+                            root_path,
+                            transport.as_read(),
+                        )
                     }
-                    ResizablePanel {
-                        order: 1,
-                        initial_size: 85.,
-                        ResizableContainer {
-                            direction: "horizontal",
-                            {radio_app_state.read().panels().iter().enumerate().map(|(panel_index, _)| {
-                                rsx!(
-                                    ResizablePanel {
-                                        key: "{panel_index}",
-                                        order: panel_index,
-                                        initial_size: 20.,
-                                        EditorPanel {
-                                            panel_index,
-                                        }
-                                    }
-                                )
-                            })}
+                    // Folders
+                    else if path.is_dir() {
+                        let mut app_state = radio_app_state.write_channel(Channel::FileExplorer);
+                        let folder_path = app_state
+                            .default_transport
+                            .canonicalize(&path)
+                            .await
+                            .unwrap();
+
+                        let items =
+                            read_folder_as_items(&folder_path, &app_state.default_transport).await;
+                        if let Ok(items) = items {
+                            app_state.file_explorer.open_folder(ExplorerItem::Folder {
+                                path: folder_path.to_path_buf(),
+                                state: FolderState::Opened(items),
+                            });
                         }
                     }
                 }
+            });
+        });
+
+        use_hook(|| {
+            spawn(async move {
+                let res = watch_settings(radio_app_state).await;
+                if res.is_none() {
+                    info!("Failed to watch the settings in background.");
+                }
+            })
+        });
+
+        // Initialize the Commands
+        let mut editor_commands = use_hook(|| State::create(EditorCommands::default()));
+
+        // Initialize the Shorcuts
+        let mut keyboard_shorcuts = use_hook(|| State::create(KeyboardShortcuts::default()));
+
+        // Register Commands and Shortcuts
+        use_hook(|| {
+            GlobalDefaults::init(
+                &mut keyboard_shorcuts.write(),
+                &mut editor_commands.write(),
+                radio_app_state,
+            );
+            EditorTab::init(
+                &mut keyboard_shorcuts.write(),
+                &mut editor_commands.write(),
+                radio_app_state,
+            );
+        });
+
+        // Trigger Shortcuts
+        let on_global_key_down = move |e: Event<KeyboardEventData>| {
+            keyboard_shorcuts
+                .write()
+                .run(e.data(), &mut editor_commands.write(), radio_app_state);
+        };
+
+        let focused_view = radio_app_state.read().focused_view;
+        let side_panel = radio_app_state.read().side_panel;
+
+        // Build the editor panels container
+        let panels_container = {
+            let panels = radio_app_state.read();
+
+            let mut container = ResizableContainer::new().direction(Direction::Horizontal);
+            for (panel_index, _) in panels.panels().iter().enumerate() {
+                container = container.panel(
+                    ResizablePanel::new(50.)
+                        .key(&panel_index)
+                        .order(panel_index)
+                        .child(EditorPanel { panel_index }),
+                );
             }
-            VerticalDivider {}
-            StatusBar {
-                lsp_statuses,
-                focused_view
+            container
+        };
+
+        // Build the main horizontal layout with optional side panel
+        let main_container = {
+            let mut container = ResizableContainer::new().direction(Direction::Horizontal);
+
+            // Add side panel if visible
+            if let Some(panel) = side_panel {
+                container =
+                    container.panel(ResizablePanel::new(20.).order(0usize).min_size(10.).child(
+                        match panel {
+                            EditorSidePanel::FileExplorer => FileExplorer,
+                        },
+                    ));
             }
-        }
-    )
+
+            // Add the panels container
+            container = container.panel(
+                ResizablePanel::new(80.)
+                    .order(1usize)
+                    .child(panels_container),
+            );
+
+            container
+        };
+
+        rect()
+            .font_size(14.)
+            .color(Color::WHITE)
+            .background((17, 20, 21))
+            .expanded()
+            .on_global_key_down(on_global_key_down)
+            .maybe_child(if focused_view == EditorView::Commander {
+                Some(Commander { editor_commands })
+            } else {
+                None
+            })
+            .child(
+                rect()
+                    .height(Size::func(|ctx| Some(ctx.parent - 35.)))
+                    .child(main_container),
+            )
+            .child(StatusBar { focused_view })
+    }
 }

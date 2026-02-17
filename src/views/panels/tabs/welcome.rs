@@ -17,7 +17,7 @@ impl PanelTab for WelcomeTab {
             content_id: "welcome".to_string(),
         }
     }
-    fn render(&self) -> fn(TabProps) -> Element {
+    fn render(&self) -> fn(&TabProps) -> Element {
         render
     }
 
@@ -34,7 +34,7 @@ impl WelcomeTab {
     pub fn new() -> Self {
         Self {
             id: TabId::new(),
-            focus_id: UseFocus::new_id(),
+            focus_id: Focus::new_id(),
         }
     }
 
@@ -43,27 +43,43 @@ impl WelcomeTab {
     }
 }
 
-pub fn render(_: TabProps) -> Element {
-    rsx!(
-        rect {
-            height: "100%",
-            width: "100%",
-            background: "rgb(29, 32, 33)",
-            padding: "20",
-            Link {
-                to: "https://github.com/marc2332/freya",
-                tooltip: LinkTooltip::None,
-                label {
-                    "freya source code"
-                }
-            }
-            Link {
-                to: "https://github.com/marc2332/valin",
-                tooltip: LinkTooltip::None,
-                label {
-                    "Valin source code"
-                }
-            }
-        }
-    )
+pub fn render(_: &TabProps) -> Element {
+    rect()
+        .padding((32., 8.))
+        .expanded()
+        .cross_align(Alignment::center())
+        .child(
+            MarkdownViewer::new(
+                "
+**Valin** ⚒️ is a **Work-In-Progress** cross-platform code editor, made with Freya 🦀 and Rust.
+
+> **Valin** name is derived from Dvalinn and it was previously known as `freya-editor`.
+
+",
+            )
+            .width(Size::percent(70.)),
+        )
+        .into()
+    // rsx!(
+    //     rect {
+    //         height: "100%",
+    //         width: "100%",
+    //         background: "rgb(29, 32, 33)",
+    //         padding: "20",
+    //         Link {
+    //             to: "https://github.com/marc2332/freya",
+    //             tooltip: LinkTooltip::None,
+    //             label {
+    //                 "freya source code"
+    //             }
+    //         }
+    //         Link {
+    //             to: "https://github.com/marc2332/valin",
+    //             tooltip: LinkTooltip::None,
+    //             label {
+    //                 "Valin source code"
+    //             }
+    //         }
+    //     }
+    // )
 }

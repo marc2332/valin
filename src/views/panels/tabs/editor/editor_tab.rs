@@ -1,28 +1,23 @@
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
 use crate::{
     fs::FSReadTransportInterface,
-    lsp::{LSPClient, LspAction, LspActionData, LspConfig},
     state::{
         AppSettings, AppState, Channel, EditorCommands, KeyboardShortcuts, PanelTab, PanelTabData,
         RadioAppState, TabId, TabProps,
     },
-    views::panels::tabs::editor::TabEditorUtils,
-    Args,
+    views::panels::tabs::editor::{
+        AppStateEditorUtils, EditorData, EditorType, SharedRope, TabEditorUtils,
+        commands::{DecreaseFontSizeCommand, IncreaseFontSizeCommand, SaveFileCommand},
+        editor_ui::EditorUi,
+    },
 };
 
-use freya::prelude::keyboard::Modifiers;
 use freya::prelude::*;
 
+use freya::radio::use_radio;
 use skia_safe::textlayout::FontCollection;
 use tracing::info;
-
-use super::{
-    commands::{DecreaseFontSizeCommand, IncreaseFontSizeCommand, SaveFileCommand},
-    editor_data::{EditorData, EditorType},
-    editor_ui::EditorUi,
-    SharedRope,
-};
 
 /// A tab with an embedded Editor.
 pub struct EditorTab {
@@ -32,28 +27,6 @@ pub struct EditorTab {
 }
 
 impl PanelTab for EditorTab {
-    fn on_close(&mut self, app_state: &mut AppState) {
-        // Notify the language server that a document was closed
-        let language_id = self.editor.editor_type.language_id();
-        let language_server_id = language_id.language_server();
-
-        // Only if it ever hard LSP support
-        if let Some(language_server_id) = language_server_id {
-            let lsp = app_state.language_servers.get_mut(language_server_id);
-
-            // And there was an actual language server running
-            if let Some(lsp) = lsp {
-                let file_uri = self.editor.uri();
-                if let Some(file_uri) = file_uri {
-                    lsp.send(LspAction {
-                        tab_id: self.id,
-                        action: LspActionData::CloseFile { file_uri },
-                    });
-                }
-            }
-        }
-    }
-
     fn on_settings_changed(
         &mut self,
         app_settings: &AppSettings,
@@ -77,8 +50,18 @@ impl PanelTab for EditorTab {
                 .unwrap_or_else(|| self.id.to_string()),
         }
     }
-    fn render(&self) -> fn(TabProps) -> Element {
-        EditorUi
+    fn render(&self) -> fn(&TabProps) -> Element {
+        |props| {
+            let tab_id = props.tab_id;
+            let radio_app_state = use_radio(Channel::follow_tab(tab_id));
+            let slice = radio_app_state.slice_mut_current(move |s| s.editor_tab_mut(tab_id));
+            EditorUi {
+                editor: slice.into_writable(),
+                font_size: radio_app_state.read().font_size(),
+                line_height: radio_app_state.read().line_height(),
+            }
+            .into()
+        }
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -95,7 +78,7 @@ impl EditorTab {
         Self {
             editor,
             id,
-            focus_id: UseFocus::new_id(),
+            focus_id: Focus::new_id(),
         }
     }
 
@@ -116,8 +99,6 @@ impl EditorTab {
                 root_path: root_path.clone(),
             },
             rope.clone(),
-            0,
-            app_state.clipboard,
             app_state.default_transport.clone(),
         );
 
@@ -130,7 +111,7 @@ impl EditorTab {
 
         // Load file content asynchronously
         spawn_forever({
-            to_owned![path];
+            let path = path.clone();
             async move {
                 let content = read_transport.read_to_string(&path).await;
                 if let Ok(content) = content {
@@ -151,37 +132,6 @@ impl EditorTab {
                 }
             }
         });
-
-        let args = consume_context::<Arc<Args>>();
-
-        let lsp_config = args
-            .lsp
-            .then(|| {
-                LspConfig::new(EditorType::FS {
-                    path,
-                    root_path: root_path.clone(),
-                })
-            })
-            .flatten();
-
-        if let Some(lsp_config) = lsp_config {
-            let (lsp, needs_initialization) = LSPClient::open_with(radio, app_state, &lsp_config);
-
-            // Registry the LSP client
-            if needs_initialization {
-                app_state.insert_lsp_client(lsp_config.language_server, lsp.clone());
-                lsp.send(LspAction {
-                    tab_id,
-                    action: LspActionData::Initialize(root_path),
-                });
-            }
-
-            // Open File in LSP Client
-            lsp.send(LspAction {
-                tab_id,
-                action: LspActionData::OpenFile,
-            });
-        }
     }
 
     /// Initialize the EditorTab module.
@@ -197,7 +147,7 @@ impl EditorTab {
 
         // Register Shortcuts
         keyboard_shorcuts.register(
-            |data: &KeyboardData,
+            |data: &KeyboardEventData,
              commands: &mut EditorCommands,
              _radio_app_state: RadioAppState| {
                 let is_pressing_alt = data.modifiers == Modifiers::ALT;
