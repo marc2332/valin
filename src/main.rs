@@ -11,9 +11,9 @@ mod global_defaults;
 mod hooks;
 mod languages;
 mod metrics;
-mod parser;
 mod settings;
 mod state;
+mod syntax;
 mod views;
 
 use std::path::PathBuf;

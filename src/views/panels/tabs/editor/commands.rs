@@ -107,7 +107,7 @@ impl EditorCommand for SaveFileCommand {
                     let _ = writer.write_all(&bytes).await;
                     let mut app_state = radio.write_channel(Channel::follow_tab(active_tab));
                     let editor_tab = app_state.editor_tab_mut(active_tab);
-                    editor_tab.editor.mark_as_saved()
+                    editor_tab.editor.data.mark_as_saved()
                 });
             }
         }

@@ -7,12 +7,18 @@ use crate::{
 };
 
 pub trait AppStateEditorUtils {
+    fn editor_tab(&self, tab_id: TabId) -> &EditorTab;
+
     fn editor_tab_mut(&mut self, tab_id: TabId) -> &mut EditorTab;
 
     fn editor_tab_data(&self, tab_id: TabId) -> Option<(Option<PathBuf>, SharedRope, FSTransport)>;
 }
 
 impl AppStateEditorUtils for AppState {
+    fn editor_tab(&self, tab_id: TabId) -> &EditorTab {
+        self.tabs.get(&tab_id).unwrap().as_text_editor().unwrap()
+    }
+
     fn editor_tab_mut(&mut self, tab_id: TabId) -> &mut EditorTab {
         self.tabs
             .get_mut(&tab_id)
@@ -24,8 +30,8 @@ impl AppStateEditorUtils for AppState {
     fn editor_tab_data(&self, tab_id: TabId) -> Option<(Option<PathBuf>, SharedRope, FSTransport)> {
         let tab = self.tabs.get(&tab_id)?.as_text_editor()?;
         Some((
-            tab.editor.path().cloned(),
-            tab.editor.rope.clone(),
+            tab.editor.data.path().cloned(),
+            tab.editor.data.rope.clone(),
             tab.editor.transport.clone(),
         ))
     }

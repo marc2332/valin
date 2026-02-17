@@ -34,10 +34,10 @@ impl Component for StatusBar {
                 .map(|editor_tab| {
                     (
                         (
-                            editor_tab.editor.cursor_row(),
-                            editor_tab.editor.cursor_col(),
+                            editor_tab.editor.data.cursor_row(),
+                            editor_tab.editor.data.cursor_col(),
                         ),
-                        editor_tab.editor.editor_type(),
+                        editor_tab.editor.data.editor_type(),
                     )
                 })
         } else {

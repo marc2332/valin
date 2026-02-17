@@ -12,8 +12,9 @@ use std::{
 use freya::{elements::paragraph::ParagraphHolderInner, prelude::*, text_edit::*};
 use ropey::Rope;
 use skia_safe::textlayout::FontCollection;
+use tree_sitter::InputEdit;
 
-use crate::{fs::FSTransport, languages::LanguageId, metrics::EditorMetrics};
+use crate::{fs::FSTransport, languages::LanguageId, metrics::EditorMetrics, syntax::InputEditExt};
 
 pub type SharedRope = Rc<RefCell<Rope>>;
 
@@ -61,30 +62,35 @@ impl EditorType {
     }
 }
 
+pub struct TabEditorData {
+    pub(crate) data: EditorData,
+    pub(crate) transport: FSTransport,
+}
+
 pub struct EditorData {
     pub(crate) editor_type: EditorType,
     pub(crate) history: EditorHistory,
     pub(crate) rope: SharedRope,
     pub(crate) selection: TextSelection,
     pub(crate) last_saved_history_change: usize,
-    pub(crate) transport: FSTransport,
     pub(crate) metrics: EditorMetrics,
     pub(crate) dragging: TextDragging,
     pub(crate) scrolls: (i32, i32),
+    pending_edit: Option<InputEdit>,
 }
 
 impl EditorData {
-    pub fn new(editor_type: EditorType, rope: SharedRope, transport: FSTransport) -> Self {
+    pub fn new(editor_type: EditorType, rope: SharedRope) -> Self {
         Self {
             editor_type,
             rope,
             selection: TextSelection::new_cursor(0),
             history: EditorHistory::new(Duration::from_secs(1)),
             last_saved_history_change: 0,
-            transport,
             metrics: EditorMetrics::new(),
             dragging: TextDragging::default(),
             scrolls: (0, 0),
+            pending_edit: None,
         }
     }
 
@@ -101,7 +107,10 @@ impl EditorData {
     }
 
     pub fn run_parser(&mut self) {
-        self.metrics.run_parser(&self.rope.borrow());
+        let language_id = self.editor_type.language_id();
+        let edit = self.pending_edit.take();
+        self.metrics
+            .run_parser(&self.rope.borrow(), language_id, edit);
     }
 
     pub fn measure_longest_line(&mut self, font_size: f32, font_collection: &FontCollection) {
@@ -253,11 +262,34 @@ impl TextEditor for EditorData {
         let idx_utf8 = self.utf16_cu_to_char(idx);
         let selection = self.selection.clone();
 
-        let len_before_insert = self.len_utf16_cu();
-        self.rope.borrow_mut().insert_char(idx_utf8, ch);
-        let len_after_insert = self.len_utf16_cu();
+        // Capture byte offset and position before mutation for InputEdit.
+        let mut rope = self.rope.borrow_mut();
+        let start_byte = rope.char_to_byte(idx_utf8);
+        let start_line = rope.char_to_line(idx_utf8);
+        let start_line_byte = rope.line_to_byte(start_line);
+        let start_col = start_byte - start_line_byte;
+
+        let len_before_insert = rope.len_utf16_cu();
+        rope.insert_char(idx_utf8, ch);
+        let len_after_insert = rope.len_utf16_cu();
 
         let inserted_text_len = len_after_insert - len_before_insert;
+
+        // Compute new end position after insertion.
+        let new_end_char = idx_utf8 + 1; // one char inserted
+        let new_end_byte = rope.char_to_byte(new_end_char);
+        let new_end_line = rope.char_to_line(new_end_char);
+        let new_end_line_byte = rope.line_to_byte(new_end_line);
+        let new_end_col = new_end_byte - new_end_line_byte;
+
+        self.pending_edit = Some(InputEdit::new(
+            start_byte,
+            start_byte,
+            new_end_byte,
+            (start_line, start_col),
+            (start_line, start_col),
+            (new_end_line, new_end_col),
+        ));
 
         self.history.push_change(HistoryChange::InsertChar {
             idx,
@@ -273,11 +305,35 @@ impl TextEditor for EditorData {
         let idx_utf8 = self.utf16_cu_to_char(idx);
         let selection = self.selection.clone();
 
-        let len_before_insert = self.len_utf16_cu();
-        self.rope.borrow_mut().insert(idx_utf8, text);
-        let len_after_insert = self.len_utf16_cu();
+        // Capture byte offset and position before mutation for InputEdit.
+        let mut rope = self.rope.borrow_mut();
+        let start_byte = rope.char_to_byte(idx_utf8);
+        let start_line = rope.char_to_line(idx_utf8);
+        let start_line_byte = rope.line_to_byte(start_line);
+        let start_col = start_byte - start_line_byte;
+
+        let len_before_insert = rope.len_utf16_cu();
+        rope.insert(idx_utf8, text);
+        let len_after_insert = rope.len_utf16_cu();
 
         let inserted_text_len = len_after_insert - len_before_insert;
+
+        // Compute new end position after insertion.
+        let inserted_chars = text.chars().count();
+        let new_end_char = idx_utf8 + inserted_chars;
+        let new_end_byte = rope.char_to_byte(new_end_char);
+        let new_end_line = rope.char_to_line(new_end_char);
+        let new_end_line_byte = rope.line_to_byte(new_end_line);
+        let new_end_col = new_end_byte - new_end_line_byte;
+
+        self.pending_edit = Some(InputEdit::new(
+            start_byte,
+            start_byte,
+            new_end_byte,
+            (start_line, start_col),
+            (start_line, start_col),
+            (new_end_line, new_end_col),
+        ));
 
         self.history.push_change(HistoryChange::InsertText {
             idx,
@@ -295,11 +351,32 @@ impl TextEditor for EditorData {
         let text = self.rope.borrow().slice(range.clone()).to_string();
         let selection = self.selection.clone();
 
-        let len_before_remove = self.len_utf16_cu();
-        self.rope.borrow_mut().remove(range);
-        let len_after_remove = self.len_utf16_cu();
+        // Capture byte offsets and positions before mutation for InputEdit.
+        let mut rope = self.rope.borrow_mut();
+        let start_byte = rope.char_to_byte(range.start);
+        let old_end_byte = rope.char_to_byte(range.end);
+        let start_line = rope.char_to_line(range.start);
+        let start_line_byte = rope.line_to_byte(start_line);
+        let start_col = start_byte - start_line_byte;
+        let old_end_line = rope.char_to_line(range.end);
+        let old_end_line_byte = rope.line_to_byte(old_end_line);
+        let old_end_col = old_end_byte - old_end_line_byte;
+
+        let len_before_remove = rope.len_utf16_cu();
+        rope.remove(range);
+        let len_after_remove = rope.len_utf16_cu();
 
         let removed_text_len = len_before_remove - len_after_remove;
+
+        // After removal, new_end == start (the removed range collapses to a point).
+        self.pending_edit = Some(InputEdit::new(
+            start_byte,
+            old_end_byte,
+            start_byte,
+            (start_line, start_col),
+            (old_end_line, old_end_col),
+            (start_line, start_col),
+        ));
 
         self.history.push_change(HistoryChange::Remove {
             idx: range_utf16.end - removed_text_len,
@@ -457,10 +534,16 @@ impl TextEditor for EditorData {
     }
 
     fn undo(&mut self) -> Option<TextSelection> {
+        // Undo can make arbitrary changes — invalidate the tree for a full re-parse.
+        self.pending_edit = None;
+        self.metrics.highlighter.invalidate_tree();
         self.history.undo(&mut self.rope.borrow_mut())
     }
 
     fn redo(&mut self) -> Option<TextSelection> {
+        // Redo can make arbitrary changes — invalidate the tree for a full re-parse.
+        self.pending_edit = None;
+        self.metrics.highlighter.invalidate_tree();
         self.history.redo(&mut self.rope.borrow_mut())
     }
 

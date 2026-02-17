@@ -7,6 +7,8 @@ pub enum LanguageId {
     JavaScript,
     TypeScript,
     Markdown,
+    Toml,
+    Json,
     #[default]
     Unknown,
 }
@@ -19,6 +21,8 @@ impl Display for LanguageId {
             Self::JavaScript => f.write_str("JavaScript"),
             Self::TypeScript => f.write_str("TypeScript"),
             Self::Markdown => f.write_str("Markdown"),
+            Self::Toml => f.write_str("TOML"),
+            Self::Json => f.write_str("JSON"),
             Self::Unknown => f.write_str("Unknown"),
         }
     }
@@ -32,6 +36,8 @@ impl LanguageId {
             "js" => LanguageId::JavaScript,
             "ts" => LanguageId::TypeScript,
             "md" => LanguageId::Markdown,
+            "toml" => LanguageId::Toml,
+            "json" => LanguageId::Json,
             _ => LanguageId::Unknown,
         }
     }

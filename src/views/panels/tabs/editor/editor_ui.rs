@@ -1,13 +1,14 @@
-use crate::views::panels::tabs::editor::{EditorLineUI, EditorTab};
+use crate::views::panels::tabs::editor::{EditorData, EditorLineUI};
 
 use freya::prelude::*;
 use freya::text_edit::EditableEvent;
 
 #[derive(PartialEq, Clone)]
 pub struct EditorUi {
-    pub editor: Writable<EditorTab>,
+    pub editor: Writable<EditorData>,
     pub font_size: f32,
     pub line_height: f32,
+    pub a11y_id: AccessibilityId,
 }
 impl Component for EditorUi {
     fn render(&self) -> impl IntoElement {
@@ -15,12 +16,13 @@ impl Component for EditorUi {
             editor,
             font_size,
             line_height,
+            a11y_id,
         } = self.clone();
         let editor_tab = editor.read();
 
-        let editor_data = &editor_tab.editor;
+        let editor_data = &editor_tab;
 
-        let focus = Focus::new_for_id(editor_tab.focus_id);
+        let focus = Focus::new_for_id(a11y_id);
 
         let mut pressing_shift = use_state(|| false);
         let mut pressing_alt = use_state(|| false);
@@ -35,8 +37,6 @@ impl Component for EditorUi {
                     let mut editor = editor.clone();
                     move |ev| {
                         editor.write_if(|mut editor| {
-                            let editor = &mut editor.editor;
-
                             let current = editor.scrolls;
                             match ev {
                                 ScrollEvent::X(x) => {
@@ -53,8 +53,7 @@ impl Component for EditorUi {
                 State::create(Callback::new({
                     let editor = editor.clone();
                     move |_| {
-                        let editor_editor = editor.read();
-                        let editor = &editor_editor.editor;
+                        let editor = editor.read();
                         editor.scrolls
                     }
                 })),
@@ -81,11 +80,7 @@ impl Component for EditorUi {
                     _ => {}
                 };
 
-                editor.write_if(|mut editor_editor| {
-                    editor_editor
-                        .editor
-                        .process(EditableEvent::KeyUp { key: &e.key })
-                });
+                editor.write_if(|mut editor| editor.process(EditableEvent::KeyUp { key: &e.key }));
             }
         };
 
@@ -111,12 +106,12 @@ impl Component for EditorUi {
                     let lines_jump = (line_height * LINES_JUMP_ALT as f32).ceil() as i32;
                     let min_height = -(lines_len as f32 * line_height) as i32;
                     let max_height = 0; // TODO, this should be the height of the viewport
-                    let current_scroll = editor.editor.scrolls.1;
+                    let current_scroll = editor.scrolls.1;
 
                     let events = match &e.key {
                         Key::Named(NamedKey::ArrowUp) if e.modifiers.contains(Modifiers::ALT) => {
                             let jump = (current_scroll + lines_jump).clamp(min_height, max_height);
-                            editor.editor.scrolls.1 = jump;
+                            editor.scrolls.1 = jump;
                             (0..LINES_JUMP_ALT)
                                 .map(|_| EditableEvent::KeyDown {
                                     key: &e.key,
@@ -126,7 +121,7 @@ impl Component for EditorUi {
                         }
                         Key::Named(NamedKey::ArrowDown) if e.modifiers.contains(Modifiers::ALT) => {
                             let jump = (current_scroll - lines_jump).clamp(min_height, max_height);
-                            editor.editor.scrolls.1 = jump;
+                            editor.scrolls.1 = jump;
                             (0..LINES_JUMP_ALT)
                                 .map(|_| EditableEvent::KeyDown {
                                     key: &e.key,
@@ -162,7 +157,7 @@ impl Component for EditorUi {
                     let mut changed = false;
 
                     for event in events {
-                        changed |= editor.editor.process(event);
+                        changed |= editor.process(event);
                     }
 
                     changed

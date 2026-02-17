@@ -8,11 +8,15 @@ use skia_safe::textlayout::ParagraphBuilder;
 use skia_safe::textlayout::ParagraphStyle;
 use skia_safe::textlayout::TextStyle;
 
-use crate::parser::*;
+use tree_sitter::InputEdit;
+
+use crate::languages::LanguageId;
+use crate::syntax::*;
 
 pub struct EditorMetrics {
     pub(crate) syntax_blocks: SyntaxBlocks,
     pub(crate) longest_width: f32,
+    pub(crate) highlighter: SyntaxHighlighter,
 }
 
 impl EditorMetrics {
@@ -20,6 +24,7 @@ impl EditorMetrics {
         Self {
             syntax_blocks: SyntaxBlocks::default(),
             longest_width: 0.0,
+            highlighter: SyntaxHighlighter::new(),
         }
     }
 
@@ -64,7 +69,8 @@ impl EditorMetrics {
         self.longest_width = paragraph.longest_line();
     }
 
-    pub fn run_parser(&mut self, rope: &Rope) {
-        parse(rope, &mut self.syntax_blocks);
+    pub fn run_parser(&mut self, rope: &Rope, language_id: LanguageId, edit: Option<InputEdit>) {
+        self.highlighter.set_language(language_id);
+        self.highlighter.parse(rope, &mut self.syntax_blocks, edit);
     }
 }

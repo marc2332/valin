@@ -7,7 +7,7 @@ use crate::{
         RadioAppState, TabId, TabProps,
     },
     views::panels::tabs::editor::{
-        AppStateEditorUtils, EditorData, EditorType, SharedRope, TabEditorUtils,
+        AppStateEditorUtils, EditorData, EditorType, SharedRope, TabEditorData, TabEditorUtils,
         commands::{DecreaseFontSizeCommand, IncreaseFontSizeCommand, SaveFileCommand},
         editor_ui::EditorUi,
     },
@@ -21,7 +21,7 @@ use tracing::info;
 
 /// A tab with an embedded Editor.
 pub struct EditorTab {
-    pub editor: EditorData,
+    pub editor: TabEditorData,
     pub id: TabId,
     pub focus_id: AccessibilityId,
 }
@@ -33,18 +33,20 @@ impl PanelTab for EditorTab {
         font_collection: &FontCollection,
     ) {
         self.editor
+            .data
             .measure_longest_line(app_settings.editor.font_size, font_collection);
     }
 
     fn get_data(&self) -> PanelTabData {
-        let title = self.editor.editor_type.title();
+        let title = self.editor.data.editor_type.title();
         PanelTabData {
             id: self.id,
             title,
-            edited: self.editor.is_edited(),
+            edited: self.editor.data.is_edited(),
             focus_id: self.focus_id,
             content_id: self
                 .editor
+                .data
                 .editor_type
                 .content_id()
                 .unwrap_or_else(|| self.id.to_string()),
@@ -54,11 +56,14 @@ impl PanelTab for EditorTab {
         |props| {
             let tab_id = props.tab_id;
             let radio_app_state = use_radio(Channel::follow_tab(tab_id));
-            let slice = radio_app_state.slice_mut_current(move |s| s.editor_tab_mut(tab_id));
+            let focus_id = radio_app_state.slice_current(move |s| &s.editor_tab(tab_id).focus_id);
+            let editor = radio_app_state
+                .slice_mut_current(move |s| &mut s.editor_tab_mut(tab_id).editor.data);
             EditorUi {
-                editor: slice.into_writable(),
+                editor: editor.into_writable(),
                 font_size: radio_app_state.read().font_size(),
                 line_height: radio_app_state.read().line_height(),
+                a11y_id: *focus_id.read(),
             }
             .into()
         }
@@ -74,7 +79,7 @@ impl PanelTab for EditorTab {
 }
 
 impl EditorTab {
-    pub fn new(id: TabId, editor: EditorData) -> Self {
+    pub fn new(id: TabId, editor: TabEditorData) -> Self {
         Self {
             editor,
             id,
@@ -93,14 +98,16 @@ impl EditorTab {
         let rope = SharedRope::default();
         let tab_id = TabId::new();
 
-        let data = EditorData::new(
-            EditorType::FS {
-                path: path.clone(),
-                root_path: root_path.clone(),
-            },
-            rope.clone(),
-            app_state.default_transport.clone(),
-        );
+        let data = TabEditorData {
+            data: EditorData::new(
+                EditorType::FS {
+                    path: path.clone(),
+                    root_path: root_path.clone(),
+                },
+                rope.clone(),
+            ),
+            transport: app_state.default_transport.clone(),
+        };
 
         let tab = Self::new(tab_id, data);
 
@@ -123,9 +130,10 @@ impl EditorTab {
 
                     let tab = app_state.tab_mut(&tab_id);
                     let editor_tab = tab.as_text_editor_mut().unwrap();
-                    editor_tab.editor.run_parser();
+                    editor_tab.editor.data.run_parser();
                     editor_tab
                         .editor
+                        .data
                         .measure_longest_line(font_size, &font_collection);
 
                     info!("Loaded file content for {path:?}");

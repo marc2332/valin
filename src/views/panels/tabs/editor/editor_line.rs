@@ -5,11 +5,11 @@ use freya::{
     text_edit::{EditableEvent, EditorLine, TextEditor},
 };
 
-use crate::{parser::TextNode, views::panels::tabs::editor::EditorTab};
+use crate::{syntax::TextNode, views::panels::tabs::editor::EditorData};
 
 #[derive(Clone, PartialEq)]
 pub struct EditorLineUI {
-    pub(crate) editor: Writable<EditorTab>,
+    pub(crate) editor: Writable<EditorData>,
     pub(crate) font_size: f32,
     pub(crate) line_height: f32,
     pub(crate) line_index: usize,
@@ -31,23 +31,17 @@ impl Component for EditorLineUI {
 
         let editor_data = editor.read();
 
-        let longest_width = editor_data.editor.metrics.longest_width;
-        let line = editor_data
-            .editor
-            .metrics
-            .syntax_blocks
-            .get_line(line_index);
-        let highlights = editor_data
-            .editor
-            .get_visible_selection(EditorLine::Paragraph(line_index));
+        let longest_width = editor_data.metrics.longest_width;
+        let line = editor_data.metrics.syntax_blocks.get_line(line_index);
+        let highlights = editor_data.get_visible_selection(EditorLine::Paragraph(line_index));
         let gutter_width = font_size * 5.0;
-        let is_line_selected = editor_data.editor.cursor_row() == line_index;
+        let is_line_selected = editor_data.cursor_row() == line_index;
 
         let on_mouse_down = {
             let mut editor = editor.clone();
             move |e: Event<MouseEventData>| {
                 editor.write_if(|mut editor_editor| {
-                    editor_editor.editor.process(EditableEvent::Down {
+                    editor_editor.process(EditableEvent::Down {
                         location: e.element_location,
                         editor_line: EditorLine::Paragraph(line_index),
                         holder: &holder.read(),
@@ -59,15 +53,13 @@ impl Component for EditorLineUI {
         let on_mouse_up = {
             let mut editor = editor.clone();
             move |_: Event<MouseEventData>| {
-                editor.write_if(|mut editor_editor| {
-                    editor_editor.editor.process(EditableEvent::Release)
-                });
+                editor.write_if(|mut editor_editor| editor_editor.process(EditableEvent::Release));
             }
         };
 
         let on_mouse_move = move |e: Event<MouseEventData>| {
             editor.write_if(|mut editor_editor| {
-                editor_editor.editor.process(EditableEvent::Move {
+                editor_editor.process(EditableEvent::Move {
                     location: e.element_location,
                     editor_line: EditorLine::Paragraph(line_index),
                     holder: &holder.read(),
@@ -75,13 +67,13 @@ impl Component for EditorLineUI {
             });
         };
 
-        let cursor_index = is_line_selected.then(|| editor_data.editor.cursor_col());
+        let cursor_index = is_line_selected.then(|| editor_data.cursor_col());
         let gutter_color = if is_line_selected {
             (235, 235, 235)
         } else {
             (135, 135, 135)
         };
-        let line_background = if is_line_selected && editor_data.editor.get_selection().is_none() {
+        let line_background = if is_line_selected && editor_data.get_selection().is_none() {
             (70, 70, 70).into()
         } else {
             Color::TRANSPARENT
@@ -121,7 +113,7 @@ impl Component for EditorLineUI {
                     .max_lines(1)
                     .color((255, 255, 255))
                     .spans_iter(line.iter().map(|span| {
-                        let rope = &editor_data.editor.rope;
+                        let rope = &editor_data.rope;
                         let rope = rope.borrow();
                         let text: Cow<str> = match &span.1 {
                             TextNode::Range(word_pos) => rope.slice(word_pos.clone()).into(),
@@ -129,7 +121,7 @@ impl Component for EditorLineUI {
                                 Cow::Owned(char.to_string().repeat(*len))
                             }
                         };
-                        Span::new(Cow::Owned(text.to_string())).color(span.0.color())
+                        Span::new(Cow::Owned(text.to_string())).color(span.0)
                     })),
             )
     }
