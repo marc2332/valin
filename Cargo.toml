@@ -2,6 +2,11 @@
 name = "valin"
 version = "0.26.0"
 edition = "2024"
+description = "A code editor built with Freya and Rust"
+authors = ["Marc Espín <mespinsanz@gmail.com>"]
+license = "MIT"
+readme = "readme.md"
+repository = "https://github.com/marc2332/valin"
 
 [features]
 devtools = ["freya/devtools"]
