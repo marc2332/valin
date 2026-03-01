@@ -1,10 +1,8 @@
 use freya::prelude::spawn;
-use tokio::fs::OpenOptions;
+use smol::{fs::OpenOptions, io::AsyncWriteExt};
 
-use crate::{
-    constants::{BASE_FONT_SIZE, MAX_FONT_SIZE},
-    state::{AppStateUtils, Channel, CommandRunContext, EditorCommand, RadioAppState},
-};
+use crate::state::{AppStateUtils, Channel, CommandRunContext, EditorCommand, RadioAppState};
+use freya::code_editor::{BASE_FONT_SIZE, MAX_FONT_SIZE};
 
 use crate::views::panels::tabs::editor::utils::AppStateEditorUtils;
 
@@ -31,8 +29,8 @@ impl EditorCommand for IncreaseFontSizeCommand {
     }
 
     fn run(&self, _ctx: &mut CommandRunContext) {
-        let mut radio_app_state = self.0;
-        let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
+        let mut radio = self.0;
+        let mut app_state = radio.write_channel(Channel::AllTabs);
         let font_size = app_state.font_size();
         app_state.set_fontsize((font_size + 2.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE));
     }
@@ -61,8 +59,8 @@ impl EditorCommand for DecreaseFontSizeCommand {
     }
 
     fn run(&self, _ctx: &mut CommandRunContext) {
-        let mut radio_app_state = self.0;
-        let mut app_state = radio_app_state.write_channel(Channel::AllTabs);
+        let mut radio = self.0;
+        let mut app_state = radio.write_channel(Channel::AllTabs);
         let font_size = app_state.font_size();
         app_state.set_fontsize((font_size - 2.0).clamp(BASE_FONT_SIZE, MAX_FONT_SIZE));
     }
@@ -91,24 +89,23 @@ impl EditorCommand for SaveFileCommand {
     }
 
     fn run(&self, _ctx: &mut CommandRunContext) {
-        let mut radio_app_state = self.0;
-        let active_tab = radio_app_state.get_active_tab();
+        let mut radio = self.0;
+        let active_tab = radio.get_active_tab();
 
         if let Some(active_tab) = active_tab {
-            let editor_data = radio_app_state.read().editor_tab_data(active_tab);
+            let editor_data = radio.read().editor_tab_data(active_tab);
 
-            if let Some((Some(file_path), rope, transport)) = editor_data {
+            if let Some((file_path, rope, transport)) = editor_data {
                 spawn(async move {
-                    let writer = transport
+                    let mut writer = transport
                         .open(&file_path, OpenOptions::new().write(true).truncate(true))
                         .await
                         .unwrap();
-                    let std_writer = writer.into_std().await;
-                    rope.borrow_mut().write_to(std_writer).unwrap();
-                    let mut app_state =
-                        radio_app_state.write_channel(Channel::follow_tab(active_tab));
+                    let bytes: Vec<u8> = rope.bytes().collect();
+                    let _ = writer.write_all(&bytes).await;
+                    let mut app_state = radio.write_channel(Channel::follow_tab(active_tab));
                     let editor_tab = app_state.editor_tab_mut(active_tab);
-                    editor_tab.editor.mark_as_saved()
+                    editor_tab.data.mark_as_saved()
                 });
             }
         }

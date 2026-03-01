@@ -2,8 +2,6 @@
 pub mod Settings {
     use std::path::Path;
 
-    use async_trait::async_trait;
-
     use crate::{
         fs::FSReadTransportInterface,
         settings::settings_path,
@@ -17,7 +15,6 @@ pub mod Settings {
         EditorTab::open_with(
             radio_app_state,
             app_state,
-            settings_path.clone(),
             settings_path,
             Box::new(MemoryTransport(
                 toml::to_string(&app_state.settings).unwrap(),
@@ -27,9 +24,9 @@ pub mod Settings {
 
     struct MemoryTransport(String);
 
-    #[async_trait]
+    #[async_trait::async_trait]
     impl FSReadTransportInterface for MemoryTransport {
-        async fn read_to_string(&self, _path: &Path) -> tokio::io::Result<String> {
+        async fn read_to_string(&self, _path: &Path) -> smol::io::Result<String> {
             Ok(self.0.clone())
         }
     }

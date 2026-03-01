@@ -5,30 +5,24 @@ use std::{
 };
 
 use freya::prelude::*;
-use skia_safe::textlayout::FontCollection;
 
 use super::{AppSettings, AppState};
 
 pub trait PanelTab {
     fn on_close(&mut self, _app_state: &mut AppState) {}
 
-    fn on_settings_changed(
-        &mut self,
-        _app_settings: &AppSettings,
-        _font_collection: &FontCollection,
-    ) {
-    }
+    fn on_settings_changed(&mut self, _app_settings: &AppSettings) {}
 
     fn get_data(&self) -> PanelTabData;
 
-    fn render(&self) -> fn(TabProps) -> Element;
+    fn render(&self) -> fn(&TabProps) -> Element;
 
     fn as_any(&self) -> &dyn Any;
 
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
-#[derive(Props, Clone, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct TabProps {
     pub tab_id: TabId,
 }

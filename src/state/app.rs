@@ -1,17 +1,10 @@
 use std::{collections::HashMap, vec};
 
-use dioxus_clipboard::prelude::UseClipboard;
-use dioxus_radio::prelude::{Radio, RadioChannel};
-use freya::{core::accessibility::AccessibilityFocusStrategy, hooks::UsePlatform};
-use skia_safe::{textlayout::FontCollection, FontMgr};
+use freya::prelude::Focus;
+use freya::radio::{Radio, RadioChannel};
 use tracing::info;
 
-use crate::{
-    fs::FSTransport,
-    lsp::{LSPClient, LspConfig},
-    views::file_explorer::file_explorer_state::FileExplorerState,
-    LspStatusSender,
-};
+use crate::{fs::FSTransport, views::file_explorer::file_explorer_state::FileExplorerState};
 
 use super::{AppSettings, EditorView, Panel, PanelTab, TabId};
 
@@ -55,31 +48,23 @@ impl RadioChannel<AppState> for Channel {
                     app_state
                         .tabs
                         .keys()
-                        .map(move |tab_id| Self::Tab { tab_id: *tab_id })
-                        .collect::<Vec<Self>>(),
+                        .map(|tab_id| Self::Tab { tab_id: *tab_id }),
                 );
-
                 channels
             }
             Self::Tab { tab_id } => {
                 let mut channels = vec![self];
                 for (panel_index, panel) in app_state.panels.iter().enumerate() {
-                    if app_state.focused_panel == panel_index {
-                        if let Some(active_tab) = panel.active_tab {
-                            if active_tab == tab_id {
-                                channels.push(Self::ActiveTab);
-                            }
-                        }
+                    if app_state.focused_panel == panel_index
+                        && let Some(active_tab) = panel.active_tab
+                        && active_tab == tab_id
+                    {
+                        channels.push(Self::ActiveTab);
                     }
                 }
-
                 channels
             }
-            Self::Settings => {
-                let mut channels = vec![self];
-                channels.extend(Channel::Global.derive_channel(app_state));
-                channels
-            }
+            Self::Settings => vec![self, Self::Global],
             Self::Global => {
                 let mut channels = vec![self];
                 channels.extend(Channel::AllTabs.derive_channel(app_state));
@@ -110,25 +95,14 @@ pub struct AppState {
     pub panels: Vec<Panel>,
     pub tabs: HashMap<TabId, Box<dyn PanelTab>>,
     pub settings: AppSettings,
-    pub language_servers: HashMap<String, LSPClient>,
-    pub lsp_sender: LspStatusSender,
     pub side_panel: Option<EditorSidePanel>,
     pub default_transport: FSTransport,
-    pub font_collection: FontCollection,
-    pub clipboard: UseClipboard,
 
     pub file_explorer: FileExplorerState,
 }
 
 impl AppState {
-    pub fn new(
-        lsp_sender: LspStatusSender,
-        default_transport: FSTransport,
-        clipboard: UseClipboard,
-    ) -> Self {
-        let mut font_collection = FontCollection::new();
-        font_collection.set_default_font_manager(FontMgr::default(), "Jetbrains Mono");
-
+    pub fn new(default_transport: FSTransport) -> Self {
         Self {
             previous_focused_view: None,
             focused_view: EditorView::default(),
@@ -136,26 +110,19 @@ impl AppState {
             tabs: HashMap::new(),
             panels: vec![Panel::new()],
             settings: AppSettings::load(),
-            language_servers: HashMap::default(),
-            lsp_sender,
             side_panel: Some(EditorSidePanel::default()),
             default_transport,
-            font_collection,
-            clipboard,
 
             file_explorer: FileExplorerState::new(),
         }
     }
 
     pub fn toggle_side_panel(&mut self, side_panel: EditorSidePanel) {
-        if let Some(current_side_panel) = self.side_panel {
-            if current_side_panel == side_panel {
-                self.side_panel = None;
-                return;
-            }
-        }
-
-        self.side_panel = Some(side_panel);
+        self.side_panel = if self.side_panel == Some(side_panel) {
+            None
+        } else {
+            Some(side_panel)
+        };
     }
 
     pub fn set_settings(&mut self, settins: AppSettings) {
@@ -171,17 +138,11 @@ impl AppState {
     /// There are a few things that need to revaluated when the settings are changed
     pub fn apply_settings(&mut self) {
         for tab in self.tabs.values_mut() {
-            tab.on_settings_changed(&self.settings, &self.font_collection)
+            tab.on_settings_changed(&self.settings)
         }
     }
 
-    pub fn focus_view(&mut self, view: EditorView) {
-        if !self.focused_view.is_popup() {
-            self.previous_focused_view = Some(self.focused_view);
-        }
-
-        self.focused_view = view;
-
+    fn focus_view_inner(&mut self, view: EditorView) {
         match view {
             EditorView::Panels => {
                 self.focus_tab(
@@ -189,11 +150,17 @@ impl AppState {
                     self.panels[self.focused_panel].active_tab,
                 );
             }
-            EditorView::FilesExplorer => {
-                self.file_explorer.focus();
-            }
+            EditorView::FilesExplorer => self.file_explorer.focus(),
             _ => {}
         }
+    }
+
+    pub fn focus_view(&mut self, view: EditorView) {
+        if !self.focused_view.is_popup() {
+            self.previous_focused_view = Some(self.focused_view);
+        }
+        self.focused_view = view;
+        self.focus_view_inner(view);
     }
 
     pub fn focused_view(&self) -> EditorView {
@@ -205,19 +172,7 @@ impl AppState {
             self.focused_view = previous_focused_view;
             self.previous_focused_view = None;
         }
-
-        match self.focused_view {
-            EditorView::Panels => {
-                self.focus_tab(
-                    self.focused_panel,
-                    self.panels[self.focused_panel].active_tab,
-                );
-            }
-            EditorView::FilesExplorer => {
-                self.file_explorer.focus();
-            }
-            _ => {}
-        }
+        self.focus_view_inner(self.focused_view);
     }
 
     pub fn font_size(&self) -> f32 {
@@ -261,14 +216,7 @@ impl AppState {
             let panel_index = self
                 .panels
                 .iter()
-                .enumerate()
-                .find_map(|(panel_index, panel)| {
-                    if panel.tabs.contains(&tab_id) {
-                        Some(panel_index)
-                    } else {
-                        None
-                    }
-                })
+                .position(|panel| panel.tabs.contains(&tab_id))
                 .unwrap();
             // Focus the already open tab with the same content id
             self.focused_panel = panel_index;
@@ -300,20 +248,20 @@ impl AppState {
             .enumerate()
             .find(|(_, panel)| panel.tabs.contains(&tab_id))
             .unwrap();
-        if let Some(active_tab) = panel.active_tab {
-            if active_tab == tab_id {
-                let tab_index = panel.tabs.iter().position(|tab| *tab == tab_id).unwrap();
-                self.focus_tab(
-                    panel_index,
-                    if let Some(next_tab) = panel.tabs.get(tab_index + 1) {
-                        Some(*next_tab)
-                    } else if tab_index > 0 {
-                        panel.tabs.get(tab_index - 1).copied()
-                    } else {
-                        None
-                    },
-                );
-            }
+        if let Some(active_tab) = panel.active_tab
+            && active_tab == tab_id
+        {
+            let tab_index = panel.tabs.iter().position(|tab| *tab == tab_id).unwrap();
+            self.focus_tab(
+                panel_index,
+                if let Some(next_tab) = panel.tabs.get(tab_index + 1) {
+                    Some(*next_tab)
+                } else if tab_index > 0 {
+                    panel.tabs.get(tab_index - 1).copied()
+                } else {
+                    None
+                },
+            );
         }
 
         let mut panel_tab = self.tabs.remove(&tab_id).unwrap();
@@ -332,9 +280,9 @@ impl AppState {
     pub fn focus_tab(&mut self, panel_index: usize, tab_id: Option<TabId>) {
         self.panels[panel_index].active_tab = tab_id;
         if let Some(tab_id) = tab_id {
-            let platform = UsePlatform::current();
             let tab = self.tab(&tab_id);
-            platform.request_focus(AccessibilityFocusStrategy::Node(tab.get_data().focus_id));
+            let focus = Focus::new_for_id(tab.get_data().focus_id);
+            focus.request_focus();
         }
     }
 
@@ -349,27 +297,26 @@ impl AppState {
         self.close_panel(self.focused_panel);
     }
 
+    fn focus_panel_with_tab(&mut self, panel_index: usize) {
+        let panel = self.panel(panel_index);
+        if let Some(active_tab) = panel.active_tab {
+            let tab = self.tab(&active_tab);
+            let focus = Focus::new_for_id(tab.get_data().focus_id);
+            focus.request_focus();
+        }
+    }
+
     pub fn focus_previous_panel(&mut self) {
         if self.focused_panel > 0 {
             self.focus_panel(self.focused_panel - 1);
-            let platform = UsePlatform::current();
-            let panel = self.panel(self.focused_panel);
-            if let Some(active_tab) = panel.active_tab {
-                let tab = self.tab(&active_tab);
-                platform.request_focus(AccessibilityFocusStrategy::Node(tab.get_data().focus_id));
-            }
+            self.focus_panel_with_tab(self.focused_panel);
         }
     }
 
     pub fn focus_next_panel(&mut self) {
         if self.focused_panel < self.panels.len() - 1 {
             self.focus_panel(self.focused_panel + 1);
-            let platform = UsePlatform::current();
-            let panel = self.panel(self.focused_panel);
-            if let Some(active_tab) = panel.active_tab {
-                let tab = self.tab(&active_tab);
-                platform.request_focus(AccessibilityFocusStrategy::Node(tab.get_data().focus_id));
-            }
+            self.focus_panel_with_tab(self.focused_panel);
         }
     }
 
@@ -397,19 +344,11 @@ impl AppState {
 
     pub fn close_panel(&mut self, panel: usize) {
         if self.panels.len() > 1 {
-            self.panels.remove(panel);
+            let panel = self.panels.remove(panel);
             if self.focused_panel > 0 {
                 self.focused_panel -= 1;
             }
+            self.tabs.retain(|id, _| !panel.tabs.contains(id));
         }
-    }
-
-    pub fn lsp(&self, lsp_config: &LspConfig) -> Option<&LSPClient> {
-        self.language_servers.get(&lsp_config.language_server)
-    }
-
-    pub fn insert_lsp_client(&mut self, language_server: String, client: LSPClient) {
-        info!("Registered language server '{language_server}'");
-        self.language_servers.insert(language_server, client);
     }
 }

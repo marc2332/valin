@@ -8,7 +8,11 @@
 
 ![Demo](./demo.png)
 
-You can download it from the [Releases](https://github.com/marc2332/valin/releases) page or run it from source code, with `--release` mode if you want max performance.
+## Installation
+
+```rust
+cargo install valin
+```
 
 ## Notes
 - It currently uses Jetbrains Mono for the text editor, you must have it installed.
@@ -29,10 +33,6 @@ You can download it from the [Releases](https://github.com/marc2332/valin/releas
 - [x] Files explorer
 - [x] Settings
 - [x] Resizable panels
-- [ ] Intellisense (Enable with `--lsp`)
-  - [x] Hover (exprimental, only rust-analyzer atm)
-  - [ ] Autocomplete
-  - [ ] Code actions
 
 # Shortcuts
 - `Alt E`: Toggle focus between the files explorer and the code editors

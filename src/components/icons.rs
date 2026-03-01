@@ -1,49 +1,35 @@
 use freya::prelude::*;
 
-static LOGO_ENABLED: &str = include_str!("../icons/logo_enabled.svg");
-static LOGO_DISABLED: &str = include_str!("../icons/logo_disabled.svg");
+static LOGO_ENABLED: &[u8] = include_bytes!("../icons/logo_enabled.svg");
+static LOGO_DISABLED: &[u8] = include_bytes!("../icons/logo_disabled.svg");
 
-#[derive(Props, PartialEq, Clone)]
-pub struct IconProps {
-    #[props(default = "auto".to_string(), into)]
-    width: String,
-    #[props(default = "auto".to_string(), into)]
-    height: String,
-    enabled: bool,
+#[derive(Clone, PartialEq)]
+pub struct Logo {
+    pub width: f32,
+    pub height: f32,
+    pub enabled: bool,
 }
 
-#[allow(non_snake_case)]
-pub fn Logo(props: IconProps) -> Element {
-    let width = &props.width;
-    let height = &props.height;
-
-    let logo = if props.enabled {
-        LOGO_ENABLED
-    } else {
-        LOGO_DISABLED
-    };
-
-    rsx!(svg {
-        width: "{width}",
-        height: "{height}",
-        svg_content: logo,
-    })
-}
-
-#[derive(Props, Clone, PartialEq)]
-pub struct ExpandedIconProps {
-    children: Element,
-}
-
-#[allow(non_snake_case)]
-pub fn ExpandedIcon(props: ExpandedIconProps) -> Element {
-    rsx!(
-        rect {
-            main_align: "center",
-            cross_align: "center",
-            width: "100%",
-            height: "100%",
-            {props.children}
+impl Default for Logo {
+    fn default() -> Self {
+        Self {
+            width: 100.0,
+            height: 100.0,
+            enabled: true,
         }
-    )
+    }
+}
+
+impl Component for Logo {
+    fn render(&self) -> impl IntoElement {
+        let logo = if self.enabled {
+            LOGO_ENABLED
+        } else {
+            LOGO_DISABLED
+        };
+
+        svg(Bytes::from_static(logo))
+            .width(Size::px(self.width))
+            .height(Size::px(self.height))
+    }
 }

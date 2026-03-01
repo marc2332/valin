@@ -5,49 +5,25 @@
 
 mod app;
 mod components;
-mod constants;
 mod fs;
 mod global_defaults;
 mod hooks;
-mod lsp;
-mod metrics;
-mod parser;
 mod settings;
 mod state;
-mod utils;
 mod views;
 
-use std::{path::PathBuf, sync::Arc};
+use std::path::PathBuf;
 
-use crate::app::App;
+use crate::app::AppView;
 use clap::Parser;
-use components::*;
 use freya::prelude::*;
-use hooks::*;
+use freya_performance_plugin::PerformanceOverlayPlugin;
 use tracing::info;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
-const CUSTOM_THEME: Theme = Theme {
-    button: ButtonTheme {
-        border_fill: Cow::Borrowed("rgb(45, 49, 50)"),
-        background: Cow::Borrowed("rgb(28, 31, 32)"),
-        hover_background: Cow::Borrowed("rgb(20, 23, 24)"),
-        ..DARK_THEME.button
-    },
-    input: InputTheme {
-        background: Cow::Borrowed("rgb(28, 31, 32)"),
-        ..DARK_THEME.input
-    },
-    ..DARK_THEME
-};
-
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, PartialEq, Clone)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// Enable Support for language servers.
-    #[arg(short, long)]
-    lsp: bool,
-
     // Open certain folders or files.
     #[arg(num_args(0..))]
     paths: Vec<PathBuf>,
@@ -64,7 +40,7 @@ fn main() {
                 .with_default_directive("valin=debug".parse().unwrap())
                 .from_env()
                 .unwrap()
-                .add_directive("dioxus_radio=debug".parse().unwrap()),
+                .add_directive("freya::radio=debug".parse().unwrap()),
         )
         .finish();
 
@@ -74,24 +50,17 @@ fn main() {
 
     info!("Starting valin. \n{args:#?}");
 
-    let mut config = LaunchConfig::<Arc<Args>>::default();
+    let mut config = LaunchConfig::default();
 
     if args.performance_overlay {
         config = config.with_plugin(PerformanceOverlayPlugin::default())
     }
 
-    launch_cfg(
-        || {
-            rsx!(
-                ThemeProvider {
-                    theme: CUSTOM_THEME,
-                    App {}
-                }
-            )
-        },
-        config
-            .with_size(1280.0, 720.0)
-            .with_title("Valin")
-            .with_state(Arc::new(args)), // .with_max_paragraph_cache_size(200),
+    launch(
+        config.with_window(
+            WindowConfig::new_app(AppView(args.clone()))
+                .with_size(1280.0, 720.0)
+                .with_title("Valin"),
+        ),
     );
 }
