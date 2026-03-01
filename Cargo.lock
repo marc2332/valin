@@ -640,17 +640,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bstr"
-version = "1.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "63044e1ae8e69f3b5a92c736ca6269b8d12fa7efe39bf34ddb06d102cf0e2cab"
-dependencies = [
- "memchr",
- "regex-automata",
- "serde",
-]
-
-[[package]]
 name = "built"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1078,24 +1067,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 
 [[package]]
-name = "encoding_rs"
-version = "0.8.35"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75030f3c4f45dafd7586dd6780965a8c7e8e285a5ecb86713e63a79c5b2766f3"
-dependencies = [
- "cfg-if",
-]
-
-[[package]]
-name = "encoding_rs_io"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1cc3c5651fb62ab8aa3103998dade57efdd028544bd300516baa31840c252a83"
-dependencies = [
- "encoding_rs",
-]
-
-[[package]]
 name = "endi"
 version = "1.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1324,11 +1295,14 @@ checksum = "aa9a19cbb55df58761df49b23516a86d432839add4af60fc256da840f66ed35b"
 
 [[package]]
 name = "freya"
-version = "0.4.0-rc.9"
+version = "0.4.0-rc.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba9e0a4fe5e8cd49e6027bcb392ace11d54129b674c0fe185134c35a4b4e5d3b"
 dependencies = [
  "cfg-if",
  "freya-animation",
  "freya-clipboard",
+ "freya-code-editor",
  "freya-components",
  "freya-core",
  "freya-devtools",
@@ -1341,7 +1315,9 @@ dependencies = [
 
 [[package]]
 name = "freya-animation"
-version = "0.4.0-rc.9"
+version = "0.4.0-rc.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69066638a9937eef704728e635566b4c6da936b0efa887199e7daa92e97db2a6"
 dependencies = [
  "async-io",
  "easer",
@@ -1350,15 +1326,40 @@ dependencies = [
 
 [[package]]
 name = "freya-clipboard"
-version = "0.4.0-rc.9"
+version = "0.4.0-rc.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c97ba8bcd9684b1685332ce92e2bf15e9fa7708f71b83dc3db90c5bbc2817485"
 dependencies = [
  "copypasta",
  "freya-core",
 ]
 
 [[package]]
+name = "freya-code-editor"
+version = "0.4.0-rc.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "69e883e5f71c584bc1d41367cb047eb75fd509536792fc2d89ee30e3929ecdbf"
+dependencies = [
+ "freya-components",
+ "freya-core",
+ "freya-edit",
+ "freya-engine",
+ "ropey",
+ "rustc-hash",
+ "smallvec",
+ "torin",
+ "tree-sitter",
+ "tree-sitter-json",
+ "tree-sitter-md",
+ "tree-sitter-rust",
+ "tree-sitter-toml-ng",
+]
+
+[[package]]
 name = "freya-components"
-version = "0.4.0-rc.9"
+version = "0.4.0-rc.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97eba2ce867a46eb93838319b09977fc23616b31b33c918d15f9dcf50bf42edc"
 dependencies = [
  "accesskit",
  "anyhow",
@@ -1380,7 +1381,9 @@ dependencies = [
 
 [[package]]
 name = "freya-core"
-version = "0.4.0-rc.9"
+version = "0.4.0-rc.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5d6862aab2126d750416498b20f41e4dc56e2c7c96db6e72762396165db537d1"
 dependencies = [
  "accesskit",
  "async-broadcast",
@@ -1407,7 +1410,9 @@ dependencies = [
 
 [[package]]
 name = "freya-devtools"
-version = "0.4.0-rc.9"
+version = "0.4.0-rc.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ef3f5d338ad1df2f00d340c449ef9c5a461a2ececa595f4fdfe4961480e06716"
 dependencies = [
  "accesskit",
  "anyhow",
@@ -1431,7 +1436,9 @@ dependencies = [
 
 [[package]]
 name = "freya-edit"
-version = "0.4.0-rc.9"
+version = "0.4.0-rc.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9d9a6319e1547ca57972b43a997b8a04cba94e5dd2b60eb4be1f7e5dd1c6711"
 dependencies = [
  "bitflags 2.11.0",
  "freya-clipboard",
@@ -1444,7 +1451,9 @@ dependencies = [
 
 [[package]]
 name = "freya-engine"
-version = "0.4.0-rc.9"
+version = "0.4.0-rc.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b885651d20995727eeecaf9e4d2c8b94b192c51e860bc276d4af73f3b63ef694"
 dependencies = [
  "bitflags 2.11.0",
  "glutin",
@@ -1453,7 +1462,9 @@ dependencies = [
 
 [[package]]
 name = "freya-performance-plugin"
-version = "0.4.0-rc.9"
+version = "0.4.0-rc.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d2ca67076cc70e90b7be550c5ba7914e3c479f8db59659ab1757b36ae3ca0177"
 dependencies = [
  "freya-engine",
  "freya-winit",
@@ -1461,14 +1472,18 @@ dependencies = [
 
 [[package]]
 name = "freya-radio"
-version = "0.4.0-rc.9"
+version = "0.4.0-rc.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "14a4922089e1b21e6427414ecedf0c4a79df321b3d7fdee1f530a95c471c9aec"
 dependencies = [
  "freya-core",
 ]
 
 [[package]]
 name = "freya-sdk"
-version = "0.4.0-rc.9"
+version = "0.4.0-rc.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0bd4e0495de9fd11c9cbff513a0129107d28a69025c80b15db7296666efa5883"
 dependencies = [
  "async-io",
  "freya-core",
@@ -1477,7 +1492,9 @@ dependencies = [
 
 [[package]]
 name = "freya-winit"
-version = "0.4.0-rc.9"
+version = "0.4.0-rc.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e708f304aeee54a94995e41bc546c31921a7ad3adeb21795645e0d680e1f8a97"
 dependencies = [
  "accesskit",
  "accesskit_winit",
@@ -1714,19 +1731,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0cc23270f6e1808e30a928bdc84dea0b9b4136a8bc82338574f23baf47bbd280"
 
 [[package]]
-name = "globset"
-version = "0.4.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52dfc19153a48bde0cbd630453615c8151bce3a5adfac7a0aebfbf0a1e1f57e3"
-dependencies = [
- "aho-corasick",
- "bstr",
- "log",
- "regex-automata",
- "regex-syntax",
-]
-
-[[package]]
 name = "glutin"
 version = "0.32.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1790,85 +1794,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2c4ee00b289aba7a9e5306d57c2d05499b2e5dc427f84ac708bd2c090212cf3e"
 dependencies = [
  "gl_generator",
-]
-
-[[package]]
-name = "grep"
-version = "0.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "308ae749734e28d749a86f33212c7b756748568ce332f970ac1d9cd8531f32e6"
-dependencies = [
- "grep-cli",
- "grep-matcher",
- "grep-printer",
- "grep-regex",
- "grep-searcher",
-]
-
-[[package]]
-name = "grep-cli"
-version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf32d263c5d5cc2a23ce587097f5ddafdb188492ba2e6fb638eaccdc22453631"
-dependencies = [
- "bstr",
- "globset",
- "libc",
- "log",
- "termcolor",
- "winapi-util",
-]
-
-[[package]]
-name = "grep-matcher"
-version = "0.1.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36d7b71093325ab22d780b40d7df3066ae4aebb518ba719d38c697a8228a8023"
-dependencies = [
- "memchr",
-]
-
-[[package]]
-name = "grep-printer"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c112110ae4a891aa4d83ab82ecf734b307497d066f437686175e83fbd4e013fe"
-dependencies = [
- "bstr",
- "grep-matcher",
- "grep-searcher",
- "log",
- "serde",
- "serde_json",
- "termcolor",
-]
-
-[[package]]
-name = "grep-regex"
-version = "0.1.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ce0c256c3ad82bcc07b812c15a45ec1d398122e8e15124f96695234db7112ef"
-dependencies = [
- "bstr",
- "grep-matcher",
- "log",
- "regex-automata",
- "regex-syntax",
-]
-
-[[package]]
-name = "grep-searcher"
-version = "0.1.16"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ac63295322dc48ebb20a25348147905d816318888e64f531bfc2a2bc0577dc34"
-dependencies = [
- "bstr",
- "encoding_rs",
- "encoding_rs_io",
- "grep-matcher",
- "log",
- "memchr",
- "memmap2",
 ]
 
 [[package]]
@@ -2882,7 +2807,9 @@ checksum = "35fb2e5f958ec131621fdd531e9fc186ed768cbe395337403ae56c17a74c68ec"
 
 [[package]]
 name = "pathgraph"
-version = "0.4.0-rc.9"
+version = "0.4.0-rc.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "61b580f24a6718c17c93551cd0fb885dcb6cb4df076574e19be1707bcdcc90bf"
 
 [[package]]
 name = "percent-encoding"
@@ -3098,7 +3025,9 @@ checksum = "69cdb34c158ceb288df11e18b4bd39de994f6657d83847bdffdbd7f346754b0f"
 
 [[package]]
 name = "ragnarok"
-version = "0.4.0-rc.9"
+version = "0.4.0-rc.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fc42889839589bab22926b8602db800f004c464d9ac0b95c4da4b35e58b2d945"
 dependencies = [
  "euclid",
  "hotpath",
@@ -3515,9 +3444,9 @@ dependencies = [
 
 [[package]]
 name = "skia-bindings"
-version = "0.91.0"
+version = "0.93.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c2dd9bbd87993cbe4c0caa5fa6ca69c7d2ed38dcf5cd967b200392840c3bc666"
+checksum = "2359f7e30c9da3f322f8ca3d4ec0abbc12a40035ce758309db0cdab07b5d4476"
 dependencies = [
  "bindgen",
  "cc",
@@ -3527,14 +3456,14 @@ dependencies = [
  "regex",
  "serde_json",
  "tar",
- "toml 0.9.12+spec-1.1.0",
+ "toml 1.0.3+spec-1.1.0",
 ]
 
 [[package]]
 name = "skia-safe"
-version = "0.91.1"
+version = "0.93.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c13e5913d17403753fd8cc2c15402e8d9ba8278d1b82a12aa7264a63f9c6325"
+checksum = "7f9e837ea9d531c9efee8f980bfcdb7226b21db0285b0c3171d8be745829f940"
 dependencies = [
  "base64",
  "bitflags 2.11.0",
@@ -3727,15 +3656,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "termcolor"
-version = "1.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06794f8f6c5c898b3275aebefa6b8a1cb24cd2c6c79397ab15774837a0bc5755"
-dependencies = [
- "winapi-util",
-]
-
-[[package]]
 name = "thiserror"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3846,14 +3766,14 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.9.12+spec-1.1.0"
+version = "1.0.3+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf92845e79fc2e2def6a5d828f0801e29a2f8acc037becc5ab08595c7d5e9863"
+checksum = "c7614eaf19ad818347db24addfa201729cf2a9b6fdfd9eb0ab870fcacc606c0c"
 dependencies = [
  "indexmap",
  "serde_core",
  "serde_spanned 1.0.4",
- "toml_datetime 0.7.5+spec-1.1.0",
+ "toml_datetime 1.0.0+spec-1.1.0",
  "toml_parser",
  "toml_writer",
  "winnow",
@@ -3873,6 +3793,15 @@ name = "toml_datetime"
 version = "0.7.5+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92e1cfed4a3038bc5a127e35a2d360f145e1f4b971b551a2ba5fd7aedf7e1347"
+dependencies = [
+ "serde_core",
+]
+
+[[package]]
+name = "toml_datetime"
+version = "1.0.0+spec-1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "32c2555c699578a4f59f0cc68e5116c8d7cabbd45e1409b989d4be085b53f13e"
 dependencies = [
  "serde_core",
 ]
@@ -3926,7 +3855,9 @@ checksum = "ab16f14aed21ee8bfd8ec22513f7287cd4a91aa92e44edfe2c17ddd004e92607"
 
 [[package]]
 name = "torin"
-version = "0.4.0-rc.9"
+version = "0.4.0-rc.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "962c25a717f9d5077c88dd3113407cc0ec2df7196e6f5fbcb6bc0ac1fe0fb860"
 dependencies = [
  "euclid",
  "itertools 0.14.0",
@@ -4145,7 +4076,6 @@ version = "1.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b672338555252d43fd2240c714dc444b8c6fb0a5c5335e65a07bba7742735ddb"
 dependencies = [
- "getrandom 0.4.1",
  "js-sys",
  "serde_core",
  "wasm-bindgen",
@@ -4170,29 +4100,20 @@ dependencies = [
  "async-trait",
  "clap",
  "freya",
- "freya-clipboard",
  "freya-performance-plugin",
  "futures",
  "futures-channel",
- "grep",
  "home",
  "notify",
  "rfd",
  "ropey",
  "rustc-hash",
  "serde",
- "skia-safe",
  "smallvec",
  "smol",
  "toml 0.8.23",
  "tracing",
  "tracing-subscriber",
- "tree-sitter",
- "tree-sitter-json",
- "tree-sitter-md",
- "tree-sitter-rust",
- "tree-sitter-toml-ng",
- "uuid",
 ]
 
 [[package]]

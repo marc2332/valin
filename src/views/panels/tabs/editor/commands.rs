@@ -1,10 +1,8 @@
 use freya::prelude::spawn;
 use smol::{fs::OpenOptions, io::AsyncWriteExt};
 
-use crate::{
-    constants::{BASE_FONT_SIZE, MAX_FONT_SIZE},
-    state::{AppStateUtils, Channel, CommandRunContext, EditorCommand, RadioAppState},
-};
+use crate::state::{AppStateUtils, Channel, CommandRunContext, EditorCommand, RadioAppState};
+use freya::code_editor::{BASE_FONT_SIZE, MAX_FONT_SIZE};
 
 use crate::views::panels::tabs::editor::utils::AppStateEditorUtils;
 
@@ -97,17 +95,17 @@ impl EditorCommand for SaveFileCommand {
         if let Some(active_tab) = active_tab {
             let editor_data = radio.read().editor_tab_data(active_tab);
 
-            if let Some((Some(file_path), rope, transport)) = editor_data {
+            if let Some((file_path, rope, transport)) = editor_data {
                 spawn(async move {
                     let mut writer = transport
                         .open(&file_path, OpenOptions::new().write(true).truncate(true))
                         .await
                         .unwrap();
-                    let bytes: Vec<u8> = rope.borrow().bytes().collect();
+                    let bytes: Vec<u8> = rope.bytes().collect();
                     let _ = writer.write_all(&bytes).await;
                     let mut app_state = radio.write_channel(Channel::follow_tab(active_tab));
                     let editor_tab = app_state.editor_tab_mut(active_tab);
-                    editor_tab.editor.data.mark_as_saved()
+                    editor_tab.data.mark_as_saved()
                 });
             }
         }

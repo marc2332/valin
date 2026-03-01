@@ -60,26 +60,4 @@ pub fn render(_: &TabProps) -> Element {
             .width(Size::percent(70.)),
         )
         .into()
-    // rsx!(
-    //     rect {
-    //         height: "100%",
-    //         width: "100%",
-    //         background: "rgb(29, 32, 33)",
-    //         padding: "20",
-    //         Link {
-    //             to: "https://github.com/marc2332/freya",
-    //             tooltip: LinkTooltip::None,
-    //             label {
-    //                 "freya source code"
-    //             }
-    //         }
-    //         Link {
-    //             to: "https://github.com/marc2332/valin",
-    //             tooltip: LinkTooltip::None,
-    //             label {
-    //                 "Valin source code"
-    //             }
-    //         }
-    //     }
-    // )
 }

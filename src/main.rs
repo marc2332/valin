@@ -5,15 +5,11 @@
 
 mod app;
 mod components;
-mod constants;
 mod fs;
 mod global_defaults;
 mod hooks;
-mod languages;
-mod metrics;
 mod settings;
 mod state;
-mod syntax;
 mod views;
 
 use std::path::PathBuf;

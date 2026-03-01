@@ -31,22 +31,30 @@ impl ExplorerItem {
         }
     }
 
-    pub fn set_folder_state(&mut self, folder_path: &PathBuf, folder_state: &FolderState) {
-        if let ExplorerItem::Folder { path, state } = self {
-            if path == folder_path {
-                *state = folder_state.clone(); // Ugly
-            } else if folder_path.starts_with(path)
-                && let FolderState::Opened(items) = state
-            {
-                for item in items {
-                    item.set_folder_state(folder_path, folder_state);
-                }
-            }
+    pub fn set_folder_state(&mut self, folder_path: &PathBuf, folder_state: FolderState) {
+        let ExplorerItem::Folder { path, state } = self else {
+            return;
+        };
+
+        if path == folder_path {
+            *state = folder_state;
+            return;
+        }
+
+        if !folder_path.starts_with(path) {
+            return;
+        }
+
+        let FolderState::Opened(items) = state else {
+            return;
+        };
+        for item in items.iter_mut() {
+            item.set_folder_state(folder_path, folder_state.clone());
         }
     }
 
     pub fn flat(&self, depth: usize, root_path: &PathBuf) -> Vec<FlatItem> {
-        let mut flat_items = vec![self.clone().into_flat(depth, root_path.clone())];
+        let mut flat_items = vec![self.clone().into_flat(depth, root_path)];
         if let ExplorerItem::Folder {
             state: FolderState::Opened(items),
             ..
@@ -60,21 +68,21 @@ impl ExplorerItem {
         flat_items
     }
 
-    fn into_flat(self, depth: usize, root_path: PathBuf) -> FlatItem {
+    fn into_flat(self, depth: usize, root_path: &Path) -> FlatItem {
         match self {
             ExplorerItem::File { path } => FlatItem {
                 path,
                 is_file: true,
                 is_opened: false,
                 depth,
-                root_path,
+                root_path: root_path.to_path_buf(),
             },
             ExplorerItem::Folder { path, state } => FlatItem {
                 path,
                 is_file: false,
                 is_opened: state != FolderState::Closed,
                 depth,
-                root_path,
+                root_path: root_path.to_path_buf(),
             },
         }
     }
@@ -179,7 +187,7 @@ impl Component for FileExplorer {
                                     .iter_mut()
                                     .find(|folder| folder.path() == &root_path)
                                     .unwrap();
-                                folder.set_folder_state(&folder_path, &FolderState::Opened(items));
+                                folder.set_folder_state(&folder_path, FolderState::Opened(items));
                             }
                         }
                         TreeTask::CloseFolder {
@@ -193,19 +201,15 @@ impl Component for FileExplorer {
                                 .iter_mut()
                                 .find(|folder| folder.path() == &root_path)
                                 .unwrap();
-                            folder.set_folder_state(&folder_path, &FolderState::Closed);
+                            folder.set_folder_state(&folder_path, FolderState::Closed);
                         }
-                        TreeTask::OpenFile {
-                            file_path,
-                            root_path,
-                        } => {
+                        TreeTask::OpenFile { file_path, .. } => {
                             let transport = radio_app_state.read().default_transport.clone();
                             let mut app_state = radio_app_state.write_channel(Channel::Global);
                             EditorTab::open_with(
                                 radio_app_state,
                                 &mut app_state,
                                 file_path,
-                                root_path,
                                 transport.as_read(),
                             );
                         }
@@ -262,32 +266,22 @@ impl Component for FileExplorer {
                             });
                         }
                         Code::Enter => {
-                            if let Some(focused_item) = &focused_item {
-                                if focused_item.is_file {
-                                    let _ = channel.unbounded_send((
-                                        TreeTask::OpenFile {
-                                            file_path: focused_item.path.clone(),
-                                            root_path: focused_item.root_path.clone(),
-                                        },
-                                        focused_item_index(),
-                                    ));
-                                } else if focused_item.is_opened {
-                                    let _ = channel.unbounded_send((
-                                        TreeTask::CloseFolder {
-                                            folder_path: focused_item.path.clone(),
-                                            root_path: focused_item.root_path.clone(),
-                                        },
-                                        focused_item_index(),
-                                    ));
-                                } else {
-                                    let _ = channel.unbounded_send((
-                                        TreeTask::OpenFolder {
-                                            folder_path: focused_item.path.clone(),
-                                            root_path: focused_item.root_path.clone(),
-                                        },
-                                        focused_item_index(),
-                                    ));
-                                }
+                            if let Some(item) = &focused_item {
+                                let task = match (item.is_file, item.is_opened) {
+                                    (true, _) => TreeTask::OpenFile {
+                                        file_path: item.path.clone(),
+                                        root_path: item.root_path.clone(),
+                                    },
+                                    (false, true) => TreeTask::CloseFolder {
+                                        folder_path: item.path.clone(),
+                                        root_path: item.root_path.clone(),
+                                    },
+                                    (false, false) => TreeTask::OpenFolder {
+                                        folder_path: item.path.clone(),
+                                        root_path: item.root_path.clone(),
+                                    },
+                                };
+                                let _ = channel.unbounded_send((task, focused_item_index()));
                             }
                         }
                         _ => {}
@@ -344,67 +338,45 @@ fn file_explorer_item_builder(
         .to_string();
     let is_focused = *focused_item.read() == index;
 
-    if item.is_file {
-        let item = item.clone();
-        let on_press = move |_| {
-            let _ = channel.unbounded_send((
-                TreeTask::OpenFile {
-                    file_path: item.path.clone(),
-                    root_path: item.root_path.clone(),
-                },
-                index,
-            ));
-        };
-        FileExplorerItem {
-            depth: item.depth,
-            radio_app_state: *radio_app_state,
-            on_press: on_press.into(),
-            is_focused,
-            children: label()
-                .max_lines(1)
-                .text_overflow(TextOverflow::Ellipsis)
-                .text(format!("📃 {name}"))
-                .into(),
-        }
-        .into()
+    let item = item.clone();
+    let icon = if item.is_file {
+        "📃"
+    } else if item.is_opened {
+        "📂"
     } else {
-        let item = item.clone();
-        let channel = channel.clone();
-        let on_press = move |_| {
-            if item.is_opened {
-                let _ = channel.unbounded_send((
-                    TreeTask::CloseFolder {
-                        folder_path: item.path.clone(),
-                        root_path: item.root_path.clone(),
-                    },
-                    index,
-                ));
-            } else {
-                let _ = channel.unbounded_send((
-                    TreeTask::OpenFolder {
-                        folder_path: item.path.clone(),
-                        root_path: item.root_path.clone(),
-                    },
-                    index,
-                ));
-            }
+        "📁"
+    };
+
+    let on_press = move |_| {
+        let task = match (item.is_file, item.is_opened) {
+            (true, _) => TreeTask::OpenFile {
+                file_path: item.path.clone(),
+                root_path: item.root_path.clone(),
+            },
+            (false, true) => TreeTask::CloseFolder {
+                folder_path: item.path.clone(),
+                root_path: item.root_path.clone(),
+            },
+            (false, false) => TreeTask::OpenFolder {
+                folder_path: item.path.clone(),
+                root_path: item.root_path.clone(),
+            },
         };
+        let _ = channel.unbounded_send((task, index));
+    };
 
-        let icon = if item.is_opened { "📂" } else { "📁" };
-
-        FileExplorerItem {
-            depth: item.depth,
-            radio_app_state: *radio_app_state,
-            on_press: on_press.into(),
-            is_focused,
-            children: label()
-                .max_lines(1)
-                .text_overflow(TextOverflow::Ellipsis)
-                .text(format!("{icon} {name}"))
-                .into(),
-        }
-        .into()
+    FileExplorerItem {
+        depth: item.depth,
+        radio_app_state: *radio_app_state,
+        on_press: on_press.into(),
+        is_focused,
+        children: label()
+            .max_lines(1)
+            .text_overflow(TextOverflow::Ellipsis)
+            .text(format!("{icon} {name}"))
+            .into(),
     }
+    .into()
 }
 
 #[derive(Clone, PartialEq)]

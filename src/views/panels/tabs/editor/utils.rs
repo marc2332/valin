@@ -3,36 +3,39 @@ use std::path::PathBuf;
 use crate::{
     fs::FSTransport,
     state::{AppState, PanelTab, TabId},
-    views::panels::tabs::editor::{EditorTab, SharedRope},
+    views::panels::tabs::editor::EditorTab,
 };
+use freya::code_editor::Rope;
 
 pub trait AppStateEditorUtils {
     fn editor_tab(&self, tab_id: TabId) -> &EditorTab;
 
     fn editor_tab_mut(&mut self, tab_id: TabId) -> &mut EditorTab;
 
-    fn editor_tab_data(&self, tab_id: TabId) -> Option<(Option<PathBuf>, SharedRope, FSTransport)>;
+    fn editor_tab_data(&self, tab_id: TabId) -> Option<(PathBuf, Rope, FSTransport)>;
 }
 
 impl AppStateEditorUtils for AppState {
     fn editor_tab(&self, tab_id: TabId) -> &EditorTab {
-        self.tabs.get(&tab_id).unwrap().as_text_editor().unwrap()
+        self.tabs
+            .get(&tab_id)
+            .and_then(|tab| tab.as_text_editor())
+            .expect("Tab must exist and be an editor tab")
     }
 
     fn editor_tab_mut(&mut self, tab_id: TabId) -> &mut EditorTab {
         self.tabs
             .get_mut(&tab_id)
-            .unwrap()
-            .as_text_editor_mut()
-            .unwrap()
+            .and_then(|tab| tab.as_text_editor_mut())
+            .expect("Tab must exist and be an editor tab")
     }
 
-    fn editor_tab_data(&self, tab_id: TabId) -> Option<(Option<PathBuf>, SharedRope, FSTransport)> {
+    fn editor_tab_data(&self, tab_id: TabId) -> Option<(PathBuf, Rope, FSTransport)> {
         let tab = self.tabs.get(&tab_id)?.as_text_editor()?;
         Some((
-            tab.editor.data.path().cloned(),
-            tab.editor.data.rope.clone(),
-            tab.editor.transport.clone(),
+            tab.path.clone(),
+            tab.data.rope.clone(),
+            tab.transport.clone(),
         ))
     }
 }

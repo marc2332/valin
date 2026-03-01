@@ -2,7 +2,6 @@ use std::{collections::HashMap, vec};
 
 use freya::prelude::Focus;
 use freya::radio::{Radio, RadioChannel};
-use skia_safe::{FontMgr, textlayout::FontCollection};
 use tracing::info;
 
 use crate::{fs::FSTransport, views::file_explorer::file_explorer_state::FileExplorerState};
@@ -98,16 +97,12 @@ pub struct AppState {
     pub settings: AppSettings,
     pub side_panel: Option<EditorSidePanel>,
     pub default_transport: FSTransport,
-    pub font_collection: FontCollection,
 
     pub file_explorer: FileExplorerState,
 }
 
 impl AppState {
     pub fn new(default_transport: FSTransport) -> Self {
-        let mut font_collection = FontCollection::new();
-        font_collection.set_default_font_manager(FontMgr::default(), "Jetbrains Mono");
-
         Self {
             previous_focused_view: None,
             focused_view: EditorView::default(),
@@ -117,7 +112,6 @@ impl AppState {
             settings: AppSettings::load(),
             side_panel: Some(EditorSidePanel::default()),
             default_transport,
-            font_collection,
 
             file_explorer: FileExplorerState::new(),
         }
@@ -144,7 +138,7 @@ impl AppState {
     /// There are a few things that need to revaluated when the settings are changed
     pub fn apply_settings(&mut self) {
         for tab in self.tabs.values_mut() {
-            tab.on_settings_changed(&self.settings, &self.font_collection)
+            tab.on_settings_changed(&self.settings)
         }
     }
 
@@ -222,14 +216,7 @@ impl AppState {
             let panel_index = self
                 .panels
                 .iter()
-                .enumerate()
-                .find_map(|(panel_index, panel)| {
-                    if panel.tabs.contains(&tab_id) {
-                        Some(panel_index)
-                    } else {
-                        None
-                    }
-                })
+                .position(|panel| panel.tabs.contains(&tab_id))
                 .unwrap();
             // Focus the already open tab with the same content id
             self.focused_panel = panel_index;

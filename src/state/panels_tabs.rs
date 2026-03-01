@@ -5,19 +5,13 @@ use std::{
 };
 
 use freya::prelude::*;
-use skia_safe::textlayout::FontCollection;
 
 use super::{AppSettings, AppState};
 
 pub trait PanelTab {
     fn on_close(&mut self, _app_state: &mut AppState) {}
 
-    fn on_settings_changed(
-        &mut self,
-        _app_settings: &AppSettings,
-        _font_collection: &FontCollection,
-    ) {
-    }
+    fn on_settings_changed(&mut self, _app_settings: &AppSettings) {}
 
     fn get_data(&self) -> PanelTabData;
 

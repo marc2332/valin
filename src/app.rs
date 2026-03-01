@@ -2,7 +2,6 @@ use crate::Args;
 use crate::components::{EditorPanel, StatusBar};
 use crate::settings::watch_settings;
 use crate::state::{EditorSidePanel, EditorView};
-use crate::views;
 use crate::views::commander::commander_ui::Commander;
 use crate::views::file_explorer::FileExplorer;
 use crate::views::file_explorer::file_explorer_ui::{
@@ -44,28 +43,22 @@ impl App for AppView {
             app_state
         });
 
-        // Subscribe to the State Manager
         let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Global);
 
         // Load specified files and folders asynchronously
         use_hook(move || {
             let args = self.0.clone();
-            // let args = consume_context::<Arc<Args>>();
-            // spawn(async move {
-            //     for path in &args.paths {
             spawn(async move {
                 for path in args.paths {
                     // Files
                     if path.is_file() {
-                        let root_path = path.parent().unwrap_or(&path).to_path_buf();
                         let transport = radio_app_state.read().default_transport.clone();
 
                         let mut app_state = radio_app_state.write();
-                        views::panels::tabs::editor::EditorTab::open_with(
+                        EditorTab::open_with(
                             radio_app_state,
                             &mut app_state,
                             path.clone(),
-                            root_path,
                             transport.as_read(),
                         )
                     }

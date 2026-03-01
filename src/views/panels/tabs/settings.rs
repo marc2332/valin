@@ -15,7 +15,6 @@ pub mod Settings {
         EditorTab::open_with(
             radio_app_state,
             app_state,
-            settings_path.clone(),
             settings_path,
             Box::new(MemoryTransport(
                 toml::to_string(&app_state.settings).unwrap(),

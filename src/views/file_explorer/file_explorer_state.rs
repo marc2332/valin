@@ -16,8 +16,7 @@ impl FileExplorerState {
     }
 
     pub fn focus(&self) {
-        // let platform = UsePlatform::current();
-        // platform.request_focus(AccessibilityFocusStrategy::Node(self.focus_id));
+        Focus::new_for_id(self.focus_id).request_focus();
     }
 
     pub fn open_folder(&mut self, item: ExplorerItem) {

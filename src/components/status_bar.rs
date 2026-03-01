@@ -33,11 +33,8 @@ impl Component for StatusBar {
                 .as_text_editor()
                 .map(|editor_tab| {
                     (
-                        (
-                            editor_tab.editor.data.cursor_row(),
-                            editor_tab.editor.data.cursor_col(),
-                        ),
-                        editor_tab.editor.data.editor_type(),
+                        (editor_tab.data.cursor_row(), editor_tab.data.cursor_col()),
+                        editor_tab.data.language_id,
                     )
                 })
         } else {
@@ -71,12 +68,12 @@ impl Component for StatusBar {
                             .child("⚙️"),
                     ),
             )
-            .maybe_child(tab_data.map(|((row, col), editor_type)| {
+            .maybe_child(tab_data.map(|((row, col), language_id)| {
                 rect()
                     .horizontal()
                     .spacing(4.)
                     .child(format!("Ln {}, Col {}", row + 1, col + 1))
-                    .child(format!("{}", editor_type.language_id()))
+                    .child(format!("{}", language_id))
             }))
     }
 }

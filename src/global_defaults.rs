@@ -11,7 +11,7 @@ pub mod GlobalDefaults {
 
     use super::{
         ClosePanelCommand, CloseTabCommand, FocusNextPanelCommand, FocusPreviousPanelCommand,
-        OpenSearchCommand, OpenSettingsCommand, SplitPanelCommand, ToggleCommanderCommand,
+        OpenSettingsCommand, SplitPanelCommand, ToggleCommanderCommand,
     };
 
     pub fn init(
@@ -24,7 +24,6 @@ pub mod GlobalDefaults {
         commands.register(ClosePanelCommand(radio_app_state));
         commands.register(ToggleCommanderCommand(radio_app_state));
         commands.register(OpenSettingsCommand(radio_app_state));
-        commands.register(OpenSearchCommand(radio_app_state));
         commands.register(CloseTabCommand(radio_app_state));
         commands.register(FocusNextPanelCommand(radio_app_state));
         commands.register(FocusPreviousPanelCommand(radio_app_state));
@@ -116,7 +115,7 @@ pub struct ClosePanelCommand(pub RadioAppState);
 
 impl ClosePanelCommand {
     pub fn id() -> &'static str {
-        "cllose-panel"
+        "close-panel"
     }
 }
 
@@ -204,37 +203,6 @@ impl EditorCommand for OpenSettingsCommand {
         let mut radio_app_state = self.0;
         let mut app_state = radio_app_state.write_channel(Channel::Global);
         Settings::open_with(radio_app_state, &mut app_state);
-    }
-}
-
-#[derive(Clone)]
-pub struct OpenSearchCommand(pub RadioAppState);
-
-impl OpenSearchCommand {
-    pub fn id() -> &'static str {
-        "open-search"
-    }
-}
-
-impl EditorCommand for OpenSearchCommand {
-    fn matches(&self, input: &str) -> bool {
-        self.text().to_lowercase().contains(&input.to_lowercase())
-    }
-
-    fn id(&self) -> &str {
-        Self::id()
-    }
-
-    fn text(&self) -> &str {
-        "Open Search"
-    }
-
-    fn run(&self, ctx: &mut CommandRunContext) {
-        ctx.focus_previous_view = false;
-
-        let mut radio_app_state = self.0;
-        let mut app_state = radio_app_state.write_channel(Channel::Global);
-        app_state.focus_view(EditorView::Search);
     }
 }
 

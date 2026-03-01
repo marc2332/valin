@@ -8,7 +8,11 @@
 
 ![Demo](./demo.png)
 
-You can download it from the [Releases](https://github.com/marc2332/valin/releases) page or run it from source code, with `--release` mode if you want max performance.
+## Installation
+
+```rust
+cargo install valin
+```
 
 ## Notes
 - It currently uses Jetbrains Mono for the text editor, you must have it installed.

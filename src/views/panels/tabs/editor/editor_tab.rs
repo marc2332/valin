@@ -1,55 +1,43 @@
 use std::path::PathBuf;
 
 use crate::{
-    fs::FSReadTransportInterface,
+    fs::{FSReadTransportInterface, FSTransport},
     state::{
         AppSettings, AppState, Channel, EditorCommands, KeyboardShortcuts, PanelTab, PanelTabData,
         RadioAppState, TabId, TabProps,
     },
     views::panels::tabs::editor::{
-        AppStateEditorUtils, EditorData, EditorType, SharedRope, TabEditorData, TabEditorUtils,
+        AppStateEditorUtils, TabEditorUtils,
         commands::{DecreaseFontSizeCommand, IncreaseFontSizeCommand, SaveFileCommand},
-        editor_ui::EditorUi,
     },
 };
 
+use freya::code_editor::{CodeEditor, CodeEditorData, LanguageId, Rope};
 use freya::prelude::*;
-
 use freya::radio::use_radio;
-use skia_safe::textlayout::FontCollection;
 use tracing::info;
 
 /// A tab with an embedded Editor.
 pub struct EditorTab {
-    pub editor: TabEditorData,
-    pub id: TabId,
-    pub focus_id: AccessibilityId,
+    pub(crate) data: CodeEditorData,
+    pub(crate) transport: FSTransport,
+    pub(crate) id: TabId,
+    pub(crate) focus_id: AccessibilityId,
+    pub(crate) path: PathBuf,
 }
 
 impl PanelTab for EditorTab {
-    fn on_settings_changed(
-        &mut self,
-        app_settings: &AppSettings,
-        font_collection: &FontCollection,
-    ) {
-        self.editor
-            .data
-            .measure_longest_line(app_settings.editor.font_size, font_collection);
+    fn on_settings_changed(&mut self, app_settings: &AppSettings) {
+        self.data.measure(app_settings.editor.font_size);
     }
 
     fn get_data(&self) -> PanelTabData {
-        let title = self.editor.data.editor_type.title();
         PanelTabData {
             id: self.id,
-            title,
-            edited: self.editor.data.is_edited(),
+            title: self.content_id(),
+            edited: self.data.is_edited(),
             focus_id: self.focus_id,
-            content_id: self
-                .editor
-                .data
-                .editor_type
-                .content_id()
-                .unwrap_or_else(|| self.id.to_string()),
+            content_id: self.content_id(),
         }
     }
     fn render(&self) -> fn(&TabProps) -> Element {
@@ -57,15 +45,12 @@ impl PanelTab for EditorTab {
             let tab_id = props.tab_id;
             let radio_app_state = use_radio(Channel::follow_tab(tab_id));
             let focus_id = radio_app_state.slice_current(move |s| &s.editor_tab(tab_id).focus_id);
-            let editor = radio_app_state
-                .slice_mut_current(move |s| &mut s.editor_tab_mut(tab_id).editor.data);
-            EditorUi {
-                editor: editor.into_writable(),
-                font_size: radio_app_state.read().font_size(),
-                line_height: radio_app_state.read().line_height(),
-                a11y_id: *focus_id.read(),
-            }
-            .into()
+            let editor =
+                radio_app_state.slice_mut_current(move |s| &mut s.editor_tab_mut(tab_id).data);
+            CodeEditor::new(editor.into_writable(), *focus_id.read())
+                .font_size(radio_app_state.read().font_size())
+                .line_height(radio_app_state.read().line_height())
+                .into()
         }
     }
 
@@ -79,12 +64,18 @@ impl PanelTab for EditorTab {
 }
 
 impl EditorTab {
-    pub fn new(id: TabId, editor: TabEditorData) -> Self {
+    pub fn new(id: TabId, data: CodeEditorData, transport: FSTransport, path: PathBuf) -> Self {
         Self {
-            editor,
             id,
             focus_id: Focus::new_id(),
+            data,
+            transport,
+            path,
         }
+    }
+
+    pub fn content_id(&self) -> String {
+        self.path.file_name().unwrap().to_str().unwrap().to_owned()
     }
 
     /// Open an EditorTab in the focused panel.
@@ -92,24 +83,19 @@ impl EditorTab {
         mut radio: RadioAppState,
         app_state: &mut AppState,
         path: PathBuf,
-        root_path: PathBuf,
         read_transport: Box<dyn FSReadTransportInterface + 'static>,
     ) {
-        let rope = SharedRope::default();
         let tab_id = TabId::new();
 
-        let data = TabEditorData {
-            data: EditorData::new(
-                EditorType::FS {
-                    path: path.clone(),
-                    root_path: root_path.clone(),
-                },
-                rope.clone(),
+        let tab = Self::new(
+            tab_id,
+            CodeEditorData::new(
+                Rope::new(),
+                LanguageId::parse(path.extension().unwrap().to_str().unwrap()),
             ),
-            transport: app_state.default_transport.clone(),
-        };
-
-        let tab = Self::new(tab_id, data);
+            app_state.default_transport.clone(),
+            path.clone(),
+        );
 
         // Dont create the same tab twice
         if !app_state.push_tab(tab, app_state.focused_panel) {
@@ -122,19 +108,14 @@ impl EditorTab {
             async move {
                 let content = read_transport.read_to_string(&path).await;
                 if let Ok(content) = content {
-                    rope.borrow_mut().insert(0, &content);
-
                     let mut app_state = radio.write_channel(Channel::follow_tab(tab_id));
                     let font_size = app_state.font_size();
-                    let font_collection = app_state.font_collection.clone();
 
                     let tab = app_state.tab_mut(&tab_id);
                     let editor_tab = tab.as_text_editor_mut().unwrap();
-                    editor_tab.editor.data.run_parser();
-                    editor_tab
-                        .editor
-                        .data
-                        .measure_longest_line(font_size, &font_collection);
+                    editor_tab.data.rope.insert(0, &content);
+                    editor_tab.data.parse();
+                    editor_tab.data.measure(font_size);
 
                     info!("Loaded file content for {path:?}");
                 }
