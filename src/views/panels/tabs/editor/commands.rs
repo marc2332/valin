@@ -97,15 +97,36 @@ impl EditorCommand for SaveFileCommand {
 
             if let Some((file_path, rope, transport)) = editor_data {
                 spawn(async move {
-                    let mut writer = transport
+                    let bytes: Vec<u8> = rope.bytes().collect();
+                    let new_file_size = bytes.len() as u64;
+                    let mut options = OpenOptions::new();
+                    options.write(true).create(true);
+                    
+                    match transport
                         .open(&file_path, OpenOptions::new().write(true).truncate(true))
                         .await
-                        .unwrap();
-                    let bytes: Vec<u8> = rope.bytes().collect();
-                    let _ = writer.write_all(&bytes).await;
-                    let mut app_state = radio.write_channel(Channel::follow_tab(active_tab));
-                    let editor_tab = app_state.editor_tab_mut(active_tab);
-                    editor_tab.data.mark_as_saved()
+                    {
+                        Ok(mut writer) => {
+                            let result = async {
+                                writer.write_all(&bytes).await?;
+                                writer.set_len(new_file_size).await?;
+                                writer.sync_all().await?;
+                                Ok::<(), std::io::Error>(())
+                            }.await;
+
+                            match result {
+                                Ok(_) => {
+                                    let mut app_state = radio.write_channel(Channel::follow_tab(active_tab));
+                                    let editor_tab = app_state.editor_tab_mut(active_tab);
+                                    editor_tab.data.mark_as_saved();
+                                }
+                                // TODO: Handle error
+                                Err(_) => {}
+                            }
+                        }
+                        // TODO: Handle error
+                        Err(_) => {}
+                    }
                 });
             }
         }
