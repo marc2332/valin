@@ -97,15 +97,17 @@ impl EditorCommand for SaveFileCommand {
 
             if let Some((file_path, rope, transport)) = editor_data {
                 spawn(async move {
-                    let mut writer = transport
-                        .open(&file_path, OpenOptions::new().write(true).truncate(true))
-                        .await
-                        .unwrap();
                     let bytes: Vec<u8> = rope.bytes().collect();
-                    let _ = writer.write_all(&bytes).await;
+                    let new_file_size = bytes.len() as u64;
+                    let mut options = OpenOptions::new();
+                    options.write(true).create(true);
+                    let mut writer = transport.open(&file_path, &mut options).await.unwrap();
+                    writer.write_all(&bytes).await.unwrap();
+                    writer.set_len(new_file_size).await.unwrap();
+                    writer.sync_all().await.unwrap();
                     let mut app_state = radio.write_channel(Channel::follow_tab(active_tab));
                     let editor_tab = app_state.editor_tab_mut(active_tab);
-                    editor_tab.data.mark_as_saved()
+                    editor_tab.data.mark_as_saved();
                 });
             }
         }
