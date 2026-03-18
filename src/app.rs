@@ -146,7 +146,7 @@ impl App for AppView {
             // Add side panel if visible
             if let Some(panel) = side_panel {
                 container = container.panel(
-                    ResizablePanel::new(PanelSize::px(200.))
+                    ResizablePanel::new(PanelSize::px(225.))
                         .order(0usize)
                         .min_size(10.)
                         .child(match panel {
@@ -157,7 +157,7 @@ impl App for AppView {
 
             // Add the panels container
             container = container.panel(
-                ResizablePanel::new(PanelSize::percent(80.))
+                ResizablePanel::new(PanelSize::percent(100.))
                     .order(1usize)
                     .child(panels_container),
             );
