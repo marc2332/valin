@@ -1,5 +1,12 @@
 use freya::prelude::*;
 
+#[derive(Default, PartialEq)]
+pub enum ButtonStatus {
+    Hovering,
+    #[default]
+    Idle,
+}
+
 #[derive(Clone, PartialEq)]
 pub struct EditorTab {
     pub value: String,
@@ -74,6 +81,7 @@ impl Component for EditorTab {
                             .center()
                             .on_press(move |e: Event<PressEventData>| {
                                 e.stop_propagation();
+                                e.prevent_default();
                                 on_pressaction.call(());
                             })
                             .maybe_child(if self.is_edited {

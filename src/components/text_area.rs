@@ -109,7 +109,7 @@ impl Component for TextArea {
             });
         };
 
-        let on_global_mouse_up = move |_: Event<MouseEventData>| {
+        let on_global_pointer_press = move |_: Event<PointerEventData>| {
             editable.process_event(EditableEvent::Release);
         };
 
@@ -147,7 +147,7 @@ impl Component for TextArea {
                     .on_pointer_leave(on_mouse_leave)
                     .on_mouse_move(on_mousemove)
                     .on_mouse_down(on_mouse_down)
-                    .on_global_mouse_up(on_global_mouse_up)
+                    .on_global_pointer_press(on_global_pointer_press)
                     .width(Size::fill())
                     .cursor_index(cursor_char)
                     .cursor_color(text_color)

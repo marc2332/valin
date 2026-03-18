@@ -5,6 +5,13 @@ use freya::radio::use_radio;
 use futures::StreamExt;
 use futures_channel::mpsc::UnboundedSender;
 
+#[derive(Default, PartialEq)]
+pub enum ButtonStatus {
+    Hovering,
+    #[default]
+    Idle,
+}
+
 use crate::{
     fs::FSTransport,
     state::{AppState, Channel, EditorView, RadioAppState},

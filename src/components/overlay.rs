@@ -25,7 +25,7 @@ impl Component for Overlay {
     fn render(&self) -> impl IntoElement {
         let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Global);
 
-        let on_global_mouse_down = move |_: Event<MouseEventData>| {
+        let on_global_mouse_down = move |_: Event<PointerEventData>| {
             let mut app_state = radio_app_state.write_channel(Channel::Global);
             app_state.focus_previous_view();
         };
@@ -39,7 +39,7 @@ impl Component for Overlay {
             .width(Size::fill())
             .height(Size::px(0.))
             .layer(Layer::Overlay)
-            .on_global_mouse_down(on_global_mouse_down)
+            .on_global_pointer_move(on_global_mouse_down)
             .child(
                 rect()
                     .width(Size::fill())
