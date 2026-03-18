@@ -91,6 +91,7 @@ impl Component for EditorTab {
                             .center()
                             .on_press(move |e: Event<PressEventData>| {
                                 e.stop_propagation();
+                                e.prevent_default();
                                 on_pressaction.call(());
                             })
                             .maybe_child(if self.is_edited {

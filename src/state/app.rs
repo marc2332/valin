@@ -244,12 +244,14 @@ impl AppState {
     }
 
     pub fn close_tab(&mut self, tab_id: TabId) {
-        let (panel_index, panel) = self
+        let Some((panel_index, panel)) = self
             .panels
             .iter()
             .enumerate()
             .find(|(_, panel)| panel.tabs.contains(&tab_id))
-            .unwrap();
+        else {
+            return;
+        };
         if let Some(active_tab) = panel.active_tab
             && active_tab == tab_id
         {
@@ -266,15 +268,18 @@ impl AppState {
             );
         }
 
-        let mut panel_tab = self.tabs.remove(&tab_id).unwrap();
+        let Some(mut panel_tab) = self.tabs.remove(&tab_id) else {
+            return;
+        };
         panel_tab.on_close(self);
 
-        let panel = self
+        if let Some(panel) = self
             .panels
             .iter_mut()
             .find(|panel| panel.tabs.contains(&tab_id))
-            .unwrap();
-        panel.tabs.retain(|tab| *tab != tab_id);
+        {
+            panel.tabs.retain(|tab| *tab != tab_id);
+        }
 
         info!("Closed tab [panel={panel_index}] [tab={tab_id:?}]",);
     }
