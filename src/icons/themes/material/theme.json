@@ -1,0 +1,23 @@
+{
+  "file_default": "icon_file.svg",
+  "folder_open": "icon_folder_open.svg",
+  "folder_closed": "icon_folder.svg",
+  "icons": [
+    {
+      "svg": "icon_code.svg",
+      "extensions": ["rs", "ts", "tsx", "js", "jsx", "c", "cpp", "h", "hpp", "py", "go", "java", "kt", "swift", "rb", "php", "cs", "lua", "sh", "bash", "zsh", "fish"]
+    },
+    {
+      "svg": "icon_article.svg",
+      "extensions": ["md", "markdown", "txt", "rst", "adoc"]
+    },
+    {
+      "svg": "icon_data.svg",
+      "extensions": ["json", "jsonc", "json5"]
+    },
+    {
+      "svg": "icon_settings.svg",
+      "extensions": ["toml", "yaml", "yml", "ini", "cfg", "conf", "env"]
+    }
+  ]
+}

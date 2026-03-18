@@ -4,7 +4,7 @@ use std::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
-use freya::prelude::*;
+use freya::prelude::{Bytes, *};
 
 use super::{AppSettings, AppState};
 
@@ -52,6 +52,8 @@ pub struct PanelTabData {
     pub content_id: String,
     pub id: TabId,
     pub focus_id: AccessibilityId,
+    /// SVG icon bytes for this tab, or `None` for tabs without a file icon.
+    pub icon: Option<Bytes>,
 }
 
 #[derive(Default)]

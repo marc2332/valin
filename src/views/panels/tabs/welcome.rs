@@ -15,6 +15,7 @@ impl PanelTab for WelcomeTab {
             edited: false,
             focus_id: self.focus_id,
             content_id: "welcome".to_string(),
+            icon: None,
         }
     }
     fn render(&self) -> fn(&TabProps) -> Element {

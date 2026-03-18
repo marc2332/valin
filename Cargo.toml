@@ -30,7 +30,9 @@ smol = "2.0.2"
 clap = { version = "4.5.4", features = ["derive"] }
 async-trait = "0.1.80"
 toml = "0.8.12"
-serde = "1.0.200"
+serde = { version = "1.0.200", features = ["derive"] }
+serde_json = "1"
+include_dir = "0.7"
 home = "0.5.9"
 
 tracing = "0.1.40"

@@ -183,6 +183,7 @@ impl Component for PanelTab {
             value: tab_data.title,
             is_edited: tab_data.edited,
             is_selected,
+            icon: tab_data.icon,
         }
     }
 }
