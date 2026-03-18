@@ -101,20 +101,32 @@ impl Component for EditorPanel {
                                 .maybe_child(if show_close_panel {
                                     Some(
                                         Button::new()
+                                            .flat()
                                             .height(Size::fill())
                                             .padding((0., 8.))
                                             .on_press(close_panel)
-                                            .child("Close"),
+                                            .child(
+                                                svg(freya::icons::lucide::x())
+                                                    .width(Size::px(16.0))
+                                                    .height(Size::px(16.0))
+                                                    .color((200, 200, 200)),
+                                            ),
                                     )
                                 } else {
                                     None
                                 })
                                 .child(
                                     Button::new()
+                                        .flat()
                                         .height(Size::fill())
                                         .padding((0., 8.))
                                         .on_press(split_panel)
-                                        .child("Split"),
+                                        .child(
+                                            svg(freya::icons::lucide::columns_2())
+                                                .width(Size::px(20.0))
+                                                .height(Size::px(20.0))
+                                                .color((200, 200, 200)),
+                                        ),
                                 ),
                         ),
                 )
@@ -122,7 +134,7 @@ impl Component for EditorPanel {
                     rect()
                         .expanded()
                         .on_mouse_down(on_presspanel)
-                        .background((1, 4, 9))
+                        .background((8, 8, 12))
                         .child(if let Some(tab_id) = active_tab {
                             let active_tab = app_state.tab(&tab_id);
                             let render = active_tab.render();

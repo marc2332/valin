@@ -28,11 +28,11 @@ impl Component for EditorTab {
             }
         });
 
-        let on_pointer_enter = move |_| {
+        let on_pointer_over = move |_| {
             status.set(ButtonStatus::Hovering);
         };
 
-        let on_pointer_leave = move |_| {
+        let on_pointer_out = move |_| {
             status.set(ButtonStatus::default());
         };
 
@@ -63,8 +63,8 @@ impl Component for EditorTab {
                 rect()
                     .background(background)
                     .on_press(self.on_press.clone())
-                    .on_pointer_enter(on_pointer_enter)
-                    .on_pointer_leave(on_pointer_leave)
+                    .on_pointer_over(on_pointer_over)
+                    .on_pointer_out(on_pointer_out)
                     .expanded()
                     .cross_align(Alignment::Center)
                     .horizontal()

@@ -170,7 +170,7 @@ impl App for AppView {
         rect()
             .font_size(14.)
             .color(Color::from((230, 237, 243)))
-            .background((1, 4, 9))
+            .background((8, 8, 12))
             .expanded()
             .on_global_key_down(on_global_key_down)
             .maybe_child(if focused_view == EditorView::Commander {

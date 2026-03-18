@@ -15,10 +15,10 @@ pub fn github_dark_theme() -> Theme {
             error: Color::from_rgb(248, 81, 73),
             info: Color::from_rgb(88, 166, 255),
 
-            background: Color::from_rgb(1, 4, 9),
+            background: Color::from_rgb(8, 8, 12),
             surface_primary: Color::from_rgb(13, 17, 23),
             surface_secondary: Color::from_rgb(22, 27, 34),
-            surface_tertiary: Color::from_rgb(1, 4, 9),
+            surface_tertiary: Color::from_rgb(33, 38, 45),
             surface_inverse: Color::from_rgb(240, 246, 252),
             surface_inverse_secondary: Color::from_rgb(201, 209, 217),
             surface_inverse_tertiary: Color::from_rgb(177, 186, 196),
@@ -38,8 +38,8 @@ pub fn github_dark_theme() -> Theme {
             active: Color::from_rgb(22, 27, 34),
             disabled: Color::from_rgb(13, 17, 23),
 
-            overlay: Color::from_af32rgb(0.5, 1, 4, 9),
-            shadow: Color::from_af32rgb(0.6, 1, 4, 9),
+            overlay: Color::from_af32rgb(0.5, 8, 8, 12),
+            shadow: Color::from_af32rgb(0.6, 8, 8, 12),
         },
         ..DARK_THEME
     };

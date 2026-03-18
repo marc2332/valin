@@ -130,7 +130,7 @@ impl Component for TextArea {
             .overflow(Overflow::Clip)
             .width(Size::fill())
             .color(text_color)
-            .background((1, 4, 9))
+            .background((8, 8, 12))
             .corner_radius(8.)
             .border(Border::new().width(1.).fill((33, 38, 45)))
             .padding((8., 6.))
