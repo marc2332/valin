@@ -140,7 +140,7 @@ struct CommanderOption {
 impl Component for CommanderOption {
     fn render(&self) -> impl IntoElement {
         let background = if self.is_selected {
-            Color::from((29, 32, 33))
+            Color::from((22, 27, 34))
         } else {
             Color::TRANSPARENT
         };

@@ -417,28 +417,35 @@ impl Component for FileExplorerItem {
         };
 
         let background = match *status.read() {
-            ButtonStatus::Idle | ButtonStatus::Hovering if self.is_focused => (29, 32, 33).into(),
-            ButtonStatus::Hovering => (29, 32, 33, 0.7).into(),
+            ButtonStatus::Idle | ButtonStatus::Hovering if self.is_focused => (22, 27, 34).into(),
+            ButtonStatus::Hovering => (110, 118, 129, 0.1).into(),
             ButtonStatus::Idle => Color::TRANSPARENT,
         };
 
         let color: Color = if self.is_focused {
-            (245, 245, 245).into()
+            (230, 237, 243).into()
         } else {
-            (210, 210, 210).into()
+            (125, 133, 144).into()
         };
 
         let padding_left = (self.depth * 10) + 10;
+
+        let border = if self.is_focused {
+            Border::new().width(1.).fill((140, 148, 158))
+        } else {
+            Border::new().width(0.).fill(Color::TRANSPARENT)
+        };
 
         rect()
             .on_pointer_enter(on_mouseenter)
             .on_pointer_leave(on_mouse_leave)
             .on_press(on_press)
             .background(background)
+            .border(border)
             .width(Size::fill())
             .padding(Gaps::new(0., 0., 0., padding_left as f32))
             .main_align(Alignment::Center)
-            .height(Size::px(27.0))
+            .height(Size::px(25.0))
             .color(color)
             .font_size(14.0)
             .child(self.children.clone())

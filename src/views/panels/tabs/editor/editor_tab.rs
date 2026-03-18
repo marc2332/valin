@@ -12,6 +12,7 @@ use crate::{
     },
 };
 
+use crate::theme::{GITHUB_DARK_EDITOR_THEME, GITHUB_DARK_SYNTAX_THEME};
 use freya::code_editor::{CodeEditor, CodeEditorData, LanguageId, Rope};
 use freya::prelude::*;
 use freya::radio::use_radio;
@@ -52,6 +53,7 @@ impl PanelTab for EditorTab {
             CodeEditor::new(editor.into_writable(), *focus_id.read())
                 .font_size(radio_app_state.read().font_size())
                 .line_height(radio_app_state.read().line_height())
+                .theme(GITHUB_DARK_EDITOR_THEME)
                 .into()
         }
     }
@@ -97,15 +99,19 @@ impl EditorTab {
         let tab_id = TabId::new();
 
         let icon = app_state.file_icons.get_file(&path).svg.clone();
+
+        let mut code_data = CodeEditorData::new(
+            Rope::new(),
+            path.extension()
+                .and_then(|ext| ext.to_str())
+                .map(LanguageId::parse)
+                .unwrap_or(LanguageId::Unknown),
+        );
+        code_data.set_theme(GITHUB_DARK_SYNTAX_THEME);
+
         let tab = Self::new(
             tab_id,
-            CodeEditorData::new(
-                Rope::new(),
-                path.extension()
-                    .and_then(|ext| ext.to_str())
-                    .map(LanguageId::parse)
-                    .unwrap_or(LanguageId::Unknown),
-            ),
+            code_data,
             app_state.default_transport.clone(),
             path.clone(),
             icon,
