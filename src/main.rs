@@ -21,6 +21,34 @@ use freya_performance_plugin::PerformanceOverlayPlugin;
 use tracing::info;
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
+/// Fall back to the Adwaita cursor theme when the host theme isn't reachable
+/// inside the Flatpak sandbox (causes an invisible cursor on Wayland).
+#[cfg(target_os = "linux")]
+fn fix_flatpak_cursor_theme() {
+    if std::env::var("FLATPAK_ID").is_err() {
+        return;
+    }
+
+    let theme_name = std::env::var("XCURSOR_THEME").unwrap_or_else(|_| "default".into());
+
+    if xcursor::CursorTheme::load(&theme_name)
+        .load_icon("left_ptr")
+        .is_none()
+    {
+        // SAFETY: called before any other threads are spawned.
+        unsafe {
+            std::env::set_var("XCURSOR_THEME", "Adwaita");
+        }
+    }
+
+    if std::env::var("XCURSOR_SIZE").is_err() {
+        // SAFETY: called before any other threads are spawned.
+        unsafe {
+            std::env::set_var("XCURSOR_SIZE", "24");
+        }
+    }
+}
+
 #[derive(Parser, Debug, PartialEq, Clone)]
 #[command(version, about, long_about = None)]
 struct Args {
@@ -34,6 +62,9 @@ struct Args {
 }
 
 fn main() {
+    #[cfg(target_os = "linux")]
+    fix_flatpak_cursor_theme();
+
     let subscriber = FmtSubscriber::builder()
         .with_env_filter(
             EnvFilter::builder()

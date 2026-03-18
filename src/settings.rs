@@ -9,6 +9,14 @@ use tracing::info;
 use crate::state::{AppSettings, Channel, RadioAppState};
 
 pub fn settings_path() -> Option<PathBuf> {
+    // Inside Flatpak, home::home_dir() returns the sandboxed home
+    // (~/.var/app/<id>/). Use the real $HOME so the settings file
+    // stays at ~/valin.toml on the host (requires --filesystem=host).
+    if std::env::var("FLATPAK_ID").is_ok() {
+        let home = std::env::var("HOME").ok()?;
+        return Some(PathBuf::from(home).join("valin.toml"));
+    }
+
     let home_dir = home::home_dir()?;
 
     let settings_path = home_dir.join("valin.toml");

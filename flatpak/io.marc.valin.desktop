@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Valin
+Comment=A code editor built with Freya and Rust
+Exec=valin %F
+Icon=io.marc.valin
+Terminal=false
+Type=Application
+Categories=TextEditor;Development;IDE;Utility;
+Keywords=editor;code;text;development;programming;
+StartupWMClass=valin
+MimeType=text/plain;text/x-csrc;text/x-chdr;text/x-c++src;text/x-c++hdr;text/x-java;text/x-python;text/x-ruby;text/x-rust;text/javascript;text/x-shellscript;text/x-script.python;text/html;text/css;text/xml;application/json;application/x-yaml;application/toml;

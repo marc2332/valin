@@ -41,6 +41,9 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 notify = "6.1.1"
 rustc-hash = "2.1.1"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+xcursor = "0.3"
+
 [profile.release]
 panic = "abort"
 lto = true
