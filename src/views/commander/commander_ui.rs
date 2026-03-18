@@ -13,7 +13,7 @@ pub struct Commander {
 impl Component for Commander {
     fn render(&self) -> impl IntoElement {
         let mut radio_app_state = use_radio::<AppState, Channel>(Channel::Global);
-        let mut value = use_state(String::new);
+        let value = use_state(String::new);
         let mut selected = use_state(|| 0usize);
 
         let editor_commands = self.editor_commands;
@@ -34,13 +34,6 @@ impl Component for Commander {
         let options_height = ((filtered_commands_len.max(1)) * 30).max(175);
 
         let command_id = filtered_commands.get(*selected.read()).cloned();
-
-        let onchange = move |v| {
-            if *value.read() != v {
-                selected.set(0);
-                value.set(v);
-            }
-        };
 
         let on_submit = move |_: String| {
             let editor_commands = editor_commands.read();
@@ -90,10 +83,11 @@ impl Component for Commander {
                 .on_key_down(onkeydown)
                 .spacing(5.)
                 .child(
-                    TextArea::new()
+                    TextArea::new(value)
                         .placeholder("Run a command...")
-                        .value(value.read().clone())
-                        .onchange(onchange)
+                        .on_change(move |_: String| {
+                            selected.set(0);
+                        })
                         .on_submit(on_submit),
                 )
                 .child(

@@ -8,47 +8,36 @@ use freya::{
 pub struct TextArea {
     /// Placeholder text for when there is no text.
     pub placeholder: String,
-    /// Current value of the TextArea
-    pub value: String, // TODO: CHANGE
-    /// Handler for the `onchange` event.
-    pub onchange: EventHandler<String>,
+    /// Current value of the TextArea.
+    pub value: Writable<String>,
+    /// Handler for the `on_change` event.
+    pub on_change: Option<EventHandler<String>>,
     /// Handler for the `on_submit` event.
-    pub on_submit: EventHandler<String>,
+    pub on_submit: Option<EventHandler<String>>,
 }
 
 impl TextArea {
-    pub fn new() -> Self {
+    pub fn new(value: impl Into<Writable<String>>) -> Self {
         Self {
             placeholder: String::new(),
-            value: String::new(),
-            onchange: EventHandler::new(|_| {}),
-            on_submit: EventHandler::new(|_| {}),
+            value: value.into(),
+            on_change: None,
+            on_submit: None,
         }
     }
-    // TODO: CHANGE
-    pub fn placeholder<P: Into<String>>(mut self, placeholder: P) -> Self {
+
+    pub fn placeholder(mut self, placeholder: impl Into<String>) -> Self {
         self.placeholder = placeholder.into();
         self
     }
-    // TODO: CHANGE
-    pub fn value<V: Into<String>>(mut self, value: V) -> Self {
-        self.value = value.into();
+
+    pub fn on_change(mut self, on_change: impl Into<EventHandler<String>>) -> Self {
+        self.on_change = Some(on_change.into());
         self
     }
-    // TODO: CHANGE
-    pub fn onchange<F>(mut self, onchange: F) -> Self
-    where
-        F: FnMut(String) + 'static,
-    {
-        self.onchange = EventHandler::new(onchange);
-        self
-    }
-    // TODO: CHANGE
-    pub fn on_submit<F>(mut self, on_submit: F) -> Self
-    where
-        F: FnMut(String) + 'static,
-    {
-        self.on_submit = EventHandler::new(on_submit);
+
+    pub fn on_submit(mut self, on_submit: impl Into<EventHandler<String>>) -> Self {
+        self.on_submit = Some(on_submit.into());
         self
     }
 }
@@ -57,28 +46,35 @@ impl Component for TextArea {
     fn render(&self) -> impl IntoElement {
         let mut status = use_state(InputStatus::default);
         let value = self.value.clone();
-        let mut editable = use_editable(|| value.clone(), EditableConfig::new);
+        let mut editable = use_editable(|| value.read().to_string(), EditableConfig::new);
         let focus = use_focus();
         let holder = use_state(ParagraphHolder::default);
 
-        if value != *editable.editor().read().rope() {
-            editable.editor_mut().write().set(&value);
+        if &*value.read() != editable.editor().read().rope() {
+            editable.editor_mut().write().set(&value.read());
             editable.editor_mut().write().editor_history().clear();
             editable.editor_mut().write().clear_selection();
         }
 
-        let onchange = self.onchange.clone();
+        let on_change = self.on_change.clone();
         let on_submit = self.on_submit.clone();
 
+        let mut key_value = value.clone();
         let onkeydown = move |e: Event<KeyboardEventData>| {
             if let Key::Named(NamedKey::Enter) = e.key {
-                on_submit.call(editable.editor().peek().to_string());
+                if let Some(on_submit) = &on_submit {
+                    on_submit.call(editable.editor().peek().to_string());
+                }
             } else {
                 editable.process_event(EditableEvent::KeyDown {
                     key: &e.key,
                     modifiers: e.modifiers,
                 });
-                onchange.call(editable.editor().peek().to_string());
+                let text = editable.editor().peek().to_string();
+                *key_value.write() = text.clone();
+                if let Some(on_change) = &on_change {
+                    on_change.call(text);
+                }
             }
         };
 
@@ -120,10 +116,11 @@ impl Component for TextArea {
         let cursor_char = editable.editor().read().cursor_pos();
 
         let placeholder = self.placeholder.clone();
-        let (text_color, display_text) = if self.value.is_empty() {
+        let value_str = value.read();
+        let (text_color, display_text) = if value_str.is_empty() {
             (Color::from((110, 118, 129)), placeholder)
         } else {
-            (Color::from((230, 237, 243)), self.value.clone())
+            (Color::from((230, 237, 243)), value_str.clone())
         };
 
         rect()
