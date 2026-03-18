@@ -91,7 +91,10 @@ impl EditorTab {
             tab_id,
             CodeEditorData::new(
                 Rope::new(),
-                LanguageId::parse(path.extension().unwrap().to_str().unwrap()),
+                path.extension()
+                    .and_then(|ext| ext.to_str())
+                    .map(LanguageId::parse)
+                    .unwrap_or(LanguageId::Unknown),
             ),
             app_state.default_transport.clone(),
             path.clone(),
