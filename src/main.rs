@@ -28,9 +28,9 @@ struct Args {
     #[arg(num_args(0..))]
     paths: Vec<PathBuf>,
 
-    /// Enable the performance overlay.
-    #[arg(short, long)]
-    performance_overlay: bool,
+    /// Enable the FPS overlay.
+    #[arg(long)]
+    fps: bool,
 }
 
 fn main() {
@@ -52,7 +52,7 @@ fn main() {
 
     let mut config = LaunchConfig::default();
 
-    if args.performance_overlay {
+    if args.fps {
         config = config.with_plugin(PerformanceOverlayPlugin::default())
     }
 
