@@ -1,5 +1,12 @@
 use freya::prelude::*;
 
+#[derive(Default, PartialEq)]
+pub enum ButtonStatus {
+    Hovering,
+    #[default]
+    Idle,
+}
+
 #[derive(Clone, PartialEq)]
 pub struct EditorTab {
     pub value: String,

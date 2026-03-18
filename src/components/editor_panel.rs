@@ -170,7 +170,6 @@ impl Component for PanelTab {
         let on_pressaction = move |_| {
             if tab_data.edited {
                 // Save logic here if needed
-                println!("save...");
             } else {
                 radio_app_state
                     .write_channel(Channel::Global)
