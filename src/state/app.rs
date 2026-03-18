@@ -289,7 +289,6 @@ impl AppState {
             let focus = Focus::new_for_id(tab.get_data().focus_id);
             focus.request_focus();
         }
-        println!("{tab_id:?}");
     }
 
     pub fn close_active_tab(&mut self) {
