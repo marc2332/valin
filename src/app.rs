@@ -159,6 +159,7 @@ impl App for AppView {
             // Add the panels container
             container = container.panel(
                 ResizablePanel::new(PanelSize::percent(100.))
+                    .key(&side_panel.is_some())
                     .order(1usize)
                     .child(panels_container),
             );
