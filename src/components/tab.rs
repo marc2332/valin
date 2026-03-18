@@ -7,6 +7,8 @@ pub struct EditorTab {
     pub on_click_indicator: EventHandler<()>,
     pub is_selected: bool,
     pub is_edited: bool,
+    /// Optional SVG icon bytes rendered before the filename label.
+    pub icon: Option<Bytes>,
 }
 
 impl Component for EditorTab {
@@ -59,7 +61,15 @@ impl Component for EditorTab {
                     .expanded()
                     .cross_align(Alignment::Center)
                     .horizontal()
-                    .padding(Gaps::new(0., 0., 0., 10.))
+                    .padding((0., 0., 0., 10.))
+                    .maybe_child(self.icon.clone().map(|icon_bytes| {
+                        svg(icon_bytes)
+                            .width(Size::px(14.0))
+                            .height(Size::px(14.0))
+                            .fill(Color::from_rgb(180, 180, 180))
+                            .margin((0., 4., 0., 0.))
+                            .into_element()
+                    }))
                     .child(
                         label()
                             .width(Size::func(|c| Some(c.available_parent - 28.)))
