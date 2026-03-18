@@ -22,11 +22,11 @@ impl Component for EditorPanel {
         let mut radio_app_state = use_radio::<AppState, Channel>(Channel::AllTabs);
 
         let app_state = radio_app_state.read();
-        let panels_len = app_state.panels().len();
-        let is_last_panel = app_state.panels().len() - 1 == panel_index;
-        let is_focused = app_state.focused_panel() == panel_index;
-        let panel = app_state.panel(panel_index);
-        let active_tab = panel.active_tab();
+        let panels_len = app_state.panels.len();
+        let is_last_panel = panels_len - 1 == panel_index;
+        let is_focused = app_state.focused_panel == panel_index;
+        let panel = &app_state.panels[panel_index];
+        let active_tab = panel.active_tab;
 
         let show_close_panel = panels_len > 1;
         let extra_container_width = if is_last_panel { 0.0 } else { 1.0 };
@@ -39,19 +39,18 @@ impl Component for EditorPanel {
 
         let split_panel = move |_| {
             let mut app_state = radio_app_state.write_channel(Channel::Global);
-            app_state.push_panel(Panel::new());
+            app_state.push_panel(Panel::default());
             app_state.focus_next_panel();
         };
 
         let on_presspanel = move |_| {
-            let is_panel_focused = radio_app_state.read().focused_panel() == panel_index;
-            let is_panels_view_focused =
-                radio_app_state.read().focused_view() == EditorView::Panels;
+            let is_panel_focused = radio_app_state.read().focused_panel == panel_index;
+            let is_panels_view_focused = radio_app_state.read().focused_view == EditorView::Panels;
 
             if !is_panel_focused {
                 radio_app_state
                     .write_channel(Channel::AllTabs)
-                    .focus_panel(panel_index);
+                    .focused_panel = panel_index;
             }
 
             if !is_panels_view_focused {
@@ -175,8 +174,8 @@ impl Component for PanelTab {
 
         let on_press = move |_| {
             let mut app_state = radio_app_state.write_channel(Channel::Global);
-            app_state.focus_panel(panel_index);
-            app_state.panel_mut(panel_index).set_active_tab(tab_id);
+            app_state.focused_panel = panel_index;
+            app_state.panels[panel_index].active_tab = Some(tab_id);
         };
 
         let on_pressaction = move |_| {

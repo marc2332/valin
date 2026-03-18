@@ -40,18 +40,12 @@ impl AppStateEditorUtils for AppState {
     }
 }
 
-pub trait TabEditorUtils {
-    fn as_text_editor(&self) -> Option<&EditorTab>;
-
-    fn as_text_editor_mut(&mut self) -> Option<&mut EditorTab>;
-}
-
-impl TabEditorUtils for Box<dyn PanelTab> {
-    fn as_text_editor(&self) -> Option<&EditorTab> {
+impl dyn PanelTab {
+    pub fn as_text_editor(&self) -> Option<&EditorTab> {
         self.as_any().downcast_ref()
     }
 
-    fn as_text_editor_mut(&mut self) -> Option<&mut EditorTab> {
+    pub fn as_text_editor_mut(&mut self) -> Option<&mut EditorTab> {
         self.as_any_mut().downcast_mut()
     }
 }

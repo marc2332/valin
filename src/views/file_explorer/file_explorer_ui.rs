@@ -166,8 +166,7 @@ impl Component for FileExplorer {
             spawn(async move {
                 while let Some((task, item_index)) = rx.next().await {
                     // Focus the FilesExplorer view if it wasn't focused already
-                    let focused_view = radio_app_state.read().focused_view();
-                    if focused_view != EditorView::FilesExplorer {
+                    if radio_app_state.read().focused_view != EditorView::FilesExplorer {
                         radio_app_state
                             .write_channel(Channel::Global)
                             .focus_view(EditorView::FilesExplorer);
@@ -249,7 +248,7 @@ impl Component for FileExplorer {
             let channel = channel.clone();
             move |ev: Event<KeyboardEventData>| {
                 let is_focused_files_explorer =
-                    radio_app_state.read().focused_view() == EditorView::FilesExplorer;
+                    radio_app_state.read().focused_view == EditorView::FilesExplorer;
                 if is_focused_files_explorer {
                     match ev.code {
                         Code::ArrowDown => {

@@ -44,7 +44,7 @@ pub mod GlobalDefaults {
                     // Pressing `Alt E`
                     Code::KeyE if is_pressing_alt => {
                         let mut app_state = radio_app_state.write_channel(Channel::Global);
-                        if app_state.focused_view() == EditorView::FilesExplorer {
+                        if app_state.focused_view == EditorView::FilesExplorer {
                             app_state.focus_view(EditorView::Panels)
                         } else {
                             app_state.focus_view(EditorView::FilesExplorer)
@@ -104,9 +104,8 @@ impl EditorCommand for SplitPanelCommand {
         let mut radio_app_state = self.0;
 
         let mut app_state = radio_app_state.write_channel(Channel::Global);
-        app_state.push_panel(Panel::new());
-        let len_panels = app_state.panels().len();
-        app_state.focus_panel(len_panels - 1);
+        app_state.push_panel(Panel::default());
+        app_state.focused_panel = app_state.panels.len() - 1;
     }
 }
 

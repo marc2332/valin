@@ -7,7 +7,7 @@ use crate::{
         RadioAppState, TabId, TabProps,
     },
     views::panels::tabs::editor::{
-        AppStateEditorUtils, TabEditorUtils,
+        AppStateEditorUtils,
         commands::{DecreaseFontSizeCommand, IncreaseFontSizeCommand, SaveFileCommand},
     },
 };

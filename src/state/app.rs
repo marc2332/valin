@@ -1,4 +1,4 @@
-use std::{collections::HashMap, vec};
+use std::collections::HashMap;
 
 use freya::prelude::Focus;
 use freya::radio::{Radio, RadioChannel};
@@ -17,7 +17,7 @@ pub trait AppStateUtils {
 impl AppStateUtils for RadioAppState {
     fn get_active_tab(&self) -> Option<TabId> {
         let app_state = self.read();
-        app_state.panel(app_state.focused_panel).active_tab
+        app_state.panels[app_state.focused_panel].active_tab
     }
 }
 
@@ -42,34 +42,21 @@ pub enum Channel {
 impl RadioChannel<AppState> for Channel {
     fn derive_channel(self, app_state: &AppState) -> Vec<Self> {
         match self {
-            Self::AllTabs => {
-                let mut channels = vec![self, Self::ActiveTab];
-                channels.extend(
-                    app_state
-                        .tabs
-                        .keys()
-                        .map(|tab_id| Self::Tab { tab_id: *tab_id }),
-                );
-                channels
-            }
+            Self::AllTabs => [self, Self::ActiveTab]
+                .into_iter()
+                .chain(app_state.tabs.keys().map(|&tab_id| Self::Tab { tab_id }))
+                .collect(),
             Self::Tab { tab_id } => {
-                let mut channels = vec![self];
-                for (panel_index, panel) in app_state.panels.iter().enumerate() {
-                    if app_state.focused_panel == panel_index
-                        && let Some(active_tab) = panel.active_tab
-                        && active_tab == tab_id
-                    {
-                        channels.push(Self::ActiveTab);
-                    }
+                if app_state.panels[app_state.focused_panel].active_tab == Some(tab_id) {
+                    vec![self, Self::ActiveTab]
+                } else {
+                    vec![self]
                 }
-                channels
             }
             Self::Settings => vec![self, Self::Global],
-            Self::Global => {
-                let mut channels = vec![self];
-                channels.extend(Channel::AllTabs.derive_channel(app_state));
-                channels
-            }
+            Self::Global => std::iter::once(self)
+                .chain(Self::AllTabs.derive_channel(app_state))
+                .collect(),
             _ => vec![self],
         }
     }
@@ -109,7 +96,7 @@ impl AppState {
             focused_view: EditorView::default(),
             focused_panel: 0,
             tabs: HashMap::new(),
-            panels: vec![Panel::new()],
+            panels: vec![Panel::default()],
             settings: AppSettings::load(),
             side_panel: Some(EditorSidePanel::default()),
             default_transport,
@@ -127,8 +114,8 @@ impl AppState {
         };
     }
 
-    pub fn set_settings(&mut self, settins: AppSettings) {
-        self.settings = settins;
+    pub fn set_settings(&mut self, settings: AppSettings) {
+        self.settings = settings;
         self.apply_settings();
     }
 
@@ -165,10 +152,6 @@ impl AppState {
         self.focus_view_inner(view);
     }
 
-    pub fn focused_view(&self) -> EditorView {
-        self.focused_view
-    }
-
     pub fn focus_previous_view(&mut self) {
         if let Some(previous_focused_view) = self.previous_focused_view {
             self.focused_view = previous_focused_view;
@@ -185,18 +168,12 @@ impl AppState {
         self.settings.editor.line_height
     }
 
-    pub fn focused_panel(&self) -> usize {
-        self.focused_panel
+    pub fn tab(&self, tab_id: &TabId) -> &(dyn PanelTab + 'static) {
+        self.tabs.get(tab_id).unwrap().as_ref()
     }
 
-    #[allow(clippy::borrowed_box)]
-    pub fn tab(&self, tab_id: &TabId) -> &Box<dyn PanelTab> {
-        self.tabs.get(tab_id).unwrap()
-    }
-
-    #[allow(clippy::borrowed_box)]
-    pub fn tab_mut(&mut self, tab_id: &TabId) -> &mut Box<dyn PanelTab> {
-        self.tabs.get_mut(tab_id).unwrap()
+    pub fn tab_mut(&mut self, tab_id: &TabId) -> &mut (dyn PanelTab + 'static) {
+        self.tabs.get_mut(tab_id).unwrap().as_mut()
     }
 
     fn get_tab_if_exists(&self, tab: &impl PanelTab) -> Option<TabId> {
@@ -252,20 +229,14 @@ impl AppState {
         else {
             return;
         };
-        if let Some(active_tab) = panel.active_tab
-            && active_tab == tab_id
-        {
+        if panel.active_tab == Some(tab_id) {
             let tab_index = panel.tabs.iter().position(|tab| *tab == tab_id).unwrap();
-            self.focus_tab(
-                panel_index,
-                if let Some(next_tab) = panel.tabs.get(tab_index + 1) {
-                    Some(*next_tab)
-                } else if tab_index > 0 {
-                    panel.tabs.get(tab_index - 1).copied()
-                } else {
-                    None
-                },
-            );
+            let next = panel
+                .tabs
+                .get(tab_index + 1)
+                .or_else(|| tab_index.checked_sub(1).and_then(|i| panel.tabs.get(i)))
+                .copied();
+            self.focus_tab(panel_index, next);
         }
 
         let Some(mut panel_tab) = self.tabs.remove(&tab_id) else {
@@ -294,8 +265,7 @@ impl AppState {
     }
 
     pub fn close_active_tab(&mut self) {
-        let panel = self.focused_panel;
-        if let Some(active_tab) = self.panels[panel].active_tab {
+        if let Some(active_tab) = self.panels[self.focused_panel].active_tab {
             self.close_tab(active_tab);
         }
     }
@@ -304,49 +274,25 @@ impl AppState {
         self.close_panel(self.focused_panel);
     }
 
-    fn focus_panel_with_tab(&mut self, panel_index: usize) {
-        let panel = self.panel(panel_index);
-        if let Some(active_tab) = panel.active_tab {
-            let tab = self.tab(&active_tab);
-            let focus = Focus::new_for_id(tab.get_data().focus_id);
-            focus.request_focus();
-        }
-    }
-
     pub fn focus_previous_panel(&mut self) {
         if self.focused_panel > 0 {
-            self.focus_panel(self.focused_panel - 1);
-            self.focus_panel_with_tab(self.focused_panel);
+            self.focused_panel -= 1;
+            let active_tab = self.panels[self.focused_panel].active_tab;
+            self.focus_tab(self.focused_panel, active_tab);
         }
     }
 
     pub fn focus_next_panel(&mut self) {
         if self.focused_panel < self.panels.len() - 1 {
-            self.focus_panel(self.focused_panel + 1);
-            self.focus_panel_with_tab(self.focused_panel);
+            self.focused_panel += 1;
+            let active_tab = self.panels[self.focused_panel].active_tab;
+            self.focus_tab(self.focused_panel, active_tab);
         }
     }
 
     pub fn push_panel(&mut self, panel: Panel) {
         self.panels.push(panel);
-
         self.focused_view = EditorView::Panels;
-    }
-
-    pub fn panels(&self) -> &[Panel] {
-        &self.panels
-    }
-
-    pub fn panel(&self, panel: usize) -> &Panel {
-        &self.panels[panel]
-    }
-
-    pub fn panel_mut(&mut self, panel: usize) -> &mut Panel {
-        &mut self.panels[panel]
-    }
-
-    pub fn focus_panel(&mut self, panel: usize) {
-        self.focused_panel = panel;
     }
 
     pub fn close_panel(&mut self, panel: usize) {

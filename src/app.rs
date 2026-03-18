@@ -129,7 +129,7 @@ impl App for AppView {
             let panels = radio_app_state.read();
 
             let mut container = ResizableContainer::new().direction(Direction::Horizontal);
-            for (panel_index, _) in panels.panels().iter().enumerate() {
+            for (panel_index, _) in panels.panels.iter().enumerate() {
                 container = container.panel(
                     ResizablePanel::new(PanelSize::percent(50.))
                         .key(&panel_index)

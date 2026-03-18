@@ -3,7 +3,7 @@ use freya::{prelude::*, text_edit::TextEditor};
 
 use crate::{
     state::{Channel, EditorSidePanel, EditorView},
-    views::panels::tabs::{editor::TabEditorUtils, settings::Settings},
+    views::panels::tabs::settings::Settings,
 };
 
 #[derive(Clone, PartialEq)]
@@ -26,8 +26,8 @@ impl Component for StatusBar {
         };
 
         let app_state = radio_app_state.read();
-        let panel = app_state.panel(app_state.focused_panel);
-        let tab_data = if let Some(active_tab) = panel.active_tab() {
+        let panel = &app_state.panels[app_state.focused_panel];
+        let tab_data = if let Some(active_tab) = panel.active_tab {
             app_state
                 .tab(&active_tab)
                 .as_text_editor()

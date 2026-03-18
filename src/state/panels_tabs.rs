@@ -61,17 +61,3 @@ pub struct Panel {
     pub active_tab: Option<TabId>,
     pub tabs: Vec<TabId>,
 }
-
-impl Panel {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn active_tab(&self) -> Option<TabId> {
-        self.active_tab
-    }
-
-    pub fn set_active_tab(&mut self, active_tab: TabId) {
-        self.active_tab = Some(active_tab);
-    }
-}
