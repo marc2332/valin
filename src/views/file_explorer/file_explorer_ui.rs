@@ -6,6 +6,7 @@ use futures::StreamExt;
 use futures_channel::mpsc::UnboundedSender;
 
 use crate::{
+    components::ButtonStatus,
     fs::FSTransport,
     state::{AppState, Channel, EditorView, RadioAppState},
     views::panels::tabs::editor::EditorTab,
@@ -339,12 +340,13 @@ fn file_explorer_item_builder(
     let is_focused = *focused_item.read() == index;
 
     let item = item.clone();
-    let icon = if item.is_file {
-        "📃"
-    } else if item.is_opened {
-        "📂"
-    } else {
-        "📁"
+    let icon_svg = {
+        let app_state = radio_app_state.read();
+        if item.is_file {
+            app_state.file_icons.get_file(&item.path).svg.clone()
+        } else {
+            app_state.file_icons.get_folder(item.is_opened).svg.clone()
+        }
     };
 
     let on_press = move |_| {
@@ -370,10 +372,23 @@ fn file_explorer_item_builder(
         radio_app_state: *radio_app_state,
         on_press: on_press.into(),
         is_focused,
-        children: label()
-            .max_lines(1)
-            .text_overflow(TextOverflow::Ellipsis)
-            .text(format!("{icon} {name}"))
+        children: rect()
+            .horizontal()
+            .cross_align(Alignment::Center)
+            .expanded()
+            .child(
+                svg(icon_svg)
+                    .width(Size::px(14.0))
+                    .height(Size::px(14.0))
+                    .fill(Color::from_rgb(180, 180, 180))
+                    .margin(Gaps::new(0., 5., 0., 0.)),
+            )
+            .child(
+                label()
+                    .max_lines(1)
+                    .text_overflow(TextOverflow::Ellipsis)
+                    .text(name),
+            )
             .into(),
     }
     .into()
@@ -430,7 +445,7 @@ impl Component for FileExplorerItem {
             .width(Size::fill())
             .padding(Gaps::new(0., 0., 0., padding_left as f32))
             .main_align(Alignment::Center)
-            .height(Size::px(27.0))
+            .height(Size::px(25.0))
             .color(color)
             .font_size(14.0)
             .child(self.children.clone())

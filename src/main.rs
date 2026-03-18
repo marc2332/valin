@@ -7,7 +7,6 @@ mod app;
 mod components;
 mod fs;
 mod global_defaults;
-mod hooks;
 mod settings;
 mod state;
 mod theme;

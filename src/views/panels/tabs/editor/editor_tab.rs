@@ -25,6 +25,7 @@ pub struct EditorTab {
     pub(crate) id: TabId,
     pub(crate) focus_id: AccessibilityId,
     pub(crate) path: PathBuf,
+    pub(crate) icon: freya::prelude::Bytes,
 }
 
 impl PanelTab for EditorTab {
@@ -39,6 +40,7 @@ impl PanelTab for EditorTab {
             edited: self.data.is_edited(),
             focus_id: self.focus_id,
             content_id: self.content_id(),
+            icon: Some(self.icon.clone()),
         }
     }
     fn render(&self) -> fn(&TabProps) -> Element {
@@ -66,13 +68,20 @@ impl PanelTab for EditorTab {
 }
 
 impl EditorTab {
-    pub fn new(id: TabId, data: CodeEditorData, transport: FSTransport, path: PathBuf) -> Self {
+    pub fn new(
+        id: TabId,
+        data: CodeEditorData,
+        transport: FSTransport,
+        path: PathBuf,
+        icon: freya::prelude::Bytes,
+    ) -> Self {
         Self {
             id,
             focus_id: Focus::new_id(),
             data,
             transport,
             path,
+            icon,
         }
     }
 
@@ -89,9 +98,14 @@ impl EditorTab {
     ) {
         let tab_id = TabId::new();
 
+        let icon = app_state.file_icons.get_file(&path).svg.clone();
+
         let mut code_data = CodeEditorData::new(
             Rope::new(),
-            LanguageId::parse(path.extension().unwrap().to_str().unwrap()),
+            path.extension()
+                .and_then(|ext| ext.to_str())
+                .map(LanguageId::parse)
+                .unwrap_or(LanguageId::Unknown),
         );
         code_data.set_theme(GITHUB_DARK_SYNTAX_THEME);
 
@@ -100,6 +114,7 @@ impl EditorTab {
             code_data,
             app_state.default_transport.clone(),
             path.clone(),
+            icon,
         );
 
         // Dont create the same tab twice

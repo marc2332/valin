@@ -6,7 +6,7 @@ use tracing::info;
 
 use crate::{fs::FSTransport, views::file_explorer::file_explorer_state::FileExplorerState};
 
-use super::{AppSettings, EditorView, Panel, PanelTab, TabId};
+use super::{AppSettings, EditorView, FileIcons, Panel, PanelTab, TabId};
 
 pub type RadioAppState = Radio<AppState, Channel>;
 
@@ -99,6 +99,7 @@ pub struct AppState {
     pub default_transport: FSTransport,
 
     pub file_explorer: FileExplorerState,
+    pub file_icons: FileIcons,
 }
 
 impl AppState {
@@ -114,6 +115,7 @@ impl AppState {
             default_transport,
 
             file_explorer: FileExplorerState::new(),
+            file_icons: FileIcons::new(),
         }
     }
 

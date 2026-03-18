@@ -20,7 +20,7 @@ pub struct EditorSettings {
 impl Default for EditorSettings {
     fn default() -> Self {
         Self {
-            font_size: 17.0,
+            font_size: 14.0,
             line_height: 1.6_f32,
         }
     }
