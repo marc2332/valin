@@ -28,12 +28,12 @@ impl Component for EditorTab {
         };
 
         let background = match *status.read() {
-            _ if self.is_selected => (29, 32, 33).into(),
-            ButtonStatus::Hovering => (25, 28, 29).into(),
+            _ if self.is_selected => (13, 17, 23).into(),
+            ButtonStatus::Hovering => (13, 17, 23).into(),
             ButtonStatus::Idle => Color::TRANSPARENT,
         };
         let selected_color = if self.is_selected {
-            (60, 60, 60).into()
+            (247, 129, 102).into()
         } else {
             background
         };
@@ -64,6 +64,7 @@ impl Component for EditorTab {
                         label()
                             .width(Size::func(|c| Some(c.available_parent - 28.)))
                             .max_lines(1)
+                            .font_size(12.)
                             .text_overflow(TextOverflow::Ellipsis)
                             .text(self.value.clone()),
                     )
@@ -83,7 +84,7 @@ impl Component for EditorTab {
                                         .expanded()
                                         .child(
                                             rect()
-                                                .background((180, 180, 180))
+                                                .background((125, 133, 144))
                                                 .width(Size::px(10.0))
                                                 .height(Size::px(10.0))
                                                 .corner_radius(CornerRadius::new_all(100.0)),
@@ -97,7 +98,7 @@ impl Component for EditorTab {
                                         .padding(4.)
                                         .rounded()
                                         .child(CrossIcon {
-                                            fill: (150, 150, 150).into(),
+                                            fill: (125, 133, 144).into(),
                                         })
                                         .into_element(),
                                 )

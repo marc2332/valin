@@ -121,18 +121,18 @@ impl Component for TextArea {
 
         let placeholder = self.placeholder.clone();
         let (text_color, display_text) = if self.value.is_empty() {
-            (Color::from((210, 210, 210)), placeholder)
+            (Color::from((110, 118, 129)), placeholder)
         } else {
-            (Color::WHITE, self.value.clone())
+            (Color::from((230, 237, 243)), self.value.clone())
         };
 
         rect()
             .overflow(Overflow::Clip)
             .width(Size::fill())
             .color(text_color)
-            .background((45, 48, 49))
+            .background((1, 4, 9))
             .corner_radius(8.)
-            .border(Border::new().width(1.).fill((60, 63, 64)))
+            .border(Border::new().width(1.).fill((33, 38, 45)))
             .padding((8., 6.))
             .margin((0., 0., 2., 0.))
             .a11y_id(focus.a11y_id())

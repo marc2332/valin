@@ -47,7 +47,7 @@ impl Component for StatusBar {
             .content(Content::Flex)
             .padding((0., 6.))
             .expanded()
-            .background((13, 16, 17))
+            .background((1, 4, 9))
             .child(
                 rect()
                     .horizontal()

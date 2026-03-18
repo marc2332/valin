@@ -10,6 +10,7 @@ mod global_defaults;
 mod hooks;
 mod settings;
 mod state;
+mod theme;
 mod views;
 
 use std::path::PathBuf;
@@ -59,7 +60,7 @@ fn main() {
     launch(
         config.with_window(
             WindowConfig::new_app(AppView(args.clone()))
-                .with_size(1280.0, 720.0)
+                .with_size(1100.0, 800.0)
                 .with_title("Valin"),
         ),
     );

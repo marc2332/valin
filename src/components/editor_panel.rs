@@ -71,7 +71,7 @@ impl Component for EditorPanel {
                 .child(
                     rect()
                         .horizontal()
-                        .height(Size::px(34.0))
+                        .height(Size::px(32.0))
                         .width(Size::fill())
                         .cross_align(Alignment::Center)
                         .content(Content::Flex)
@@ -122,7 +122,7 @@ impl Component for EditorPanel {
                     rect()
                         .expanded()
                         .on_mouse_down(on_presspanel)
-                        .background((17, 20, 21))
+                        .background((1, 4, 9))
                         .child(if let Some(tab_id) = active_tab {
                             let active_tab = app_state.tab(&tab_id);
                             let render = active_tab.render();

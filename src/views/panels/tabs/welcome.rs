@@ -47,6 +47,7 @@ pub fn render(_: &TabProps) -> Element {
     rect()
         .padding((32., 8.))
         .expanded()
+        .background((13, 17, 23))
         .cross_align(Alignment::center())
         .child(
             MarkdownViewer::new(

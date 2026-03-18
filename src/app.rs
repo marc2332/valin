@@ -2,6 +2,7 @@ use crate::Args;
 use crate::components::{EditorPanel, StatusBar};
 use crate::settings::watch_settings;
 use crate::state::{EditorSidePanel, EditorView};
+use crate::theme::github_dark_theme;
 use crate::views::commander::commander_ui::Commander;
 use crate::views::file_explorer::FileExplorer;
 use crate::views::file_explorer::file_explorer_ui::{
@@ -26,7 +27,7 @@ use crate::state::{AppState, Channel};
 pub struct AppView(pub Args);
 impl App for AppView {
     fn render(&self) -> impl IntoElement {
-        use_init_theme(|| DARK_THEME);
+        use_init_theme(github_dark_theme);
         use_provide_context(|| Rc::new(self.0.clone()));
 
         // Initialize the State Manager
@@ -165,8 +166,8 @@ impl App for AppView {
 
         rect()
             .font_size(14.)
-            .color(Color::WHITE)
-            .background((17, 20, 21))
+            .color(Color::from((230, 237, 243)))
+            .background((1, 4, 9))
             .expanded()
             .on_global_key_down(on_global_key_down)
             .maybe_child(if focused_view == EditorView::Commander {
@@ -176,7 +177,7 @@ impl App for AppView {
             })
             .child(
                 rect()
-                    .height(Size::func(|ctx| Some(ctx.parent - 35.)))
+                    .height(Size::func(|ctx| Some(ctx.parent - 31.)))
                     .child(main_container),
             )
             .child(StatusBar { focused_view })

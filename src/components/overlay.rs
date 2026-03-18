@@ -48,14 +48,14 @@ impl Component for Overlay {
                     .center()
                     .child(
                         rect()
-                            .background((35, 38, 39))
+                            .background((13, 17, 23))
                             .shadow(
                                 Shadow::default()
                                     .x(0.)
-                                    .y(4.)
-                                    .blur(15.)
-                                    .spread(8.)
-                                    .color((0, 0, 0, 77)),
+                                    .y(3.)
+                                    .blur(12.)
+                                    .spread(4.)
+                                    .color((1, 4, 9, 140)),
                             )
                             .corner_radius(12.)
                             .on_mouse_down(on_mouse_down)
