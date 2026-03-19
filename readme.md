@@ -10,7 +10,16 @@
 
 ## Installation
 
-```rust
+### Flatpak (Linux)
+
+```sh
+flatpak remote-add --if-not-exists --no-gpg-verify --user valin https://marc2332.github.io/valin
+flatpak install --user valin io.marc.valin
+```
+
+### Cargo
+
+```sh
 cargo install valin
 ```
 

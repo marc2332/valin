@@ -1,0 +1,58 @@
+# Flatpak manifest for Valin.
+#
+# To build and install locally:
+#   just flatpak-setup  # one-time SDK install
+#   just flatpak        # build + install
+#   just flatpak-run    # run
+#
+app-id: io.marc.valin
+runtime: org.freedesktop.Platform
+runtime-version: '24.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: valin
+finish-args:
+  # Display
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --share=ipc
+  - --device=dri
+
+  # Filesystem access for editing files on the host
+  - --filesystem=host
+
+  # Network access
+  - --share=network
+
+  # SSH agent
+  - --socket=ssh-auth
+
+modules:
+  - name: valin
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/rust-stable/bin
+      build-args:
+        - --share=network
+      env:
+        CARGO_HOME: /run/build/valin/cargo
+    build-commands:
+      - cargo build --release
+      - install -Dm755 target/release/valin /app/bin/valin
+      - install -Dm644 src/icons/logo_enabled.svg /app/share/icons/hicolor/scalable/apps/io.marc.valin.svg
+      - install -Dm644 io.marc.valin.desktop /app/share/applications/io.marc.valin.desktop
+      - install -Dm644 io.marc.valin.metainfo.xml /app/share/metainfo/io.marc.valin.metainfo.xml
+    sources:
+      - type: dir
+        path: ..
+        skip:
+          - .git
+          - target
+          - flatpak/build-dir
+          - flatpak/.flatpak-builder
+          - flatpak/repo
+      - type: file
+        path: io.marc.valin.desktop
+      - type: file
+        path: io.marc.valin.metainfo.xml
