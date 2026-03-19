@@ -31,7 +31,9 @@ impl Component for EditorPanel {
         let show_close_panel = panels_len > 1;
         let extra_container_width = if is_last_panel { 0.0 } else { 1.0 };
 
-        let close_panel = move |_| {
+        let close_panel = move |e: Event<PressEventData>| {
+            e.stop_propagation();
+            e.prevent_default();
             radio_app_state
                 .write_channel(Channel::Global)
                 .close_panel(panel_index);
