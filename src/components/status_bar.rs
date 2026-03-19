@@ -42,38 +42,48 @@ impl Component for StatusBar {
         };
 
         rect()
-            .horizontal()
-            .cross_align(Alignment::Center)
-            .content(Content::Flex)
-            .padding((0., 6.))
             .expanded()
-            .background((8, 8, 12))
+            .child(
+                rect()
+                    .width(Size::fill())
+                    .height(Size::px(1.))
+                    .background((22, 27, 34)),
+            )
             .child(
                 rect()
                     .horizontal()
-                    .width(Size::flex(1.))
-                    .spacing(4.)
+                    .cross_align(Alignment::Center)
+                    .content(Content::Flex)
+                    .padding((0., 6.))
+                    .expanded()
+                    .background((6, 6, 10))
                     .child(
-                        Button::new()
-                            .flat()
-                            .compact()
-                            .on_press(toggle_file_explorer)
-                            .child("📁"),
+                        rect()
+                            .horizontal()
+                            .width(Size::flex(1.))
+                            .spacing(4.)
+                            .child(
+                                Button::new()
+                                    .flat()
+                                    .compact()
+                                    .on_press(toggle_file_explorer)
+                                    .child("📁"),
+                            )
+                            .child(
+                                Button::new()
+                                    .flat()
+                                    .compact()
+                                    .on_press(open_settings)
+                                    .child("⚙️"),
+                            ),
                     )
-                    .child(
-                        Button::new()
-                            .flat()
-                            .compact()
-                            .on_press(open_settings)
-                            .child("⚙️"),
-                    ),
+                    .maybe_child(tab_data.map(|((row, col), language_id)| {
+                        rect()
+                            .horizontal()
+                            .spacing(4.)
+                            .child(format!("Ln {}, Col {}", row + 1, col + 1))
+                            .child(format!("{}", language_id))
+                    })),
             )
-            .maybe_child(tab_data.map(|((row, col), language_id)| {
-                rect()
-                    .horizontal()
-                    .spacing(4.)
-                    .child(format!("Ln {}, Col {}", row + 1, col + 1))
-                    .child(format!("{}", language_id))
-            }))
     }
 }
