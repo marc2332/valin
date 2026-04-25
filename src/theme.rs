@@ -3,52 +3,55 @@ use freya::code_editor::{EditorTheme, SyntaxTheme};
 use freya::prelude::*;
 
 pub fn github_dark_theme() -> Theme {
-    let mut theme = Theme {
-        name: "github_dark",
-        colors: ColorsSheet {
-            primary: Color::from_rgb(47, 129, 247),
-            secondary: Color::from_rgb(31, 111, 235),
-            tertiary: Color::from_rgb(88, 166, 255),
+    let mut theme = dark_theme();
+    theme.name = "github_dark";
+    theme.colors = ColorsSheet {
+        primary: Color::from_rgb(47, 129, 247),
+        secondary: Color::from_rgb(31, 111, 235),
+        tertiary: Color::from_rgb(88, 166, 255),
 
-            success: Color::from_rgb(63, 185, 80),
-            warning: Color::from_rgb(210, 153, 34),
-            error: Color::from_rgb(248, 81, 73),
-            info: Color::from_rgb(88, 166, 255),
+        success: Color::from_rgb(63, 185, 80),
+        warning: Color::from_rgb(210, 153, 34),
+        error: Color::from_rgb(248, 81, 73),
+        info: Color::from_rgb(88, 166, 255),
 
-            background: Color::from_rgb(8, 8, 12),
-            surface_primary: Color::from_rgb(13, 17, 23),
-            surface_secondary: Color::from_rgb(22, 27, 34),
-            surface_tertiary: Color::from_rgb(33, 38, 45),
-            surface_inverse: Color::from_rgb(240, 246, 252),
-            surface_inverse_secondary: Color::from_rgb(201, 209, 217),
-            surface_inverse_tertiary: Color::from_rgb(177, 186, 196),
+        background: Color::from_rgb(8, 8, 12),
+        surface_primary: Color::from_rgb(13, 17, 23),
+        surface_secondary: Color::from_rgb(22, 27, 34),
+        surface_tertiary: Color::from_rgb(33, 38, 45),
+        surface_inverse: Color::from_rgb(240, 246, 252),
+        surface_inverse_secondary: Color::from_rgb(201, 209, 217),
+        surface_inverse_tertiary: Color::from_rgb(177, 186, 196),
 
-            border: Color::from_rgb(33, 38, 45),
-            border_focus: Color::from_rgb(47, 129, 247),
-            border_disabled: Color::from_rgb(22, 27, 34),
+        border: Color::from_rgb(33, 38, 45),
+        border_focus: Color::from_rgb(47, 129, 247),
+        border_disabled: Color::from_rgb(22, 27, 34),
 
-            text_primary: Color::from_rgb(230, 237, 243),
-            text_secondary: Color::from_rgb(125, 133, 144),
-            text_placeholder: Color::from_rgb(110, 118, 129),
-            text_inverse: Color::from_rgb(1, 4, 9),
-            text_highlight: Color::from_rgb(88, 166, 255),
+        text_primary: Color::from_rgb(230, 237, 243),
+        text_secondary: Color::from_rgb(125, 133, 144),
+        text_placeholder: Color::from_rgb(110, 118, 129),
+        text_inverse: Color::from_rgb(1, 4, 9),
+        text_highlight: Color::from_rgb(88, 166, 255),
 
-            hover: Color::from_rgb(33, 38, 45),
-            focus: Color::from_rgb(31, 111, 235),
-            active: Color::from_rgb(22, 27, 34),
-            disabled: Color::from_rgb(13, 17, 23),
+        hover: Color::from_rgb(33, 38, 45),
+        focus: Color::from_rgb(31, 111, 235),
+        active: Color::from_rgb(22, 27, 34),
+        disabled: Color::from_rgb(13, 17, 23),
 
-            overlay: Color::from_af32rgb(0.5, 8, 8, 12),
-            shadow: Color::from_af32rgb(0.6, 8, 8, 12),
-        },
-        ..DARK_THEME
+        overlay: Color::from_af32rgb(0.5, 8, 8, 12),
+        shadow: Color::from_af32rgb(0.6, 8, 8, 12),
     };
 
-    theme.scrollbar.background = Color::TRANSPARENT.into();
-    theme.scrollbar.thumb_background = Color::from_rgb(72, 79, 88).into();
-    theme.scrollbar.hover_thumb_background = Color::from_rgb(110, 118, 129).into();
-    theme.scrollbar.active_thumb_background = Color::from_rgb(139, 148, 158).into();
-    theme.scrollbar.size = 8.0f32.into();
+    theme.set(
+        "scrollbar",
+        ScrollBarThemePreference {
+            background: Preference::Specific(Color::TRANSPARENT),
+            thumb_background: Preference::Specific(Color::from_rgb(72, 79, 88)),
+            hover_thumb_background: Preference::Specific(Color::from_rgb(110, 118, 129)),
+            active_thumb_background: Preference::Specific(Color::from_rgb(139, 148, 158)),
+            size: Preference::Specific(8.0),
+        },
+    );
 
     theme
 }

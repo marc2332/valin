@@ -30,7 +30,8 @@ pub struct EditorTab {
 
 impl PanelTab for EditorTab {
     fn on_settings_changed(&mut self, app_settings: &AppSettings) {
-        self.data.measure(app_settings.editor.font_size);
+        self.data
+            .measure(app_settings.editor.font_size, "Jetbrains Mono");
     }
 
     fn get_data(&self) -> PanelTabData {
@@ -135,7 +136,7 @@ impl EditorTab {
                     let editor_tab = tab.as_text_editor_mut().unwrap();
                     editor_tab.data.rope.insert(0, &content);
                     editor_tab.data.parse();
-                    editor_tab.data.measure(font_size);
+                    editor_tab.data.measure(font_size, "Jetbrains Mono");
 
                     info!("Loaded file content for {path:?}");
                 }
