@@ -80,29 +80,29 @@ impl Component for TextArea {
             }
         };
 
-        let on_mousemove = move |e: Event<MouseEventData>| {
+        let on_pointer_move = move |e: Event<PointerEventData>| {
             editable.process_event(EditableEvent::Move {
-                location: e.element_location,
-                editor_line: freya::text_edit::EditorLine::SingleParagraph,
+                location: e.element_location(),
+                editor_line: EditorLine::SingleParagraph,
                 holder: &holder.read(),
             });
         };
 
-        let on_mouseenter = move |_: Event<PointerEventData>| {
+        let on_pointerenter = move |_: Event<PointerEventData>| {
             Cursor::set(CursorIcon::Text);
             *status.write() = InputStatus::Hovering;
         };
 
-        let on_mouse_leave = move |_: Event<PointerEventData>| {
+        let on_pointer_leave = move |_: Event<PointerEventData>| {
             Cursor::set(CursorIcon::default());
             *status.write() = InputStatus::default();
         };
 
-        let on_mouse_down = move |e: Event<MouseEventData>| {
+        let on_pointer_down = move |e: Event<PointerEventData>| {
             focus_id.request_focus();
             editable.process_event(EditableEvent::Down {
-                location: e.element_location,
-                editor_line: freya::text_edit::EditorLine::SingleParagraph,
+                location: e.element_location(),
+                editor_line: EditorLine::SingleParagraph,
                 holder: &holder.read(),
             });
         };
@@ -142,10 +142,10 @@ impl Component for TextArea {
                 paragraph()
                     .holder(holder.read().clone())
                     .margin((6., 10.))
-                    .on_pointer_enter(on_mouseenter)
-                    .on_pointer_leave(on_mouse_leave)
-                    .on_mouse_move(on_mousemove)
-                    .on_mouse_down(on_mouse_down)
+                    .on_pointer_enter(on_pointerenter)
+                    .on_pointer_leave(on_pointer_leave)
+                    .on_pointer_move(on_pointer_move)
+                    .on_pointer_down(on_pointer_down)
                     .on_global_pointer_press(on_global_mouse_up)
                     .width(Size::fill())
                     .cursor_index(cursor_char)

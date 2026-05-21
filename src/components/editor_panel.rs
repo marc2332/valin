@@ -135,7 +135,7 @@ impl Component for EditorPanel {
                 .child(
                     rect()
                         .expanded()
-                        .on_mouse_down(on_presspanel)
+                        .on_pointer_down(on_presspanel)
                         .background((8, 8, 12))
                         .child(if let Some(tab_id) = active_tab {
                             let active_tab = app_state.tab(&tab_id);

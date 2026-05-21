@@ -64,7 +64,7 @@ impl PanelTab for EditorTab {
                         || matches!(e.code, Code::KeyS | Code::KeyW if ctrl)
                         || matches!(e.code, Code::KeyP | Code::Tab if ctrl || ctrl_shift);
                     if is_global_shortcut {
-                        // Skip editor processing and let GlobalKeyDown fire —
+                        // Skip editor processing and let GlobalKeyDown fire;
                         // calling `prevent_default()` here would cancel it.
                         return false;
                     }

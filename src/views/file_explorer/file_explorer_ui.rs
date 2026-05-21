@@ -290,7 +290,7 @@ impl Component for FileExplorer {
             }
         };
 
-        let on_press = move |e: Event<MouseEventData>| {
+        let on_press = move |e: Event<PointerEventData>| {
             e.stop_propagation();
             focus_id.request_focus();
         };
@@ -306,7 +306,7 @@ impl Component for FileExplorer {
             rect()
                 .expanded()
                 .on_key_down(on_key_down)
-                .on_mouse_up(on_press)
+                .on_pointer_press(on_press)
                 .a11y_id(focus_id)
                 .child(
                     VirtualScrollView::new_with_data(
@@ -406,9 +406,9 @@ impl Component for FileExplorerItem {
     fn render(&self) -> impl IntoElement {
         let mut status = use_state(|| ButtonStatus::Idle);
 
-        let on_mouseenter = move |_| status.set(ButtonStatus::Hovering);
+        let on_pointerenter = move |_| status.set(ButtonStatus::Hovering);
 
-        let on_mouse_leave = move |_| status.set(ButtonStatus::Idle);
+        let on_pointer_leave = move |_| status.set(ButtonStatus::Idle);
 
         let on_press_handler = self.on_press.clone();
         let on_press = move |_: Event<PressEventData>| {
@@ -436,8 +436,8 @@ impl Component for FileExplorerItem {
         };
 
         rect()
-            .on_pointer_enter(on_mouseenter)
-            .on_pointer_leave(on_mouse_leave)
+            .on_pointer_enter(on_pointerenter)
+            .on_pointer_leave(on_pointer_leave)
             .on_press(on_press)
             .background(background)
             .border(border)

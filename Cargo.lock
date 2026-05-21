@@ -1447,7 +1447,7 @@ checksum = "aa9a19cbb55df58761df49b23516a86d432839add4af60fc256da840f66ed35b"
 [[package]]
 name = "freya"
 version = "0.4.0-rc.19"
-source = "git+https://github.com/marc2332/freya?branch=feat%2Fcustomizable-excluded-keys-code-editor#1c15ae8f2c22ecfc8bda94dc59b9f9879c5fcdfc"
+source = "git+https://github.com/marc2332/freya?branch=feat%2Fcode-editor-capture-improvements#bf94d696935737c8443fe56f705e2fb3a85ddd96"
 dependencies = [
  "cfg-if",
  "freya-android",
@@ -1469,7 +1469,7 @@ dependencies = [
 [[package]]
 name = "freya-android"
 version = "0.4.0-rc.19"
-source = "git+https://github.com/marc2332/freya?branch=feat%2Fcustomizable-excluded-keys-code-editor#1c15ae8f2c22ecfc8bda94dc59b9f9879c5fcdfc"
+source = "git+https://github.com/marc2332/freya?branch=feat%2Fcode-editor-capture-improvements#bf94d696935737c8443fe56f705e2fb3a85ddd96"
 dependencies = [
  "freya-components",
  "freya-core",
@@ -1482,7 +1482,7 @@ dependencies = [
 [[package]]
 name = "freya-animation"
 version = "0.4.0-rc.19"
-source = "git+https://github.com/marc2332/freya?branch=feat%2Fcustomizable-excluded-keys-code-editor#1c15ae8f2c22ecfc8bda94dc59b9f9879c5fcdfc"
+source = "git+https://github.com/marc2332/freya?branch=feat%2Fcode-editor-capture-improvements#bf94d696935737c8443fe56f705e2fb3a85ddd96"
 dependencies = [
  "async-io",
  "easer",
@@ -1492,7 +1492,7 @@ dependencies = [
 [[package]]
 name = "freya-clipboard"
 version = "0.4.0-rc.19"
-source = "git+https://github.com/marc2332/freya?branch=feat%2Fcustomizable-excluded-keys-code-editor#1c15ae8f2c22ecfc8bda94dc59b9f9879c5fcdfc"
+source = "git+https://github.com/marc2332/freya?branch=feat%2Fcode-editor-capture-improvements#bf94d696935737c8443fe56f705e2fb3a85ddd96"
 dependencies = [
  "copypasta",
  "freya-core",
@@ -1501,7 +1501,7 @@ dependencies = [
 [[package]]
 name = "freya-code-editor"
 version = "0.4.0-rc.19"
-source = "git+https://github.com/marc2332/freya?branch=feat%2Fcustomizable-excluded-keys-code-editor#1c15ae8f2c22ecfc8bda94dc59b9f9879c5fcdfc"
+source = "git+https://github.com/marc2332/freya?branch=feat%2Fcode-editor-capture-improvements#bf94d696935737c8443fe56f705e2fb3a85ddd96"
 dependencies = [
  "freya-components",
  "freya-core",
@@ -1518,7 +1518,7 @@ dependencies = [
 [[package]]
 name = "freya-components"
 version = "0.4.0-rc.19"
-source = "git+https://github.com/marc2332/freya?branch=feat%2Fcustomizable-excluded-keys-code-editor#1c15ae8f2c22ecfc8bda94dc59b9f9879c5fcdfc"
+source = "git+https://github.com/marc2332/freya?branch=feat%2Fcode-editor-capture-improvements#bf94d696935737c8443fe56f705e2fb3a85ddd96"
 dependencies = [
  "accesskit",
  "anyhow",
@@ -1541,7 +1541,7 @@ dependencies = [
 [[package]]
 name = "freya-core"
 version = "0.4.0-rc.19"
-source = "git+https://github.com/marc2332/freya?branch=feat%2Fcustomizable-excluded-keys-code-editor#1c15ae8f2c22ecfc8bda94dc59b9f9879c5fcdfc"
+source = "git+https://github.com/marc2332/freya?branch=feat%2Fcode-editor-capture-improvements#bf94d696935737c8443fe56f705e2fb3a85ddd96"
 dependencies = [
  "accesskit",
  "async-broadcast",
@@ -1570,7 +1570,7 @@ dependencies = [
 [[package]]
 name = "freya-devtools"
 version = "0.4.0-rc.19"
-source = "git+https://github.com/marc2332/freya?branch=feat%2Fcustomizable-excluded-keys-code-editor#1c15ae8f2c22ecfc8bda94dc59b9f9879c5fcdfc"
+source = "git+https://github.com/marc2332/freya?branch=feat%2Fcode-editor-capture-improvements#bf94d696935737c8443fe56f705e2fb3a85ddd96"
 dependencies = [
  "accesskit",
  "anyhow",
@@ -1595,7 +1595,7 @@ dependencies = [
 [[package]]
 name = "freya-edit"
 version = "0.4.0-rc.19"
-source = "git+https://github.com/marc2332/freya?branch=feat%2Fcustomizable-excluded-keys-code-editor#1c15ae8f2c22ecfc8bda94dc59b9f9879c5fcdfc"
+source = "git+https://github.com/marc2332/freya?branch=feat%2Fcode-editor-capture-improvements#bf94d696935737c8443fe56f705e2fb3a85ddd96"
 dependencies = [
  "bitflags 2.11.0",
  "freya-clipboard",
@@ -1609,7 +1609,7 @@ dependencies = [
 [[package]]
 name = "freya-engine"
 version = "0.4.0-rc.19"
-source = "git+https://github.com/marc2332/freya?branch=feat%2Fcustomizable-excluded-keys-code-editor#1c15ae8f2c22ecfc8bda94dc59b9f9879c5fcdfc"
+source = "git+https://github.com/marc2332/freya?branch=feat%2Fcode-editor-capture-improvements#bf94d696935737c8443fe56f705e2fb3a85ddd96"
 dependencies = [
  "bitflags 2.11.0",
  "freya-skia-safe",
@@ -1618,7 +1618,7 @@ dependencies = [
 [[package]]
 name = "freya-icons"
 version = "0.4.0-rc.19"
-source = "git+https://github.com/marc2332/freya?branch=feat%2Fcustomizable-excluded-keys-code-editor#1c15ae8f2c22ecfc8bda94dc59b9f9879c5fcdfc"
+source = "git+https://github.com/marc2332/freya?branch=feat%2Fcode-editor-capture-improvements#bf94d696935737c8443fe56f705e2fb3a85ddd96"
 dependencies = [
  "bytes",
 ]
@@ -1626,7 +1626,7 @@ dependencies = [
 [[package]]
 name = "freya-performance-plugin"
 version = "0.4.0-rc.19"
-source = "git+https://github.com/marc2332/freya?branch=feat%2Fcustomizable-excluded-keys-code-editor#1c15ae8f2c22ecfc8bda94dc59b9f9879c5fcdfc"
+source = "git+https://github.com/marc2332/freya?branch=feat%2Fcode-editor-capture-improvements#bf94d696935737c8443fe56f705e2fb3a85ddd96"
 dependencies = [
  "freya-core",
  "freya-engine",
@@ -1636,7 +1636,7 @@ dependencies = [
 [[package]]
 name = "freya-radio"
 version = "0.4.0-rc.19"
-source = "git+https://github.com/marc2332/freya?branch=feat%2Fcustomizable-excluded-keys-code-editor#1c15ae8f2c22ecfc8bda94dc59b9f9879c5fcdfc"
+source = "git+https://github.com/marc2332/freya?branch=feat%2Fcode-editor-capture-improvements#bf94d696935737c8443fe56f705e2fb3a85ddd96"
 dependencies = [
  "freya-core",
 ]
@@ -1644,7 +1644,7 @@ dependencies = [
 [[package]]
 name = "freya-sdk"
 version = "0.4.0-rc.19"
-source = "git+https://github.com/marc2332/freya?branch=feat%2Fcustomizable-excluded-keys-code-editor#1c15ae8f2c22ecfc8bda94dc59b9f9879c5fcdfc"
+source = "git+https://github.com/marc2332/freya?branch=feat%2Fcode-editor-capture-improvements#bf94d696935737c8443fe56f705e2fb3a85ddd96"
 dependencies = [
  "async-io",
  "freya-core",
@@ -1695,7 +1695,7 @@ dependencies = [
 [[package]]
 name = "freya-winit"
 version = "0.4.0-rc.19"
-source = "git+https://github.com/marc2332/freya?branch=feat%2Fcustomizable-excluded-keys-code-editor#1c15ae8f2c22ecfc8bda94dc59b9f9879c5fcdfc"
+source = "git+https://github.com/marc2332/freya?branch=feat%2Fcode-editor-capture-improvements#bf94d696935737c8443fe56f705e2fb3a85ddd96"
 dependencies = [
  "accesskit",
  "accesskit_winit",
@@ -3290,7 +3290,7 @@ checksum = "35fb2e5f958ec131621fdd531e9fc186ed768cbe395337403ae56c17a74c68ec"
 [[package]]
 name = "pathgraph"
 version = "0.4.0-rc.19"
-source = "git+https://github.com/marc2332/freya?branch=feat%2Fcustomizable-excluded-keys-code-editor#1c15ae8f2c22ecfc8bda94dc59b9f9879c5fcdfc"
+source = "git+https://github.com/marc2332/freya?branch=feat%2Fcode-editor-capture-improvements#bf94d696935737c8443fe56f705e2fb3a85ddd96"
 
 [[package]]
 name = "percent-encoding"
@@ -3568,7 +3568,7 @@ checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 [[package]]
 name = "ragnarok"
 version = "0.4.0-rc.19"
-source = "git+https://github.com/marc2332/freya?branch=feat%2Fcustomizable-excluded-keys-code-editor#1c15ae8f2c22ecfc8bda94dc59b9f9879c5fcdfc"
+source = "git+https://github.com/marc2332/freya?branch=feat%2Fcode-editor-capture-improvements#bf94d696935737c8443fe56f705e2fb3a85ddd96"
 dependencies = [
  "euclid",
  "hotpath",
@@ -4435,7 +4435,7 @@ checksum = "f17aaa1c6e3dc22b1da4b6bba97d066e354c7945cac2f7852d4e4e7ca7a6b56d"
 [[package]]
 name = "torin"
 version = "0.4.0-rc.19"
-source = "git+https://github.com/marc2332/freya?branch=feat%2Fcustomizable-excluded-keys-code-editor#1c15ae8f2c22ecfc8bda94dc59b9f9879c5fcdfc"
+source = "git+https://github.com/marc2332/freya?branch=feat%2Fcode-editor-capture-improvements#bf94d696935737c8443fe56f705e2fb3a85ddd96"
 dependencies = [
  "euclid",
  "itertools 0.14.0",

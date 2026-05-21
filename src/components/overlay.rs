@@ -30,7 +30,7 @@ impl Component for Overlay {
             app_state.focus_previous_view();
         };
 
-        let on_mouse_down = move |e: Event<MouseEventData>| {
+        let on_pointer_down = move |e: Event<PointerEventData>| {
             e.stop_propagation();
             e.prevent_default();
         };
@@ -58,7 +58,7 @@ impl Component for Overlay {
                                     .color((1, 4, 9, 140)),
                             )
                             .corner_radius(12.)
-                            .on_mouse_down(on_mouse_down)
+                            .on_pointer_down(on_pointer_down)
                             .width(Size::px(500.))
                             .margin((60., 0., 0., 0.))
                             .padding(5.)
