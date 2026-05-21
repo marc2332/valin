@@ -51,7 +51,7 @@ cargo install valin
 - `Alt -`: Close Panel
 - `Alt ArrowsLeft/Right`: Focus the previous/next panels
 - `Ctrl W`: Close Tab
-- `Esc`: Open Commander
+- `Ctrl P`: Toggle Commander
 - `Arrows`: Navigate the files explorer when focused
 - `Alt ArrowsUp/Down`: Scroll the editor and the cursor with increased speed
 - `Ctrl ArrowsUp/Down`: Scroll the cursor with increased speed

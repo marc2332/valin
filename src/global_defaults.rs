@@ -37,8 +37,8 @@ pub mod GlobalDefaults {
                 let is_pressing_ctrl = data.modifiers == Modifiers::CONTROL;
 
                 match data.code {
-                    // Pressing `Esc`
-                    Code::Escape => {
+                    // Pressing `Ctrl P`
+                    Code::KeyP if is_pressing_ctrl => {
                         commands.trigger(ToggleCommanderCommand::id());
                     }
                     // Pressing `Alt E`
