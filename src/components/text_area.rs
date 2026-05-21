@@ -60,14 +60,16 @@ impl Component for TextArea {
         let on_submit = self.on_submit.clone();
 
         let mut key_value = value.clone();
-        let onkeydown = move |e: Event<KeyboardEventData>| {
-            if let Key::Named(NamedKey::Enter) = e.key {
+        let onkeydown = move |e: Event<KeyboardEventData>| match &e.key {
+            Key::Named(NamedKey::Enter) => {
                 if let Some(on_submit) = &on_submit {
                     on_submit.call(editable.editor().peek().to_string());
                 }
-            } else {
+            }
+            Key::Named(NamedKey::ArrowDown) | Key::Named(NamedKey::ArrowUp) => {}
+            key => {
                 editable.process_event(EditableEvent::KeyDown {
-                    key: &e.key,
+                    key,
                     modifiers: e.modifiers,
                 });
                 let text = editable.editor().peek().to_string();
