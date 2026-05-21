@@ -93,31 +93,27 @@ impl Component for Commander {
                 .child(
                     ScrollView::new()
                         .height(Size::px(options_height as f32))
-                        .child({
-                            let content: Element = if filtered_commands.is_empty() {
-                                CommanderOption {
-                                    command_id: "not-found".to_string(),
-                                    command_text: "Command Not Found".to_string(),
-                                    is_selected: true,
-                                }
-                                .into()
-                            } else {
-                                rect()
-                                    .children(filtered_commands.into_iter().enumerate().map(
-                                        |(n, command_id)| {
-                                            let command =
-                                                commands.commands.get(&command_id).unwrap();
-                                            CommanderOption {
-                                                command_id: command_id.clone(),
-                                                command_text: command.text().to_string(),
-                                                is_selected: n == selected_index,
-                                            }
-                                            .into()
-                                        },
-                                    ))
-                                    .into()
-                            };
-                            content
+                        .child(if filtered_commands.is_empty() {
+                            CommanderOption {
+                                command_id: "not-found".to_string(),
+                                command_text: "Command Not Found".to_string(),
+                                is_selected: true,
+                            }
+                            .into_element()
+                        } else {
+                            rect()
+                                .children(filtered_commands.into_iter().enumerate().map(
+                                    |(n, command_id)| {
+                                        let command = commands.commands.get(&command_id).unwrap();
+                                        CommanderOption {
+                                            command_id: command_id.clone(),
+                                            command_text: command.text().to_string(),
+                                            is_selected: n == selected_index,
+                                        }
+                                        .into()
+                                    },
+                                ))
+                                .into_element()
                         }),
                 ),
         )
@@ -132,6 +128,10 @@ struct CommanderOption {
 }
 
 impl Component for CommanderOption {
+    fn render_key(&self) -> DiffKey {
+        DiffKey::from(&self.command_id)
+    }
+
     fn render(&self) -> impl IntoElement {
         let background = if self.is_selected {
             Color::from((22, 27, 34))
@@ -139,17 +139,13 @@ impl Component for CommanderOption {
             Color::TRANSPARENT
         };
 
-        let command_text = self.command_text.clone();
-        let command_id = self.command_id.clone();
-
         rect()
             .background(background)
-            .key(&command_id)
             .padding((8., 6.))
             .width(Size::fill())
             .height(Size::px(30.))
             .corner_radius(10.)
             .main_align(Alignment::Center)
-            .child(label().text(command_text))
+            .child(self.command_text.clone())
     }
 }

@@ -69,7 +69,6 @@ impl Component for EditorTab {
                             .height(Size::px(14.0))
                             .fill(Color::from_rgb(180, 180, 180))
                             .margin((0., 4., 0., 0.))
-                            .into_element()
                     }))
                     .child(
                         label()

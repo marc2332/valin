@@ -1,6 +1,9 @@
 use freya::prelude::*;
 
-use crate::{components::Overlay, state::RadioAppState};
+use crate::{
+    components::Overlay,
+    state::{RadioAppState, TabId},
+};
 
 const ITEM_HEIGHT: f32 = 32.;
 const MAX_LIST_HEIGHT: f32 = 420.;
@@ -24,7 +27,7 @@ impl Component for TabSwitcher {
                     .filter_map(|(index, tab_id)| {
                         let data = app_state.tabs.get(tab_id)?.get_data();
                         Some(TabSwitcherRow {
-                            key_id: index,
+                            tab_id: *tab_id,
                             title: data.title.clone(),
                             icon: data.icon.clone(),
                             is_selected: index == switcher.selected,
@@ -34,16 +37,16 @@ impl Component for TabSwitcher {
             .collect();
 
         let list_height = (rows.len() as f32 * ITEM_HEIGHT).clamp(ITEM_HEIGHT, MAX_LIST_HEIGHT);
-        let body: Element = if rows.is_empty() {
+        let body = if rows.is_empty() {
             rect()
                 .height(Size::px(ITEM_HEIGHT))
                 .padding((8., 6.))
-                .child(label().text("No tabs to switch to"))
-                .into()
+                .child("No tabs to switch to")
+                .into_element()
         } else {
             rect()
                 .children(rows.into_iter().map(Into::into).collect::<Vec<_>>())
-                .into()
+                .into_element()
         };
 
         Overlay::new().child(
@@ -59,13 +62,17 @@ impl Component for TabSwitcher {
 
 #[derive(Clone, PartialEq)]
 struct TabSwitcherRow {
-    key_id: usize,
+    tab_id: TabId,
     title: String,
     icon: Option<Bytes>,
     is_selected: bool,
 }
 
 impl Component for TabSwitcherRow {
+    fn render_key(&self) -> DiffKey {
+        DiffKey::from(&self.tab_id)
+    }
+
     fn render(&self) -> impl IntoElement {
         let background = if self.is_selected {
             Color::from((22, 27, 34))
@@ -74,7 +81,6 @@ impl Component for TabSwitcherRow {
         };
 
         rect()
-            .key(&self.key_id)
             .background(background)
             .corner_radius(8.)
             .padding((8., 6.))
@@ -88,7 +94,6 @@ impl Component for TabSwitcherRow {
                     .height(Size::px(14.))
                     .fill(Color::from_rgb(180, 180, 180))
                     .margin((0., 6., 0., 0.))
-                    .into_element()
             }))
             .child(
                 label()

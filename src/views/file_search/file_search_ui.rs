@@ -97,7 +97,7 @@ impl Component for FileSearch {
                     rect()
                         .height(Size::px(ITEM_HEIGHT))
                         .padding((8., 6.))
-                        .child(label().text("No files found"))
+                        .child("No files found")
                 } else {
                     rect().height(Size::px(list_height)).child(
                         VirtualScrollView::new_with_data(
@@ -154,6 +154,10 @@ struct FileSearchOption {
 }
 
 impl Component for FileSearchOption {
+    fn render_key(&self) -> DiffKey {
+        DiffKey::from(&self.key_id)
+    }
+
     fn render(&self) -> impl IntoElement {
         let background = if self.is_selected {
             Color::from((22, 27, 34))
@@ -161,17 +165,14 @@ impl Component for FileSearchOption {
             Color::TRANSPARENT
         };
 
-        let on_press = self.on_press.clone();
-
         rect()
             .background(background)
-            .key(&self.key_id)
             .padding((8., 6.))
             .width(Size::fill())
             .height(Size::px(ITEM_HEIGHT))
             .corner_radius(8.)
             .main_align(Alignment::Center)
-            .on_press(move |e: Event<PressEventData>| on_press.call(e))
+            .on_press(self.on_press.clone())
             .child(
                 label()
                     .max_lines(1)

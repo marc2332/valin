@@ -143,8 +143,10 @@ impl App for AppView {
             app_state.commit_tab_switcher();
         };
 
-        let focused_view = radio_app_state.read().focused_view;
-        let side_panel = radio_app_state.read().side_panel;
+        let (focused_view, side_panel) = {
+            let app_state = radio_app_state.read();
+            (app_state.focused_view, app_state.side_panel)
+        };
 
         // Build the editor panels container
         let panels_container = {
@@ -196,21 +198,15 @@ impl App for AppView {
             .expanded()
             .on_global_key_down(on_global_key_down)
             .on_global_key_up(on_global_key_up)
-            .maybe_child(if focused_view == EditorView::Commander {
-                Some(Commander { editor_commands })
-            } else {
-                None
-            })
-            .maybe_child(if focused_view == EditorView::FileSearch {
-                Some(FileSearch { radio_app_state })
-            } else {
-                None
-            })
-            .maybe_child(if focused_view == EditorView::TabSwitcher {
-                Some(TabSwitcher { radio_app_state })
-            } else {
-                None
-            })
+            .maybe_child(
+                (focused_view == EditorView::Commander).then(|| Commander { editor_commands }),
+            )
+            .maybe_child(
+                (focused_view == EditorView::FileSearch).then(|| FileSearch { radio_app_state }),
+            )
+            .maybe_child(
+                (focused_view == EditorView::TabSwitcher).then(|| TabSwitcher { radio_app_state }),
+            )
             .child(
                 rect()
                     .height(Size::func(|ctx| Some(ctx.parent - 31.)))

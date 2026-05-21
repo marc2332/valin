@@ -46,8 +46,13 @@ impl Component for EditorPanel {
         };
 
         let on_presspanel = move |_| {
-            let is_panel_focused = radio_app_state.read().focused_panel == panel_index;
-            let is_panels_view_focused = radio_app_state.read().focused_view == EditorView::Panels;
+            let (is_panel_focused, is_panels_view_focused) = {
+                let app_state = radio_app_state.read();
+                (
+                    app_state.focused_panel == panel_index,
+                    app_state.focused_view == EditorView::Panels,
+                )
+            };
 
             if !is_panel_focused {
                 radio_app_state
@@ -99,23 +104,19 @@ impl Component for EditorPanel {
                                 .height(Size::fill())
                                 .spacing(4.0)
                                 .padding(4.0)
-                                .maybe_child(if show_close_panel {
-                                    Some(
-                                        Button::new()
-                                            .flat()
-                                            .height(Size::fill())
-                                            .padding((0., 8.))
-                                            .on_press(close_panel)
-                                            .child(
-                                                svg(freya::icons::lucide::x())
-                                                    .width(Size::px(16.0))
-                                                    .height(Size::px(16.0))
-                                                    .color((200, 200, 200)),
-                                            ),
-                                    )
-                                } else {
-                                    None
-                                })
+                                .maybe_child(show_close_panel.then(|| {
+                                    Button::new()
+                                        .flat()
+                                        .height(Size::fill())
+                                        .padding((0., 8.))
+                                        .on_press(close_panel)
+                                        .child(
+                                            svg(freya::icons::lucide::x())
+                                                .width(Size::px(16.0))
+                                                .height(Size::px(16.0))
+                                                .color((200, 200, 200)),
+                                        )
+                                }))
                                 .child(
                                     Button::new()
                                         .flat()
