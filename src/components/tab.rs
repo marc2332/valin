@@ -22,12 +22,6 @@ impl Component for EditorTab {
     fn render(&self) -> impl IntoElement {
         let mut status = use_state(ButtonStatus::default);
 
-        use_drop(move || {
-            if *status.read() == ButtonStatus::Hovering {
-                Cursor::set(CursorIcon::default());
-            }
-        });
-
         let on_pointer_over = move |_| {
             status.set(ButtonStatus::Hovering);
         };
