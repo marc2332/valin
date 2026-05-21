@@ -61,3 +61,8 @@ pub struct Panel {
     pub active_tab: Option<TabId>,
     pub tabs: Vec<TabId>,
 }
+
+pub struct TabSwitcherState {
+    pub order: Vec<TabId>,
+    pub selected: usize,
+}

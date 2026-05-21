@@ -149,7 +149,7 @@ impl Component for FileExplorer {
     fn render(&self) -> impl IntoElement {
         let mut radio_app_state = use_radio::<AppState, Channel>(Channel::FileExplorer);
         let app_state = radio_app_state.read();
-        let focus = Focus::new_for_id(app_state.file_explorer.focus_id);
+        let focus_id = app_state.file_explorer.focus_id;
         let mut focused_item_index = use_state(|| 0);
 
         let items = app_state
@@ -292,7 +292,7 @@ impl Component for FileExplorer {
 
         let on_press = move |e: Event<MouseEventData>| {
             e.stop_propagation();
-            focus.request_focus();
+            focus_id.request_focus();
         };
 
         let length = items.len();
@@ -307,7 +307,7 @@ impl Component for FileExplorer {
                 .expanded()
                 .on_key_down(on_key_down)
                 .on_mouse_up(on_press)
-                .a11y_id(focus.a11y_id())
+                .a11y_id(focus_id)
                 .child(
                     VirtualScrollView::new_with_data(
                         (items, focused_item_index, radio_app_state),

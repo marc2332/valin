@@ -35,7 +35,7 @@ impl WelcomeTab {
     pub fn new() -> Self {
         Self {
             id: TabId::new(),
-            focus_id: Focus::new_id(),
+            focus_id: AccessibilityId::new_unique(),
         }
     }
 

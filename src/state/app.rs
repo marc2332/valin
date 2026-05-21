@@ -1,12 +1,12 @@
 use std::collections::HashMap;
 
-use freya::prelude::Focus;
+use freya::prelude::AccessibilityIdExt;
 use freya::radio::{Radio, RadioChannel};
 use tracing::info;
 
 use crate::{fs::FSTransport, views::file_explorer::file_explorer_state::FileExplorerState};
 
-use super::{AppSettings, EditorView, FileIcons, Panel, PanelTab, TabId};
+use super::{AppSettings, EditorView, FileIcons, Panel, PanelTab, TabId, TabSwitcherState};
 
 pub type RadioAppState = Radio<AppState, Channel>;
 
@@ -81,6 +81,8 @@ pub struct AppState {
     pub focused_panel: usize,
     pub panels: Vec<Panel>,
     pub tabs: HashMap<TabId, Box<dyn PanelTab>>,
+    pub tab_history: Vec<TabId>,
+    pub tab_switcher: Option<TabSwitcherState>,
     pub settings: AppSettings,
     pub side_panel: Option<EditorSidePanel>,
     pub default_transport: FSTransport,
@@ -96,6 +98,8 @@ impl AppState {
             focused_view: EditorView::default(),
             focused_panel: 0,
             tabs: HashMap::new(),
+            tab_history: Vec::new(),
+            tab_switcher: None,
             panels: vec![Panel::default()],
             settings: AppSettings::load(),
             side_panel: Some(EditorSidePanel::default()),
@@ -153,6 +157,9 @@ impl AppState {
     }
 
     pub fn focus_previous_view(&mut self) {
+        if self.focused_view == EditorView::TabSwitcher {
+            self.tab_switcher = None;
+        }
         if let Some(previous_focused_view) = self.previous_focused_view {
             self.focused_view = previous_focused_view;
             self.previous_focused_view = None;
@@ -252,6 +259,14 @@ impl AppState {
             panel.tabs.retain(|tab| *tab != tab_id);
         }
 
+        self.tab_history.retain(|t| *t != tab_id);
+        if let Some(switcher) = self.tab_switcher.as_mut() {
+            switcher.order.retain(|t| *t != tab_id);
+            if switcher.selected >= switcher.order.len() {
+                switcher.selected = switcher.order.len().saturating_sub(1);
+            }
+        }
+
         info!("Closed tab [panel={panel_index}] [tab={tab_id:?}]",);
     }
 
@@ -259,8 +274,13 @@ impl AppState {
         self.panels[panel_index].active_tab = tab_id;
         if let Some(tab_id) = tab_id {
             let tab = self.tab(&tab_id);
-            let focus = Focus::new_for_id(tab.get_data().focus_id);
-            focus.request_focus();
+            tab.get_data().focus_id.request_focus();
+            // Only update MRU when not cycling through the switcher overlay,
+            // so the snapshot it captured stays meaningful until commit.
+            if self.tab_switcher.is_none() {
+                self.tab_history.retain(|t| *t != tab_id);
+                self.tab_history.insert(0, tab_id);
+            }
         }
     }
 
@@ -302,6 +322,42 @@ impl AppState {
                 self.focused_panel -= 1;
             }
             self.tabs.retain(|id, _| !panel.tabs.contains(id));
+            self.tab_history.retain(|id| self.tabs.contains_key(id));
         }
+    }
+
+    pub fn cycle_tab_switcher(&mut self, reverse: bool) {
+        let step = |selected: usize, len: usize| {
+            let delta = if reverse { len - 1 } else { 1 };
+            (selected + delta) % len
+        };
+
+        if let Some(switcher) = self.tab_switcher.as_mut() {
+            if !switcher.order.is_empty() {
+                switcher.selected = step(switcher.selected, switcher.order.len());
+            }
+            return;
+        }
+
+        if self.tab_history.len() < 2 {
+            return;
+        }
+        let order = self.tab_history.clone();
+        let selected = step(0, order.len());
+        self.tab_switcher = Some(TabSwitcherState { order, selected });
+        self.focus_view(EditorView::TabSwitcher);
+    }
+
+    pub fn commit_tab_switcher(&mut self) {
+        let Some(switcher) = self.tab_switcher.take() else {
+            return;
+        };
+        if let Some(&tab_id) = switcher.order.get(switcher.selected)
+            && let Some(panel_index) = self.panels.iter().position(|p| p.tabs.contains(&tab_id))
+        {
+            self.focused_panel = panel_index;
+            self.focus_tab(panel_index, Some(tab_id));
+        }
+        self.focus_previous_view();
     }
 }

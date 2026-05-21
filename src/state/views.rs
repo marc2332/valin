@@ -7,11 +7,12 @@ pub enum EditorView {
     FilesExplorer,
     Commander,
     FileSearch,
+    TabSwitcher,
 }
 
 impl EditorView {
     pub fn is_popup(&self) -> bool {
-        matches!(self, Self::Commander | Self::FileSearch)
+        matches!(self, Self::Commander | Self::FileSearch | Self::TabSwitcher)
     }
 }
 
@@ -22,6 +23,7 @@ impl Display for EditorView {
             Self::FilesExplorer => f.write_str("Files Explorer"),
             Self::Commander => f.write_str("Commander"),
             Self::FileSearch => f.write_str("File Search"),
+            Self::TabSwitcher => f.write_str("Tab Switcher"),
         }
     }
 }

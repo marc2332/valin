@@ -33,7 +33,6 @@ pub fn github_dark_theme() -> Theme {
         text_inverse: Color::from_rgb(1, 4, 9),
         text_highlight: Color::from_rgb(88, 166, 255),
 
-        hover: Color::from_rgb(33, 38, 45),
         focus: Color::from_rgb(31, 111, 235),
         active: Color::from_rgb(22, 27, 34),
         disabled: Color::from_rgb(13, 17, 23),

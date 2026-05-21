@@ -10,8 +10,9 @@ pub mod GlobalDefaults {
     use crate::state::{Channel, EditorCommands, EditorView, KeyboardShortcuts, RadioAppState};
 
     use super::{
-        ClosePanelCommand, CloseTabCommand, FocusNextPanelCommand, FocusPreviousPanelCommand,
-        OpenFileSearchCommand, OpenSettingsCommand, SplitPanelCommand, ToggleCommanderCommand,
+        ClosePanelCommand, CloseTabCommand, CycleTabSwitcherBackCommand, CycleTabSwitcherCommand,
+        FocusNextPanelCommand, FocusPreviousPanelCommand, OpenFileSearchCommand,
+        OpenSettingsCommand, SplitPanelCommand, ToggleCommanderCommand,
     };
 
     pub fn init(
@@ -28,6 +29,8 @@ pub mod GlobalDefaults {
         commands.register(FocusNextPanelCommand(radio_app_state));
         commands.register(FocusPreviousPanelCommand(radio_app_state));
         commands.register(OpenFileSearchCommand(radio_app_state));
+        commands.register(CycleTabSwitcherCommand(radio_app_state));
+        commands.register(CycleTabSwitcherBackCommand(radio_app_state));
 
         // Register Shortcuts
         keyboard_shorcuts.register(
@@ -69,6 +72,14 @@ pub mod GlobalDefaults {
                     // Pressing `Ctrl W`
                     Code::KeyW if is_pressing_ctrl => {
                         commands.trigger(CloseTabCommand::id());
+                    }
+                    // Pressing `Ctrl Tab`
+                    Code::Tab if is_pressing_ctrl => {
+                        commands.trigger(CycleTabSwitcherCommand::id());
+                    }
+                    // Pressing `Ctrl Shift Tab`
+                    Code::Tab if is_pressing_ctrl_shift => {
+                        commands.trigger(CycleTabSwitcherBackCommand::id());
                     }
                     // Pressing `Alt +`
                     _ if is_pressing_alt && data.key == Key::Character("+".to_string()) => {
@@ -335,5 +346,71 @@ impl EditorCommand for FocusPreviousPanelCommand {
         let mut radio_app_state = self.0;
         let mut app_state = radio_app_state.write_channel(Channel::Global);
         app_state.focus_previous_panel();
+    }
+}
+
+#[derive(Clone)]
+pub struct CycleTabSwitcherCommand(pub RadioAppState);
+
+impl CycleTabSwitcherCommand {
+    pub fn id() -> &'static str {
+        "cycle-tab-switcher"
+    }
+}
+
+impl EditorCommand for CycleTabSwitcherCommand {
+    fn is_visible(&self) -> bool {
+        false
+    }
+
+    fn matches(&self, _input: &str) -> bool {
+        false
+    }
+
+    fn id(&self) -> &str {
+        Self::id()
+    }
+
+    fn text(&self) -> &str {
+        "Cycle Tab Switcher"
+    }
+
+    fn run(&self, _ctx: &mut CommandRunContext) {
+        let mut radio_app_state = self.0;
+        let mut app_state = radio_app_state.write_channel(Channel::Global);
+        app_state.cycle_tab_switcher(false);
+    }
+}
+
+#[derive(Clone)]
+pub struct CycleTabSwitcherBackCommand(pub RadioAppState);
+
+impl CycleTabSwitcherBackCommand {
+    pub fn id() -> &'static str {
+        "cycle-tab-switcher-back"
+    }
+}
+
+impl EditorCommand for CycleTabSwitcherBackCommand {
+    fn is_visible(&self) -> bool {
+        false
+    }
+
+    fn matches(&self, _input: &str) -> bool {
+        false
+    }
+
+    fn id(&self) -> &str {
+        Self::id()
+    }
+
+    fn text(&self) -> &str {
+        "Cycle Tab Switcher (Back)"
+    }
+
+    fn run(&self, _ctx: &mut CommandRunContext) {
+        let mut radio_app_state = self.0;
+        let mut app_state = radio_app_state.write_channel(Channel::Global);
+        app_state.cycle_tab_switcher(true);
     }
 }

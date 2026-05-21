@@ -55,6 +55,24 @@ impl PanelTab for EditorTab {
                 .font_size(radio_app_state.read().font_size())
                 .line_height(radio_app_state.read().line_height())
                 .theme(GITHUB_DARK_EDITOR_THEME)
+                .on_pre_key_down(|e: Event<KeyboardEventData>| {
+                    e.stop_propagation();
+                    let alt = e.modifiers.contains(Modifiers::ALT);
+                    let ctrl = e.modifiers == Modifiers::CONTROL;
+                    let ctrl_shift = e.modifiers == (Modifiers::CONTROL | Modifiers::SHIFT);
+                    let is_global_shortcut = alt
+                        || matches!(e.code, Code::KeyS | Code::KeyW if ctrl)
+                        || matches!(e.code, Code::KeyP | Code::Tab if ctrl || ctrl_shift);
+                    if is_global_shortcut {
+                        // Skip editor processing and let GlobalKeyDown fire —
+                        // calling `prevent_default()` here would cancel it.
+                        return false;
+                    }
+                    if e.key == Key::Named(NamedKey::Tab) {
+                        e.prevent_default();
+                    }
+                    true
+                })
                 .into()
         }
     }
@@ -78,7 +96,7 @@ impl EditorTab {
     ) -> Self {
         Self {
             id,
-            focus_id: Focus::new_id(),
+            focus_id: AccessibilityId::new_unique(),
             data,
             transport,
             path,

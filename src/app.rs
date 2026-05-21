@@ -11,6 +11,7 @@ use crate::views::file_explorer::file_explorer_ui::{
 use crate::views::file_search::file_search_ui::FileSearch;
 use crate::views::panels::tabs::editor::EditorTab;
 use crate::views::panels::tabs::welcome::WelcomeTab;
+use crate::views::tab_switcher::tab_switcher_ui::TabSwitcher;
 use crate::{
     fs::{FSLocal, FSTransport},
     state::EditorCommands,
@@ -128,6 +129,20 @@ impl App for AppView {
             }
         };
 
+        // Commit a pending Ctrl+Tab switch when Ctrl is released.
+        let on_global_key_up = move |e: Event<KeyboardEventData>| {
+            let data = e.data();
+            let is_ctrl = matches!(data.code, Code::ControlLeft | Code::ControlRight);
+            if !is_ctrl {
+                return;
+            }
+            if radio_app_state.read().tab_switcher.is_none() {
+                return;
+            }
+            let mut app_state = radio_app_state.write_channel(Channel::Global);
+            app_state.commit_tab_switcher();
+        };
+
         let focused_view = radio_app_state.read().focused_view;
         let side_panel = radio_app_state.read().side_panel;
 
@@ -180,6 +195,7 @@ impl App for AppView {
             .background((8, 8, 12))
             .expanded()
             .on_global_key_down(on_global_key_down)
+            .on_global_key_up(on_global_key_up)
             .maybe_child(if focused_view == EditorView::Commander {
                 Some(Commander { editor_commands })
             } else {
@@ -187,6 +203,11 @@ impl App for AppView {
             })
             .maybe_child(if focused_view == EditorView::FileSearch {
                 Some(FileSearch { radio_app_state })
+            } else {
+                None
+            })
+            .maybe_child(if focused_view == EditorView::TabSwitcher {
+                Some(TabSwitcher { radio_app_state })
             } else {
                 None
             })

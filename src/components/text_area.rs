@@ -47,7 +47,7 @@ impl Component for TextArea {
         let mut status = use_state(InputStatus::default);
         let value = self.value.clone();
         let mut editable = use_editable(|| value.read().to_string(), EditableConfig::new);
-        let focus = use_focus();
+        let focus_id = use_a11y();
         let holder = use_state(ParagraphHolder::default);
 
         if &*value.read() != editable.editor().read().rope() {
@@ -99,7 +99,7 @@ impl Component for TextArea {
         };
 
         let on_mouse_down = move |e: Event<MouseEventData>| {
-            focus.request_focus();
+            focus_id.request_focus();
             editable.process_event(EditableEvent::Down {
                 location: e.element_location,
                 editor_line: freya::text_edit::EditorLine::SingleParagraph,
@@ -134,7 +134,7 @@ impl Component for TextArea {
             .border(Border::new().width(1.).fill((33, 38, 45)))
             .padding((8., 6.))
             .margin((0., 0., 2., 0.))
-            .a11y_id(focus.a11y_id())
+            .a11y_id(focus_id)
             .a11y_role(AccessibilityRole::TextInput)
             .a11y_auto_focus(true)
             .on_key_down(onkeydown)

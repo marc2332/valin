@@ -11,12 +11,12 @@ impl FileExplorerState {
     pub fn new() -> Self {
         Self {
             folders: Vec::new(),
-            focus_id: Focus::new_id(),
+            focus_id: AccessibilityId::new_unique(),
         }
     }
 
     pub fn focus(&self) {
-        Focus::new_for_id(self.focus_id).request_focus();
+        self.focus_id.request_focus();
     }
 
     pub fn open_folder(&mut self, item: ExplorerItem) {

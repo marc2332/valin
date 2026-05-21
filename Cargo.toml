@@ -12,13 +12,13 @@ repository = "https://github.com/marc2332/valin"
 devtools = ["freya/devtools"]
 
 [dependencies]
-freya = { version = "0.4.0-rc.19", features = [
+freya = { path = "/home/marc/Projects/freya-tree/feat-customizable-excluded-keys-code-editor/crates/freya", features = [
   "markdown",
   "radio",
   "code-editor",
   "icons",
 ] }
-freya-performance-plugin = { version = "0.4.0-rc.19" }
+freya-performance-plugin = { path = "/home/marc/Projects/freya-tree/feat-customizable-excluded-keys-code-editor/crates/freya-performance-plugin" }
 
 async-io = "2.5.0"
 

@@ -181,6 +181,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "android-build"
+version = "0.1.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9fc9904ad2ad097c3c1cfe2eacaaf0fc24710936fa9ed941cb310b7c6ed2ab7"
+dependencies = [
+ "windows-sys 0.52.0",
+]
+
+[[package]]
 name = "android-properties"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -574,6 +583,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
+name = "beul"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3c3baedf037b161e69da9200947329f52afa3b6e1cdbe6f344d6aa350fedd2f"
+
+[[package]]
 name = "bindgen"
 version = "0.72.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -693,6 +708,20 @@ name = "bytemuck"
 version = "1.25.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c8efb64bd706a16a1bdde310ae86b351e4d21550d98d056f22f8a7f7a2183fec"
+dependencies = [
+ "bytemuck_derive",
+]
+
+[[package]]
+name = "bytemuck_derive"
+version = "1.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f9abbd1bc6865053c427f7198e6af43bfdedc55ab791faed4fbd361d789575ff"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "byteorder-lite"
@@ -1058,6 +1087,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ctor"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "83cf0d42651b16c6dfe68685716d18480d18a9c39c62d76e8cf3eb6ed5d8bcbf"
+dependencies = [
+ "dtor",
+]
+
+[[package]]
 name = "cursor-icon"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1117,6 +1155,52 @@ name = "dpi"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d8b14ccef22fc6f5a8f4d7d768562a182c04ce9a3b3157b91390b52ddfdf1a76"
+
+[[package]]
+name = "drm"
+version = "0.14.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80bc8c5c6c2941f70a55c15f8d9f00f9710ebda3ffda98075f996a0e6c92756f"
+dependencies = [
+ "bitflags 2.11.0",
+ "bytemuck",
+ "drm-ffi",
+ "drm-fourcc",
+ "libc",
+ "rustix 0.38.44",
+]
+
+[[package]]
+name = "drm-ffi"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "51a91c9b32ac4e8105dec255e849e0d66e27d7c34d184364fb93e469db08f690"
+dependencies = [
+ "drm-sys",
+ "rustix 1.1.4",
+]
+
+[[package]]
+name = "drm-fourcc"
+version = "2.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0aafbcdb8afc29c1a7ee5fbe53b5d62f4565b35a042a662ca9fecd0b54dae6f4"
+
+[[package]]
+name = "drm-sys"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ecc8e1361066d91f5ffccff060a3c3be9c3ecde15be2959c1937595f7a82a9f8"
+dependencies = [
+ "libc",
+ "linux-raw-sys 0.9.4",
+]
+
+[[package]]
+name = "dtor"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "edf234dd1594d6dd434a8fb8cada51ddbbc593e40e4a01556a0b31c62da2775b"
 
 [[package]]
 name = "easer"
@@ -1363,8 +1447,6 @@ checksum = "aa9a19cbb55df58761df49b23516a86d432839add4af60fc256da840f66ed35b"
 [[package]]
 name = "freya"
 version = "0.4.0-rc.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f245220ba270fd9a856bd8b09b80ce9f135b756efb51ff6efdbfb6e395382148"
 dependencies = [
  "cfg-if",
  "freya-android",
@@ -1386,8 +1468,6 @@ dependencies = [
 [[package]]
 name = "freya-android"
 version = "0.4.0-rc.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "765cfeaa319c669fc43894ba84d8d13990ca4ed8cb2f5acac6442aa33259887a"
 dependencies = [
  "freya-components",
  "freya-core",
@@ -1400,8 +1480,6 @@ dependencies = [
 [[package]]
 name = "freya-animation"
 version = "0.4.0-rc.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ffc8a3a652a1cd2460a7647b57f9a432470e85df29c3ac079858193b8ed6fc7f"
 dependencies = [
  "async-io",
  "easer",
@@ -1411,8 +1489,6 @@ dependencies = [
 [[package]]
 name = "freya-clipboard"
 version = "0.4.0-rc.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e22501b58c4cfd6903e8275305eaaf23dce6719f9a2b0dd17a6000c17837eca5"
 dependencies = [
  "copypasta",
  "freya-core",
@@ -1421,8 +1497,6 @@ dependencies = [
 [[package]]
 name = "freya-code-editor"
 version = "0.4.0-rc.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "57edb73382f51f840144fad00f30118433c0dbee31fff53cad33e1bf1b5995ac"
 dependencies = [
  "freya-components",
  "freya-core",
@@ -1439,8 +1513,6 @@ dependencies = [
 [[package]]
 name = "freya-components"
 version = "0.4.0-rc.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ee685da41b6a8354886d18dba6087d66bde79078789e84cc8698a8002895f86"
 dependencies = [
  "accesskit",
  "anyhow",
@@ -1463,8 +1535,6 @@ dependencies = [
 [[package]]
 name = "freya-core"
 version = "0.4.0-rc.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cec71c46732f3a824d0c38d776fcaa1e50236b4425aeddbafa692f47c7fe8c1c"
 dependencies = [
  "accesskit",
  "async-broadcast",
@@ -1479,6 +1549,7 @@ dependencies = [
  "hotpath",
  "itertools 0.14.0",
  "keyboard-types",
+ "mundy",
  "paste",
  "pathgraph",
  "ragnarok",
@@ -1492,8 +1563,6 @@ dependencies = [
 [[package]]
 name = "freya-devtools"
 version = "0.4.0-rc.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1a6eb6cfae08172b09aed803cff12d770bdcc2bfc1f577ac7364e40b8eba0663"
 dependencies = [
  "accesskit",
  "anyhow",
@@ -1518,8 +1587,6 @@ dependencies = [
 [[package]]
 name = "freya-edit"
 version = "0.4.0-rc.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "844274b5ea9669af68f278dad209a6c59914b99b9a4f21e399567467391eed1b"
 dependencies = [
  "bitflags 2.11.0",
  "freya-clipboard",
@@ -1533,8 +1600,6 @@ dependencies = [
 [[package]]
 name = "freya-engine"
 version = "0.4.0-rc.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ee1a2d02143cd29330d52992332594d11fc8aba807cc79ab9610fc6b87790d8e"
 dependencies = [
  "bitflags 2.11.0",
  "freya-skia-safe",
@@ -1543,8 +1608,6 @@ dependencies = [
 [[package]]
 name = "freya-icons"
 version = "0.4.0-rc.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "303fa888a1e2f5883d4a291e581213fdde29a1636f4b45943cd1bc5596032311"
 dependencies = [
  "bytes",
 ]
@@ -1552,8 +1615,6 @@ dependencies = [
 [[package]]
 name = "freya-performance-plugin"
 version = "0.4.0-rc.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c0694955cd60135af7544c9f534041785ec379173049093ca93a5365a3392a1e"
 dependencies = [
  "freya-core",
  "freya-engine",
@@ -1563,8 +1624,6 @@ dependencies = [
 [[package]]
 name = "freya-radio"
 version = "0.4.0-rc.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53fd1a245c755816628c685eb766a50d50829d84d81dc9281b60b20c264059e4"
 dependencies = [
  "freya-core",
 ]
@@ -1572,8 +1631,6 @@ dependencies = [
 [[package]]
 name = "freya-sdk"
 version = "0.4.0-rc.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ea8dd6ed28d96c8863f1d18f07eef21810931cc1750222979be905ab8af60a63"
 dependencies = [
  "async-io",
  "freya-core",
@@ -1624,8 +1681,6 @@ dependencies = [
 [[package]]
 name = "freya-winit"
 version = "0.4.0-rc.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6cbc7fc22360b1467b7772f3732759d554adf18837e20108f3ef5f5bd2ba9938"
 dependencies = [
  "accesskit",
  "accesskit_winit",
@@ -1645,6 +1700,7 @@ dependencies = [
  "hotpath",
  "image",
  "keyboard-types",
+ "mundy",
  "objc2 0.6.4",
  "objc2-app-kit 0.3.2",
  "objc2-core-foundation",
@@ -1654,6 +1710,7 @@ dependencies = [
  "raw-window-handle",
  "rfd",
  "rustc-hash",
+ "softbuffer",
  "torin",
  "tracing",
  "winit",
@@ -2006,18 +2063,18 @@ dependencies = [
 
 [[package]]
 name = "hotpath"
-version = "0.14.0"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2fde50be006a0fe95cc2fd6d25d884aa6932218e4055d7df2fa0d95c386acf8d"
+checksum = "fdb7d0713302f121f02d93290b6303b320e886f462d2cde84146ce9f9e28f1f0"
 dependencies = [
  "hotpath-macros",
 ]
 
 [[package]]
 name = "hotpath-macros"
-version = "0.14.0"
+version = "0.15.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd884cee056e269e41e1127549458e1c4e309f31897ebbc1416982a74d40a5b5"
+checksum = "51066092dc750f8cbcac4afa04592377bf7463a911d1beca430ddd788deb0757"
 
 [[package]]
 name = "http"
@@ -2443,6 +2500,12 @@ checksum = "d26c52dbd32dccf2d10cac7725f8eae5296885fb5703b261f7d0a0739ec807ab"
 
 [[package]]
 name = "linux-raw-sys"
+version = "0.9.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd945864f07fe9f5371a27ad7b52a172b4b499999f1d97574c9fa68373937e12"
+
+[[package]]
+name = "linux-raw-sys"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53"
@@ -2559,6 +2622,31 @@ checksum = "bb85c154ba489f01b25c0d36ae69a87e4a1c73a72631fc6c0eb6dde34a73e44b"
 dependencies = [
  "num-traits",
  "pxfm",
+]
+
+[[package]]
+name = "mundy"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f32eb0db40f2df2bcfb05c93b8f73938d4c26ce9ac8881f1df0c8d3296921a73"
+dependencies = [
+ "android-build",
+ "async-io",
+ "beul",
+ "cfg-if",
+ "futures-channel",
+ "futures-lite",
+ "jni 0.22.4",
+ "ndk-context",
+ "objc2 0.6.4",
+ "objc2-app-kit 0.3.2",
+ "objc2-foundation 0.3.2",
+ "pin-project-lite",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+ "windows",
+ "zbus",
 ]
 
 [[package]]
@@ -2962,6 +3050,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e3e0adef53c21f888deb4fa59fc59f7eb17404926ee8a6f59f5df0fd7f9f3272"
 dependencies = [
  "bitflags 2.11.0",
+ "block2 0.6.2",
+ "libc",
  "objc2 0.6.4",
  "objc2-core-foundation",
 ]
@@ -3185,8 +3275,6 @@ checksum = "35fb2e5f958ec131621fdd531e9fc186ed768cbe395337403ae56c17a74c68ec"
 [[package]]
 name = "pathgraph"
 version = "0.4.0-rc.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c4a232e64934690f30acfa5fbfab99c3a39e534e76fb719ba83cccfeedaea37"
 
 [[package]]
 name = "percent-encoding"
@@ -3464,8 +3552,6 @@ checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 [[package]]
 name = "ragnarok"
 version = "0.4.0-rc.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0450022d94d9634cd307b21e9ab0aed30ea627d3bfe164ac25948f6ab150678e"
 dependencies = [
  "euclid",
  "hotpath",
@@ -4025,6 +4111,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "softbuffer"
+version = "0.4.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aac18da81ebbf05109ab275b157c22a653bb3c12cf884450179942f81bcbf6c3"
+dependencies = [
+ "as-raw-xcb-connection",
+ "bytemuck",
+ "drm",
+ "fastrand",
+ "js-sys",
+ "memmap2",
+ "ndk",
+ "objc2 0.6.4",
+ "objc2-core-foundation",
+ "objc2-core-graphics",
+ "objc2-foundation 0.3.2",
+ "objc2-quartz-core 0.3.2",
+ "raw-window-handle",
+ "redox_syscall 0.5.18",
+ "rustix 1.1.4",
+ "tiny-xlib",
+ "tracing",
+ "wasm-bindgen",
+ "wayland-backend",
+ "wayland-client",
+ "wayland-sys",
+ "web-sys",
+ "windows-sys 0.61.2",
+ "x11rb",
+]
+
+[[package]]
 name = "stable_deref_trait"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4184,6 +4302,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "tiny-xlib"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a90a0ca3ee6a69f2ad28fd11621a4c3f03b371f366be500b64df260c4ffbafb4"
+dependencies = [
+ "as-raw-xcb-connection",
+ "ctor",
+ "libloading",
+ "pkg-config",
+ "tracing",
+]
+
+[[package]]
 name = "tokio"
 version = "1.50.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4287,8 +4418,6 @@ checksum = "f17aaa1c6e3dc22b1da4b6bba97d066e354c7945cac2f7852d4e4e7ca7a6b56d"
 [[package]]
 name = "torin"
 version = "0.4.0-rc.19"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "305efbb76daca214639f903ad17430b5052fc45989372063f4a77afdeb386c39"
 dependencies = [
  "euclid",
  "itertools 0.14.0",
