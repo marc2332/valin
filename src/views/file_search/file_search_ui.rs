@@ -121,6 +121,13 @@ fn file_search_item_builder(
     let is_selected = *selected.read() == index;
     let mut radio_app_state = *radio_app_state;
 
+    let icon_svg = radio_app_state
+        .read()
+        .file_icons
+        .get_file(&file.path)
+        .svg
+        .clone();
+
     let on_press = {
         let path = file.path.clone();
         move |_: Event<PressEventData>| {
@@ -139,6 +146,7 @@ fn file_search_item_builder(
     FileSearchOption {
         key_id: display.clone(),
         text: display,
+        icon: icon_svg,
         is_selected,
         on_press: on_press.into(),
     }
@@ -149,6 +157,7 @@ fn file_search_item_builder(
 struct FileSearchOption {
     key_id: String,
     text: String,
+    icon: Bytes,
     is_selected: bool,
     on_press: EventHandler<Event<PressEventData>>,
 }
@@ -171,8 +180,16 @@ impl Component for FileSearchOption {
             .width(Size::fill())
             .height(Size::px(ITEM_HEIGHT))
             .corner_radius(8.)
-            .main_align(Alignment::Center)
+            .horizontal()
+            .cross_align(Alignment::Center)
             .on_press(self.on_press.clone())
+            .child(
+                svg(self.icon.clone())
+                    .width(Size::px(14.))
+                    .height(Size::px(14.))
+                    .fill(Color::from_rgb(180, 180, 180))
+                    .margin((0., 6., 0., 0.)),
+            )
             .child(
                 label()
                     .max_lines(1)
