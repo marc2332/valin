@@ -11,7 +11,7 @@ pub mod GlobalDefaults {
 
     use super::{
         ClosePanelCommand, CloseTabCommand, FocusNextPanelCommand, FocusPreviousPanelCommand,
-        OpenSettingsCommand, SplitPanelCommand, ToggleCommanderCommand,
+        OpenFileSearchCommand, OpenSettingsCommand, SplitPanelCommand, ToggleCommanderCommand,
     };
 
     pub fn init(
@@ -27,6 +27,7 @@ pub mod GlobalDefaults {
         commands.register(CloseTabCommand(radio_app_state));
         commands.register(FocusNextPanelCommand(radio_app_state));
         commands.register(FocusPreviousPanelCommand(radio_app_state));
+        commands.register(OpenFileSearchCommand(radio_app_state));
 
         // Register Shortcuts
         keyboard_shorcuts.register(
@@ -35,11 +36,26 @@ pub mod GlobalDefaults {
              mut radio_app_state: RadioAppState| {
                 let is_pressing_alt = data.modifiers == Modifiers::ALT;
                 let is_pressing_ctrl = data.modifiers == Modifiers::CONTROL;
+                let is_pressing_ctrl_shift =
+                    data.modifiers == (Modifiers::CONTROL | Modifiers::SHIFT);
 
                 match data.code {
+                    // Pressing `Escape` closes any popup view
+                    Code::Escape => {
+                        if !radio_app_state.read().focused_view.is_popup() {
+                            return false;
+                        }
+                        radio_app_state
+                            .write_channel(Channel::Global)
+                            .focus_previous_view();
+                    }
+                    // Pressing `Ctrl Shift P`
+                    Code::KeyP if is_pressing_ctrl_shift => {
+                        commands.trigger(ToggleCommanderCommand::id());
+                    }
                     // Pressing `Ctrl P`
                     Code::KeyP if is_pressing_ctrl => {
-                        commands.trigger(ToggleCommanderCommand::id());
+                        commands.trigger(OpenFileSearchCommand::id());
                     }
                     // Pressing `Alt E`
                     Code::KeyE if is_pressing_alt => {
@@ -260,6 +276,36 @@ impl EditorCommand for FocusNextPanelCommand {
         let mut radio_app_state = self.0;
         let mut app_state = radio_app_state.write_channel(Channel::Global);
         app_state.focus_next_panel();
+    }
+}
+
+#[derive(Clone)]
+pub struct OpenFileSearchCommand(pub RadioAppState);
+
+impl OpenFileSearchCommand {
+    pub fn id() -> &'static str {
+        "open-file-search"
+    }
+}
+
+impl EditorCommand for OpenFileSearchCommand {
+    fn matches(&self, input: &str) -> bool {
+        self.text().to_lowercase().contains(&input.to_lowercase())
+    }
+
+    fn id(&self) -> &str {
+        Self::id()
+    }
+
+    fn text(&self) -> &str {
+        "Search Files"
+    }
+
+    fn run(&self, ctx: &mut CommandRunContext) {
+        let mut radio_app_state = self.0;
+        let mut app_state = radio_app_state.write_channel(Channel::Global);
+        app_state.focus_view(EditorView::FileSearch);
+        ctx.focus_previous_view = false;
     }
 }
 

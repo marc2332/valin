@@ -23,13 +23,12 @@ impl KeyboardShortcuts {
         data: &KeyboardEventData,
         editor_commands: &mut EditorCommands,
         radio_app_state: RadioAppState,
-    ) {
+    ) -> bool {
         for event_handler in &self.handlers {
-            let res = (event_handler)(data, editor_commands, radio_app_state);
-
-            if res {
-                break;
+            if (event_handler)(data, editor_commands, radio_app_state) {
+                return true;
             }
         }
+        false
     }
 }

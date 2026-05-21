@@ -8,6 +8,7 @@ use crate::views::file_explorer::FileExplorer;
 use crate::views::file_explorer::file_explorer_ui::{
     ExplorerItem, FolderState, read_folder_as_items,
 };
+use crate::views::file_search::file_search_ui::FileSearch;
 use crate::views::panels::tabs::editor::EditorTab;
 use crate::views::panels::tabs::welcome::WelcomeTab;
 use crate::{
@@ -116,9 +117,15 @@ impl App for AppView {
 
         // Trigger Shortcuts
         let on_global_key_down = move |e: Event<KeyboardEventData>| {
-            keyboard_shorcuts
-                .write()
-                .run(e.data(), &mut editor_commands.write(), radio_app_state);
+            let handled = keyboard_shorcuts.write().run(
+                e.data(),
+                &mut editor_commands.write(),
+                radio_app_state,
+            );
+            if handled {
+                e.stop_propagation();
+                e.prevent_default();
+            }
         };
 
         let focused_view = radio_app_state.read().focused_view;
@@ -175,6 +182,11 @@ impl App for AppView {
             .on_global_key_down(on_global_key_down)
             .maybe_child(if focused_view == EditorView::Commander {
                 Some(Commander { editor_commands })
+            } else {
+                None
+            })
+            .maybe_child(if focused_view == EditorView::FileSearch {
+                Some(FileSearch { radio_app_state })
             } else {
                 None
             })

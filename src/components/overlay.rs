@@ -45,7 +45,7 @@ impl Component for Overlay {
                     .width(Size::fill())
                     .height(Size::window_percent(100.))
                     .position(Position::new_global())
-                    .center()
+                    .cross_align(Alignment::Center)
                     .child(
                         rect()
                             .background((13, 17, 23))
@@ -60,6 +60,7 @@ impl Component for Overlay {
                             .corner_radius(12.)
                             .on_mouse_down(on_mouse_down)
                             .width(Size::px(500.))
+                            .margin((60., 0., 0., 0.))
                             .padding(5.)
                             .children(self.children.clone()),
                     ),
