@@ -60,7 +60,7 @@ pub const GITHUB_DARK_EDITOR_THEME: EditorTheme = EditorTheme {
     gutter_selected: Color::from_rgb(230, 237, 243),
     gutter_unselected: Color::from_rgb(139, 148, 158),
     line_selected_background: Color::from_rgb(33, 37, 53),
-    cursor: Color::from_rgb(230, 237, 243),
+    cursor: Color::from_af32rgb(0.5, 230, 237, 243),
     highlight: Color::from_af32rgb(0.4, 56, 139, 253),
     text: Color::from_rgb(230, 237, 243),
     whitespace: Color::from_af32rgb(0.2, 110, 118, 129),
