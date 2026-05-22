@@ -12,13 +12,13 @@ repository = "https://github.com/marc2332/valin"
 devtools = ["freya/devtools"]
 
 [dependencies]
-freya = { git = "https://github.com/marc2332/freya", branch = "feat/code-editor-capture-improvements", features = [
+freya = { git = "https://github.com/marc2332/freya", branch = "feat/input-capture-improvements", features = [
   "markdown",
   "radio",
   "code-editor",
   "icons",
 ] }
-freya-performance-plugin = { git = "https://github.com/marc2332/freya", branch = "feat/code-editor-capture-improvements" }
+freya-performance-plugin = { git = "https://github.com/marc2332/freya", branch = "feat/input-capture-improvements" }
 
 async-io = "2.5.0"
 

@@ -4,7 +4,7 @@ use freya::prelude::*;
 use ignore::WalkBuilder;
 
 use crate::{
-    components::{Overlay, TextArea},
+    components::Overlay,
     state::{Channel, RadioAppState},
     views::panels::tabs::editor::EditorTab,
 };
@@ -81,17 +81,34 @@ impl Component for FileSearch {
             }
         };
 
+        use_side_effect(move || {
+            let _ = value.read();
+            selected.set_if_modified(0);
+        });
+
         Overlay::new().child(
             rect()
                 .on_key_down(onkeydown)
                 .spacing(5.)
                 .child(
-                    TextArea::new(value)
+                    Input::new(value)
+                        .width(Size::fill())
+                        .auto_focus(true)
+                        .inner_margin(12.)
                         .placeholder("Search files...")
-                        .on_change(move |_: String| {
-                            selected.set(0);
-                        })
-                        .on_submit(on_submit),
+                        .on_submit(on_submit)
+                        .on_pre_key_down(|e: Event<KeyboardEventData>| match e.code {
+                            Code::ArrowUp | Code::ArrowDown => false,
+                            _ => match &e.key {
+                                Key::Named(NamedKey::Enter) | Key::Named(NamedKey::Escape) => true,
+                                Key::Named(NamedKey::Tab) => false,
+                                _ => {
+                                    e.stop_propagation();
+                                    e.prevent_default();
+                                    true
+                                }
+                            },
+                        }),
                 )
                 .child(if filtered_count == 0 {
                     rect()
