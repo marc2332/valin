@@ -26,8 +26,11 @@ impl Component for StatusBar {
         };
 
         let app_state = radio_app_state.read();
-        let panel = &app_state.panels[app_state.focused_panel];
-        let tab_data = if let Some(active_tab) = panel.active_tab {
+        let active_tab = app_state
+            .focused_panel
+            .and_then(|pid| app_state.panel_tree.as_ref()?.panel(&pid))
+            .and_then(|panel| panel.active_tab_id);
+        let tab_data = if let Some(active_tab) = active_tab {
             app_state
                 .tab(&active_tab)
                 .as_text_editor()

@@ -8,7 +8,7 @@ use futures_channel::mpsc::UnboundedSender;
 use crate::{
     components::ButtonStatus,
     fs::FSTransport,
-    state::{AppState, Channel, EditorView, RadioAppState},
+    state::{AppState, Channel, DropValue, EditorView, RadioAppState},
     views::panels::tabs::editor::EditorTab,
 };
 
@@ -339,6 +339,8 @@ fn file_explorer_item_builder(
     let is_focused = *focused_item.read() == index;
 
     let item = item.clone();
+    let is_file = item.is_file;
+    let path = item.path.clone();
     let icon_svg = {
         let app_state = radio_app_state.read();
         if item.is_file {
@@ -366,7 +368,7 @@ fn file_explorer_item_builder(
         let _ = channel.unbounded_send((task, index));
     };
 
-    FileExplorerItem {
+    let explorer_item = FileExplorerItem {
         depth: item.depth,
         radio_app_state: *radio_app_state,
         on_press: on_press.into(),
@@ -386,11 +388,27 @@ fn file_explorer_item_builder(
                 label()
                     .max_lines(1)
                     .text_overflow(TextOverflow::Ellipsis)
-                    .text(name),
+                    .text(name.clone()),
             )
             .into(),
     }
-    .into()
+    .into_element();
+
+    // Folders are not draggable.
+    if !is_file {
+        return explorer_item;
+    }
+
+    DragZone::<DockDrag<DropValue>>::new(DockDrag::new(DropValue::File(path)), explorer_item)
+        .drag_element(
+            rect()
+                .interactive(false)
+                .background((13, 17, 23))
+                .corner_radius(6.)
+                .padding((4., 8.))
+                .child(label().max_lines(1).text(name)),
+        )
+        .into_element()
 }
 
 #[derive(Clone, PartialEq)]

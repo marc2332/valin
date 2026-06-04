@@ -10,6 +10,6 @@ pub use app::*;
 pub use commands::*;
 pub use file_icons::FileIcons;
 pub use keyboard_shortcuts::*;
-pub use panels_tabs::*;
+pub use panels_tabs::{PanelId, PanelTab, PanelTabData, TabId, TabProps, TabSwitcherState};
 pub use settings::*;
 pub use views::*;

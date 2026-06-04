@@ -28,6 +28,7 @@ pub struct TabProps {
 }
 
 static TAB_IDS: AtomicU64 = AtomicU64::new(0);
+static PANEL_IDS: AtomicU64 = AtomicU64::new(0);
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord)]
 pub struct TabId(u64);
@@ -45,6 +46,16 @@ impl Display for TabId {
     }
 }
 
+#[derive(PartialEq, Eq, Debug, Clone, Copy, Hash, PartialOrd, Ord)]
+pub struct PanelId(u64);
+
+impl PanelId {
+    pub fn new() -> Self {
+        let n = PANEL_IDS.fetch_add(1, Ordering::Relaxed);
+        Self(n)
+    }
+}
+
 #[derive(PartialEq, Eq)]
 pub struct PanelTabData {
     pub edited: bool,
@@ -54,12 +65,6 @@ pub struct PanelTabData {
     pub focus_id: AccessibilityId,
     /// SVG icon bytes for this tab, or `None` for tabs without a file icon.
     pub icon: Option<Bytes>,
-}
-
-#[derive(Default)]
-pub struct Panel {
-    pub active_tab: Option<TabId>,
-    pub tabs: Vec<TabId>,
 }
 
 pub struct TabSwitcherState {

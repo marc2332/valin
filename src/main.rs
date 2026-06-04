@@ -81,17 +81,20 @@ fn main() {
 
     info!("Starting valin. \n{args:#?}");
 
-    let mut config = LaunchConfig::default();
-
-    if args.fps {
-        config = config.with_plugin(PerformanceOverlayPlugin::default())
-    }
-
     launch(
-        config.with_window(
-            WindowConfig::new_app(AppView(args.clone()))
-                .with_size(1100.0, 800.0)
-                .with_title("Valin"),
-        ),
+        LaunchConfig::default()
+            .with_plugin(
+                PerformanceOverlayPlugin::default()
+                    .with_toggle_shortcut(
+                        Key::Character("o".to_string()),
+                        Modifiers::ctrl_or_meta(),
+                    )
+                    .with_visible(args.fps),
+            )
+            .with_window(
+                WindowConfig::new_app(AppView(args.clone()))
+                    .with_size(1100.0, 800.0)
+                    .with_title("Valin"),
+            ),
     );
 }

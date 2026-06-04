@@ -1,5 +1,5 @@
 use crate::{
-    state::{Channel, CommandRunContext, EditorCommand, EditorView, Panel, RadioAppState},
+    state::{Channel, CommandRunContext, EditorCommand, EditorView, RadioAppState},
     views::panels::tabs::settings::Settings,
 };
 
@@ -129,10 +129,9 @@ impl EditorCommand for SplitPanelCommand {
 
     fn run(&self, _ctx: &mut CommandRunContext) {
         let mut radio_app_state = self.0;
-
-        let mut app_state = radio_app_state.write_channel(Channel::Global);
-        app_state.push_panel(Panel::default());
-        app_state.focused_panel = app_state.panels.len() - 1;
+        radio_app_state
+            .write_channel(Channel::Global)
+            .split_focused_panel();
     }
 }
 

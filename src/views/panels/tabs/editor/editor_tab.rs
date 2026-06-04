@@ -37,10 +37,10 @@ impl PanelTab for EditorTab {
     fn get_data(&self) -> PanelTabData {
         PanelTabData {
             id: self.id,
-            title: self.content_id(),
+            title: self.file_name(),
             edited: self.data.is_edited(),
             focus_id: self.focus_id,
-            content_id: self.content_id(),
+            content_id: self.path.to_string_lossy().into_owned(),
             icon: Some(self.icon.clone()),
         }
     }
@@ -104,7 +104,7 @@ impl EditorTab {
         }
     }
 
-    pub fn content_id(&self) -> String {
+    pub fn file_name(&self) -> String {
         self.path.file_name().unwrap().to_str().unwrap().to_owned()
     }
 

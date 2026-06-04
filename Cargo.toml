@@ -1,6 +1,6 @@
 [package]
 name = "valin"
-version = "0.28.0"
+version = "0.29.0"
 edition = "2024"
 description = "A code editor built with Freya and Rust"
 authors = ["Marc Espín <mespinsanz@gmail.com>"]
@@ -12,13 +12,13 @@ repository = "https://github.com/marc2332/valin"
 devtools = ["freya/devtools"]
 
 [dependencies]
-freya = { git = "https://github.com/marc2332/freya", branch = "feat/input-capture-improvements", features = [
+freya = { version = "0.4.0-rc.22", features = [
   "markdown",
   "radio",
   "code-editor",
   "icons",
 ] }
-freya-performance-plugin = { git = "https://github.com/marc2332/freya", branch = "feat/input-capture-improvements" }
+freya-performance-plugin = "0.4.0-rc.22"
 
 async-io = "2.5.0"
 

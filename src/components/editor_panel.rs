@@ -1,203 +1,143 @@
-use crate::components::EditorTab;
-use crate::components::Logo;
-use crate::state::EditorView;
-use crate::state::TabId;
-use crate::state::TabProps;
-use crate::state::{AppState, Channel, Panel};
-use freya::helpers::from_fn;
+use super::{CrossIcon, Logo};
+use crate::state::{AppState, Channel, EditorView, PanelId, TabId};
 use freya::prelude::*;
 use freya::radio::use_radio;
 
+/// Content shown in a panel with no tabs.
 #[derive(Clone, PartialEq)]
-pub struct EditorPanel {
-    pub panel_index: usize,
+pub struct EmptyPanel {
+    pub panel_id: PanelId,
 }
 
-impl Component for EditorPanel {
-    fn render_key(&self) -> DiffKey {
-        DiffKey::from(&self.panel_index)
-    }
+impl Component for EmptyPanel {
     fn render(&self) -> impl IntoElement {
-        let panel_index = self.panel_index;
-        let mut radio_app_state = use_radio::<AppState, Channel>(Channel::AllTabs);
+        let panel_id = self.panel_id;
+        let mut radio = use_radio::<AppState, Channel>(Channel::Global);
+        let is_focused = radio.read().focused_panel == Some(panel_id);
 
-        let app_state = radio_app_state.read();
-        let panels_len = app_state.panels.len();
-        let is_last_panel = panels_len - 1 == panel_index;
-        let is_focused = app_state.focused_panel == panel_index;
-        let panel = &app_state.panels[panel_index];
-        let active_tab = panel.active_tab;
-
-        let show_close_panel = panels_len > 1;
-        let extra_container_width = if is_last_panel { 0.0 } else { 1.0 };
-
-        let close_panel = move |e: Event<PressEventData>| {
-            e.stop_propagation();
-            e.prevent_default();
-            radio_app_state
-                .write_channel(Channel::Global)
-                .close_panel(panel_index);
-        };
-
-        let split_panel = move |_| {
-            let mut app_state = radio_app_state.write_channel(Channel::Global);
-            app_state.push_panel(Panel::default());
-            app_state.focus_next_panel();
-        };
-
-        let on_presspanel = move |_| {
-            let (is_panel_focused, is_panels_view_focused) = {
-                let app_state = radio_app_state.read();
-                (
-                    app_state.focused_panel == panel_index,
-                    app_state.focused_view == EditorView::Panels,
-                )
-            };
-
-            if !is_panel_focused {
-                radio_app_state
-                    .write_channel(Channel::AllTabs)
-                    .focused_panel = panel_index;
-            }
-
-            if !is_panels_view_focused {
-                radio_app_state
-                    .write_channel(Channel::Global)
-                    .focus_view(EditorView::Panels);
-            }
-        };
-
-        rect().horizontal().expanded().child(
-            rect()
-                .width(Size::func(move |ctx| {
-                    Some(ctx.parent - extra_container_width)
-                }))
-                .height(Size::fill())
-                .overflow(Overflow::Clip)
-                .child(
-                    rect()
-                        .horizontal()
-                        .height(Size::px(32.0))
-                        .width(Size::fill())
-                        .cross_align(Alignment::Center)
-                        .content(Content::Flex)
-                        .child(
-                            ScrollView::new()
-                                .direction(Direction::Horizontal)
-                                .width(Size::flex(1.))
-                                .show_scrollbar(false)
-                                .children(panel.tabs.iter().map(|tab_id| {
-                                    let is_selected = active_tab == Some(*tab_id);
-                                    PanelTab {
-                                        panel_index,
-                                        tab_id: *tab_id,
-                                        is_selected,
-                                    }
-                                    .into()
-                                })),
-                        )
-                        .child(
-                            rect()
-                                .horizontal()
-                                .cross_align(Alignment::Center)
-                                .main_align(Alignment::End)
-                                .height(Size::fill())
-                                .spacing(4.0)
-                                .padding(4.0)
-                                .maybe_child(show_close_panel.then(|| {
-                                    Button::new()
-                                        .flat()
-                                        .height(Size::fill())
-                                        .padding((0., 8.))
-                                        .on_press(close_panel)
-                                        .child(
-                                            svg(freya::icons::lucide::x())
-                                                .width(Size::px(16.0))
-                                                .height(Size::px(16.0))
-                                                .color((200, 200, 200)),
-                                        )
-                                }))
-                                .child(
-                                    Button::new()
-                                        .flat()
-                                        .height(Size::fill())
-                                        .padding((0., 8.))
-                                        .on_press(split_panel)
-                                        .child(
-                                            svg(freya::icons::lucide::columns_2())
-                                                .width(Size::px(20.0))
-                                                .height(Size::px(20.0))
-                                                .color((200, 200, 200)),
-                                        ),
-                                ),
-                        ),
-                )
-                .child(
-                    rect()
-                        .expanded()
-                        .on_pointer_down(on_presspanel)
-                        .background((8, 8, 12))
-                        .child(if let Some(tab_id) = active_tab {
-                            let active_tab = app_state.tab(&tab_id);
-                            let render = active_tab.render();
-                            from_fn(tab_id, TabProps { tab_id }, render)
-                        } else {
-                            rect()
-                                .expanded()
-                                .center()
-                                .child(Logo {
-                                    enabled: is_focused,
-                                    width: 200.,
-                                    height: 200.,
-                                })
-                                .into()
-                        }),
-                ),
-        )
+        rect()
+            .expanded()
+            .center()
+            .background((8, 8, 12))
+            .on_pointer_down(move |_| {
+                if radio.read().focused_panel == Some(panel_id) {
+                    return;
+                }
+                let mut state = radio.write_channel(Channel::Global);
+                state.focused_panel = Some(panel_id);
+                if state.focused_view != EditorView::Panels {
+                    state.focused_view = EditorView::Panels;
+                }
+            })
+            .child(Logo {
+                enabled: is_focused,
+                width: 200.,
+                height: 200.,
+            })
     }
 }
 
+/// Visual tab-header button rendered inside the docking tab bar.
 #[derive(Clone, PartialEq)]
-pub struct PanelTab {
-    pub panel_index: usize,
+pub struct EditorTabButton {
     pub tab_id: TabId,
+    pub value: String,
+    pub on_close: EventHandler<()>,
     pub is_selected: bool,
+    pub icon: Option<Bytes>,
 }
 
-impl Component for PanelTab {
+impl Component for EditorTabButton {
     fn render(&self) -> impl IntoElement {
-        let panel_index = self.panel_index;
-        let tab_id = self.tab_id;
-        let is_selected = self.is_selected;
+        let mut is_hovering = use_state(|| false);
 
-        let mut radio_app_state = use_radio::<AppState, Channel>(Channel::follow_tab(tab_id));
-        let app_state = radio_app_state.read();
-        let tab = app_state.tab(&tab_id);
-        let tab_data = tab.get_data();
+        let radio = use_radio::<AppState, Channel>(Channel::follow_tab(self.tab_id));
+        let is_edited = radio.read().tab(&self.tab_id).get_data().edited;
 
-        let on_press = move |_| {
-            let mut app_state = radio_app_state.write_channel(Channel::Global);
-            app_state.focused_panel = panel_index;
-            app_state.panels[panel_index].active_tab = Some(tab_id);
+        let background = match (*is_hovering.read(), self.is_selected) {
+            (_, true) | (true, _) => (13, 17, 23).into(),
+            _ => Color::TRANSPARENT,
+        };
+        let selected_color: Color = if self.is_selected {
+            (247, 129, 102).into()
+        } else {
+            background
         };
 
-        let on_pressaction = move |_| {
-            if tab_data.edited {
-                // Save logic here if needed
-            } else {
-                radio_app_state
-                    .write_channel(Channel::Global)
-                    .close_tab(tab_id);
-            }
-        };
+        let on_close = self.on_close.clone();
 
-        EditorTab {
-            on_press: on_press.into(),
-            on_click_indicator: on_pressaction.into(),
-            value: tab_data.title,
-            is_edited: tab_data.edited,
-            is_selected,
-            icon: tab_data.icon,
-        }
+        rect()
+            .width(Size::px(140.0))
+            .height(Size::fill())
+            .on_pointer_over(move |_| is_hovering.set(true))
+            .on_pointer_out(move |_| is_hovering.set(false))
+            .child(
+                rect()
+                    .height(Size::px(2.))
+                    .width(Size::fill())
+                    .background(selected_color),
+            )
+            .child(
+                rect()
+                    .background(background)
+                    .expanded()
+                    .cross_align(Alignment::Center)
+                    .horizontal()
+                    .padding((0., 0., 0., 10.))
+                    .maybe_child(self.icon.clone().map(|icon_bytes| {
+                        svg(icon_bytes)
+                            .width(Size::px(14.0))
+                            .height(Size::px(14.0))
+                            .fill(Color::from_rgb(180, 180, 180))
+                            .margin((0., 4., 0., 0.))
+                    }))
+                    .child(
+                        label()
+                            .width(Size::func(|c| Some(c.available_parent - 28.)))
+                            .max_lines(1)
+                            .font_size(13.)
+                            .text_overflow(TextOverflow::Ellipsis)
+                            .text(self.value.clone()),
+                    )
+                    .child(
+                        rect()
+                            .width(Size::px(24.0))
+                            .height(Size::fill())
+                            .center()
+                            .on_press(move |e: Event<PressEventData>| {
+                                e.stop_propagation();
+                                e.prevent_default();
+                                on_close.call(());
+                            })
+                            .maybe_child(if is_edited {
+                                Some(
+                                    rect()
+                                        .center()
+                                        .expanded()
+                                        .child(
+                                            rect()
+                                                .background((125, 133, 144))
+                                                .width(Size::px(10.0))
+                                                .height(Size::px(10.0))
+                                                .corner_radius(CornerRadius::new_all(100.0)),
+                                        )
+                                        .into_element(),
+                                )
+                            } else if *is_hovering.read() || self.is_selected {
+                                Some(
+                                    Button::new()
+                                        .flat()
+                                        .padding(4.)
+                                        .rounded()
+                                        .child(CrossIcon {
+                                            fill: (125, 133, 144).into(),
+                                        })
+                                        .into_element(),
+                                )
+                            } else {
+                                None
+                            }),
+                    ),
+            )
     }
 }
