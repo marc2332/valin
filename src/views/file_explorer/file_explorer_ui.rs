@@ -314,7 +314,7 @@ impl Component for FileExplorer {
                         move |a, b| file_explorer_item_builder(a, channel.clone(), b),
                     )
                     .length(length)
-                    .item_size(27.)
+                    .item_size(25.)
                     .scroll_with_arrows(false),
                 )
         }
