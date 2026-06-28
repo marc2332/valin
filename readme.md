@@ -6,7 +6,7 @@
 
 > **Valin** name is derived from [Dvalinn](https://en.wikipedia.org/wiki/Dvalinn) and it was previously known as `freya-editor`.
 
-![Demo](./demo.png)
+![Demo](./valin.png)
 
 ## Installation
 
